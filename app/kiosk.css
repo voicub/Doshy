@@ -1,0 +1,40 @@
+/* Touch, kiosk and interface size (loaded after globals.css; the older touch layer in globals.css stays). Attributes on <html>: components/ViewportClass.tsx, components/KioskTouch.tsx. */
+
+/* The page itself never scrolls, bounces or pulls to refresh; double-tap zoom is off everywhere. The 3D canvas owns every touch gesture (orbit, pan, pinch): `!important` because the canvas gets an inline `touch-action: auto` at run time (seen in the browser; likely three's OrbitControls), which would hand pinch and pan to the page. */
+html, body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
+/* No pinch zoom or double-tap zoom on the HUD either (panels still scroll with a finger). Sliders and dials set their own touch-action. */
+.chrome { touch-action: pan-x pan-y; }
+.stage canvas { touch-action: none !important; }
+
+/* A long press must not select text or open a callout on a touch screen or a kiosk. Text fields stay selectable (copy and paste); give other text `class="selectable"` to allow selecting it. */
+html:is([data-coarse="1"], [data-kiosk="1"]) .app { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html:is([data-coarse="1"], [data-kiosk="1"]) .app :is(input, textarea, [contenteditable="true"], .selectable) { -webkit-user-select: text; user-select: text; }
+
+/* Press feedback: a finger covers the control, so it lights up while it is held (hover does not exist on a touch screen). */
+@media (pointer: coarse) {
+  :is(.chrome, .dp-scrim) :is(button, [role="button"], summary):not(:disabled):active { background-color: rgba(90, 215, 255, 0.22); transition-duration: 0s; }
+}
+
+/* Interface size (Display settings). `--ui-scale` is on <html>; the HUD (not the 3D view) is zoomed. Inside a zoomed box vw / vh units are multiplied by the zoom too, so --vw / --vh give the
+   unit that fits: use calc(100 * var(--vh)) instead of 100vh in HUD panels. At Normal nothing is applied, so the regular layout is untouched. */
+:root { --vw: 1vw; --vh: 1vh; }
+html[data-ui-size]:not([data-ui-size="normal"]) :is(.chrome, .hud.dp) { zoom: var(--ui-scale); --vw: calc(1vw / var(--ui-scale)); --vh: calc(1vh / var(--ui-scale)); }
+
+/* The screensaver covers the screen: the HUD under it is not drawn at all (its blurred glass panels are the costliest thing to paint on a Pi). */
+html[data-saver] .chrome { visibility: hidden; }
+
+/* No hover on a touch screen: a tapped control would stay "hovered" until the next tap elsewhere, which reads as selected. These put the shared controls from globals.css back to their resting look
+   (the values mirror the base rules there; pressed / active / lit states are left alone). The hover-only dock labels already show on press (globals.css, `.tip:active`). Panel-specific hover rules belong to their panels. */
+@media (hover: none) {
+  .seg button:not([aria-pressed="true"]):hover, .tab:not(.active):hover { color: var(--muted); }
+  .t-btn:not([aria-pressed="true"]):hover, .icon-btn:hover { color: var(--muted); background: none; }
+  .btn:not(.primary):not(.danger):hover { border-color: var(--accent-line); color: var(--text); background: none; }
+  .btn.danger:hover { border-color: rgba(255, 106, 61, 0.35); background: none; }
+  .preset:not([aria-pressed="true"]):hover, .eb-chip:not([aria-pressed="true"]):hover { color: var(--muted); border-color: var(--accent-line); }
+  .card:hover { border-color: var(--accent-line); background: rgba(255, 255, 255, 0.015); }
+  .card:hover::after { content: none; }
+  .swatch:hover { transform: none; }
+  .ring:not(.on):hover { transform: none; border-color: rgba(232, 241, 247, 0.38); }
+  .ring.on:hover { transform: none; }
+  .chip:not(:disabled):not(.lit):hover { border-color: var(--accent-line); }
+}

@@ -1,0 +1,20 @@
+# Doshy. Deploy this file as a stack (Portainer: Stacks > Add stack > paste it); the image is pulled from ghcr.io/voicub/doshy.
+# To build from source instead: docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  doshy:
+    image: ghcr.io/voicub/doshy:latest
+    container_name: doshy
+    restart: unless-stopped
+    ports:
+      - "${HOUSEY_PORT:-3000}:3000"
+    environment:
+      HA_URL: ${HA_URL:?Set HA_URL to your Home Assistant address, e.g. https://ha.example.com}
+      HA_TOKEN: ${HA_TOKEN:?Set HA_TOKEN to a long-lived access token}
+      TZ: ${TZ:-UTC}
+      SKETCHFAB_TOKEN: ${SKETCHFAB_TOKEN:-}
+      HOUSEY_AUTOMATION: ${HOUSEY_AUTOMATION:-}
+    volumes:
+      - housey-data:/data # database, backups, imported models, map cache
+
+volumes:
+  housey-data:

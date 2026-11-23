@@ -1,0 +1,3 @@
+/* Full-screen rain layers above the 3D scene */
+.rain-canvas, .rain-tint { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 55; pointer-events: none; }
+.rain-tint { background: linear-gradient(180deg, rgba(130, 160, 185, 0.05), rgba(130, 160, 185, 0.02)); transition: opacity 0.6s; }

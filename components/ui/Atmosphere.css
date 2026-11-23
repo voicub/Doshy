@@ -1,0 +1,7 @@
+/* Ambient screen layers: scanlines, vignette, one-shot sweep */
+.atm { position: absolute; inset: 0; z-index: 20; pointer-events: none; overflow: hidden; }
+.atm i { position: absolute; inset: 0; display: block; }
+.atm-scan { background: repeating-linear-gradient(to bottom, rgba(90, 215, 255, 0.6) 0 1px, transparent 1px 3px); opacity: 0.03; }
+.atm-vig { background: radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.45) 100%); }
+.atm i.atm-sweep { inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent) 30%, var(--accent) 70%, transparent); box-shadow: 0 0 12px var(--accent); opacity: 0; animation: sweep 0.9s var(--ease) both; }
+@keyframes sweep { 0% { transform: translateY(0); opacity: 0.8; } 100% { transform: translateY(100vh); opacity: 0; } }

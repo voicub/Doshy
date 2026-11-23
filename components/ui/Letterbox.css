@@ -1,0 +1,11 @@
+/* Cinema mode: letterbox bars, title card, escape hint */
+.bar { position: fixed; left: 0; right: 0; z-index: 70; background: #000; height: max(0px, calc((100dvh - 100vw / 2.39) / 2)); pointer-events: none; transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1); }
+.bar.top { top: 0; transform: translateY(-101%); }
+.bar.bottom { bottom: 0; transform: translateY(101%); }
+.bar.on { transform: none; }
+.title-card { position: fixed; inset: 0; z-index: 75; pointer-events: none; display: grid; place-content: center; justify-items: center; gap: 16px; }
+.title-card span { font: 300 30px/1 var(--mono); letter-spacing: 1em; text-indent: 1em; color: var(--text); text-shadow: 0 0 28px #000, 0 0 8px rgba(0, 0, 0, 0.8); animation: title 3.4s ease-in-out 0.6s both; }
+.title-card::after { content: ""; width: 120px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: title 3.4s ease-in-out 0.6s both; }
+@keyframes title { 0% { opacity: 0; filter: blur(8px); } 25%, 70% { opacity: 1; filter: blur(0); } 100% { opacity: 0; filter: blur(4px); } }
+.esc-hint { position: fixed; right: 18px; bottom: 14px; z-index: 76; font: 500 10px/1 var(--mono); letter-spacing: 0.2em; color: var(--text); opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+.esc-hint.on { opacity: 0.3; transition-delay: 1s; }

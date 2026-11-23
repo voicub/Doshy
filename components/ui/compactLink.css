@@ -1,0 +1,81 @@
+/* Home Assistant linking on compact screens (every data-vp but "regular": 800x480 and 1024x600 touch panels, phones): the entity picker page (EntityPickerFull.tsx),
+   the "linked to" rows of the Link sheet (EntityPicker.tsx, LinkInspector.tsx) and the entity list (EntityBrowser.tsx). Finger targets are 44 px or more, text 12 px or more. */
+
+/* ---------- the "linked to" row + Choose / Unlink buttons (the Link sheet) ---------- */
+.ep-current { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--accent-soft); }
+.ep-current.none { background: rgba(0, 0, 0, 0.3); color: var(--muted); }
+.ep-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ep-main b { font-size: 15px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-main small { font: 400 12px/1.2 var(--mono); letter-spacing: 0.02em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-state { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 13px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ep-state.on { color: var(--accent); }
+.ep-state.bad { color: var(--err-text); }
+.ep-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.ep-btns .btn { flex: 1 1 130px; justify-content: center; }
+
+/* ---------- the full-screen entity picker ---------- */
+.ep-full { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; box-sizing: border-box; background: #070b0f; color: var(--text); font-size: 14px; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.ep-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--accent-line); }
+.ep-back { flex: none; display: flex; align-items: center; gap: 6px; height: 44px; min-width: 44px; padding: 0 12px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.ep-back:active { background: var(--accent-soft); }
+.ep-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.4); color: var(--muted); }
+.ep-search:focus-within { border-color: var(--accent); color: var(--accent); }
+.ep-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 16px; }
+.ep-chips { flex: none; display: flex; gap: 6px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--accent-line); }
+.ep-chips::-webkit-scrollbar { display: none; }
+.ep-chip { flex: none; height: 44px; padding: 0 14px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.ep-chip[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.ep-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ep-list ul { list-style: none; margin: 0; padding: 0; }
+.ep-sec { position: sticky; top: 0; z-index: 1; margin: 0; padding: 10px 12px 8px; background: #0a1218; border-bottom: 1px solid var(--accent-line); font: 500 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.ep-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(90, 215, 255, 0.08); }
+.ep-row:active { background: var(--accent-soft); }
+.ep-row[aria-current] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.ep-row > svg { flex: none; color: var(--muted); }
+.ep-note { margin: 0; padding: 16px 12px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+@media (prefers-reduced-motion: no-preference) { .ep-row, .ep-chip { transition: background 0.12s; } }
+
+/* ---------- the Link sheet ---------- */
+html:not([data-vp="regular"]) .link-sheet .entity-current { min-height: 56px; padding: 8px 10px; }
+html:not([data-vp="regular"]) .link-sheet .entity-current b { font-size: 15px; font-weight: 600; }
+html:not([data-vp="regular"]) .link-sheet .entity-current small { font-size: 12px; }
+html:not([data-vp="regular"]) .link-sheet .hud-name { font-size: 16px; }
+html:not([data-vp="regular"]) .link-sheet .brought li, html:not([data-vp="regular"]) .link-sheet .brought small { font-size: 12px; }
+html:not([data-vp="regular"]) .link-sheet .room-items .ri-row { font-size: 14px; min-height: 52px; }
+html:not([data-vp="regular"]) .link-sheet .room-items .ri-row small { font-size: 12px; }
+html:not([data-vp="regular"]) .link-sheet .room-items .ri-count { font-size: 12px; }
+html:not([data-vp="regular"]) .link-sheet .room-items .ri-list { max-height: none; }
+.link-more { display: flex; flex-direction: column; gap: 10px; }
+.link-more > summary { display: flex; align-items: center; min-height: 44px; padding: 0 10px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); cursor: pointer; list-style: none; }
+.link-more > summary::-webkit-details-marker { display: none; }
+.link-more > summary::after { content: "+"; margin-left: auto; font-size: 16px; color: var(--accent); }
+.link-more[open] > summary::after { content: "\2212"; }
+.link-more[open] > summary { margin-bottom: 0; color: var(--accent); }
+
+/* ---------- the entity list (EntityBrowser.tsx), a sheet on compact screens ---------- */
+html:not([data-vp="regular"]) .eb .eb-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+html:not([data-vp="regular"]) .eb .eb-chips::-webkit-scrollbar { display: none; }
+html:not([data-vp="regular"]) .eb .eb-chips, html:not([data-vp="regular"]) .eb .search { flex: none; }
+html:not([data-vp="regular"]) .eb .eb-body { gap: 6px; }
+html:not([data-vp="regular"]) .eb .eb-bulk-btn { flex: none; white-space: nowrap; border-color: var(--accent); color: var(--accent); }
+html:not([data-vp="regular"]) .eb .eb-chip { flex: none; height: 44px; min-height: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .eb .eb-chip.diag { margin-left: 0; }
+html:not([data-vp="regular"]) .eb .eb-act { position: static; min-width: 44px; height: 44px; min-height: 44px; padding: 0 12px; font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .eb .eb-act::after { content: none; }
+html:not([data-vp="regular"]) .eb .eb-scroll { flex: 1 1 auto; min-height: 160px; }
+html:not([data-vp="regular"]) .eb .eb-head { padding: 0 4px 0 0; gap: 6px; }
+html:not([data-vp="regular"]) .eb .eb-twist { font-size: 12px; min-height: 44px; }
+html:not([data-vp="regular"]) .eb .eb-on, html:not([data-vp="regular"]) .eb .eb-tag, html:not([data-vp="regular"]) .eb .eb-count { font-size: 12px; }
+html:not([data-vp="regular"]) .eb .eb-ent-tiny { justify-content: flex-start; gap: 0; padding: 0; }
+html:not([data-vp="regular"]) .eb .eb-tap { display: flex; flex-direction: column; justify-content: center; gap: 6px; flex: none; width: 100%; height: 68px; padding: 0 12px; text-align: left; }
+html:not([data-vp="regular"]) .eb .eb-tap[aria-expanded="true"] { background: var(--accent-soft); }
+html:not([data-vp="regular"]) .eb .eb-tap .eb-l { height: auto; }
+html:not([data-vp="regular"]) .eb .eb-name { font-size: 15px; font-weight: 600; }
+html:not([data-vp="regular"]) .eb .eb-state { font-size: 13px; }
+html:not([data-vp="regular"]) .eb .eb-id { font-size: 12px; }
+html:not([data-vp="regular"]) .eb .eb-acts { display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; height: 60px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; }
+html:not([data-vp="regular"]) .eb .eb-bulk .eb-act { width: 100%; }
+html:not([data-vp="regular"]) .eb .eb-map-head { flex-wrap: wrap; }
+html:not([data-vp="regular"]) .eb .eb-area { min-height: 56px; font-size: 13px; padding: 10px 12px; }
+html:not([data-vp="regular"]) .eb .eb-area small { font-size: 12px; }
+html:not([data-vp="regular"]) .eb .eb-area i { width: 18px; height: 18px; }

@@ -1,0 +1,51 @@
+/* Inspector content on compact screens (html:not([data-vp="regular"])): the sheet itself comes from ui/sheet.css, this is what sits inside it.
+   Order of a piece: name, Position (X, Y, turn), Height from floor, Size, its look (finish / paint / coat), Advanced (folded), Delete.
+   The DOM keeps the desktop order; flex `order` re-sorts it here only. Number fields: ui/numField.css. */
+.compact-only { display: none; }
+.ins-look { display: contents; }
+
+html:not([data-vp="regular"]) .compact-only { display: flex; }
+html:not([data-vp="regular"]) .inspector .ins-pos { order: 1; }
+html:not([data-vp="regular"]) .inspector .ins-elev { order: 2; }
+html:not([data-vp="regular"]) .inspector .ins-size { order: 3; }
+html:not([data-vp="regular"]) .inspector .ins-look { order: 4; display: flex; flex-direction: column; gap: 10px; }
+html:not([data-vp="regular"]) .inspector .adv { order: 5; }
+html:not([data-vp="regular"]) .inspector .ins-del { order: 6; }
+
+/* chips are finger-sized and wrap two to a row */
+html:not([data-vp="regular"]) .inspector .presets, html:not([data-vp="regular"]) .inspector .chips { gap: 8px; }
+html:not([data-vp="regular"]) .inspector .presets .preset { flex: 1 1 calc(50% - 8px); display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }
+
+/* colour: swatches at least 44 px, wrapped; the custom colour well too */
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .inspector .swatches { gap: 10px; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .inspector .swatch { width: 44px; height: 44px; min-height: 44px; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .inspector .swatch.active { --bi: -3px; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .inspector input.swatch-custom { width: 44px; height: 44px; min-height: 44px; }
+
+/* folds: Advanced and the older "details" inside panels get a 44 px summary */
+html:not([data-vp="regular"]) .inspector details > summary { display: flex; align-items: center; min-height: 44px; font-size: 12px; letter-spacing: 0.1em; list-style: none; }
+html:not([data-vp="regular"]) .inspector details > summary::-webkit-details-marker { display: none; }
+html:not([data-vp="regular"]) .inspector details > summary::after { content: "+"; margin-left: auto; padding-right: 6px; font-size: 18px; }
+html:not([data-vp="regular"]) .inspector details[open] > summary::after { content: "\2212"; }
+html:not([data-vp="regular"]) .inspector .adv > summary { padding: 0 8px 0 12px; border: 1px solid var(--accent-line); border-radius: var(--r); font-family: var(--mono); font-weight: 500; text-transform: uppercase; color: var(--muted); background: rgba(0, 0, 0, 0.25); cursor: pointer; }
+html:not([data-vp="regular"]) .inspector .adv[open] > summary { color: var(--accent); border-color: var(--accent); }
+html:not([data-vp="regular"]) .inspector .adv > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+html:not([data-vp="regular"]) .inspector .adv-body { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+
+/* the delete button closes the sheet's content: full width, far from the number fields */
+html:not([data-vp="regular"]) .inspector .ins-del { margin-top: 6px; justify-content: center; }
+
+/* materials: three to a row so the names stay 12 px, a tap target each */
+html:not([data-vp="regular"]) .inspector .mat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+html:not([data-vp="regular"]) .inspector .mat { min-height: 64px; padding: 4px; }
+html:not([data-vp="regular"]) .inspector .mat-pic { height: 36px; }
+html:not([data-vp="regular"]) .inspector .mat > span { min-height: 20px; font-size: 12px; line-height: 1.15; letter-spacing: 0; }
+html:not([data-vp="regular"]) .inspector .col-custom { min-height: 44px; }
+html:not([data-vp="regular"]) .inspector .col-custom .field-note { font-size: 12px; }
+
+/* small print inside the folds: 12 px minimum, rows a finger tall */
+html:not([data-vp="regular"]) .inspector .room-items > summary::after, html:not([data-vp="regular"]) .inspector .sec-adv > summary::after { content: none; }
+html:not([data-vp="regular"]) .inspector :is(.ri-row, .ri-empty, .ri-count, .rail-all) { font-size: 12px; }
+html:not([data-vp="regular"]) .inspector .ri-row small { font-size: 12px; }
+html:not([data-vp="regular"]) .inspector .lock-row { flex-direction: column; align-items: stretch; }
+html:not([data-vp="regular"]) .inspector .ri-row { min-height: 44px; justify-content: center; }

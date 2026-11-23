@@ -1,0 +1,25 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+data
+ref-img
+offline-cache
+housey-plan.json
+docs/cars-reference
+*.tsbuildinfo
+*.log
+.tmp-*
+.DS_Store
+_*.png
+_*.jpg
+*.tar
+dist
+# Home Assistant packaging: not part of the app, and a version bump there must not rebuild the app layers
+.github
+custom_components
+doshy
+tests
+hacs.json
+repository.yaml

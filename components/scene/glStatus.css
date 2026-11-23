@@ -1,0 +1,8 @@
+/* The card over the 3D view when its graphics connection is lost or could not start. HUD look; centred in the stage, above the canvas and below the panels. */
+.gl-status { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; padding: 16px; pointer-events: none; }
+.gl-card { pointer-events: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; width: min(380px, 100%); padding: 16px 18px; background: rgba(6, 9, 12, 0.94); }
+.gl-title { margin: 0; font: 600 12px/1.3 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.gl-text { margin: 0; font: 400 13px/1.5 var(--sans); color: var(--text); }
+.gl-btn { min-height: 44px; }
+/* The same card as the whole page when the dashboard crashed (app/error.tsx): fills the screen, so the card sits in its middle. */
+.crash-screen { position: fixed; inset: 0; background: #05070a; }

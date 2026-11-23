@@ -1,0 +1,23 @@
+/* Compass: rose, sun marker, bearing readout and its popover */
+.compass { position: absolute; left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; --l: 7px; }
+.compass-btn { display: block; border-radius: 50%; line-height: 0; }
+.compass-btn svg { overflow: visible; }
+.compass .cr { fill: rgba(6, 9, 12, 0.35); stroke: var(--accent-line); stroke-width: 0.6; }
+.compass .cr.inner { fill: none; }
+.compass .ct { stroke: rgba(138, 160, 173, 0.55); stroke-width: 0.5; }
+.compass .ct.major { stroke: var(--text); stroke-width: 0.8; }
+.compass .cl { font: 500 9.5px var(--mono); fill: var(--muted); letter-spacing: 0.04em; }
+.compass .cl.n { fill: var(--accent); font-weight: 600; }
+.compass .cn { fill: var(--accent); filter: drop-shadow(0 0 2px var(--accent)); }
+.compass .cs { fill: none; stroke: #ffc680; stroke-width: 1.2; }
+.compass .cs.up { fill: #ffc680; filter: drop-shadow(0 0 3px #ffc680); }
+.compass .cfwd { fill: var(--accent-line); stroke: var(--accent); stroke-width: 0.5; }
+.compass-btn:hover .cr { stroke: var(--accent); }
+.compass-read { display: flex; flex-direction: column; gap: 9px; min-width: 92px; }
+.cread { display: flex; flex-direction: column; gap: 4px; }
+.compass-pop { position: absolute; left: 0; bottom: calc(100% + 8px); width: 220px; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: rgba(6, 9, 12, 0.94); --l: 7px; animation: rise 0.15s var(--ease); }
+@media (max-height: 700px) { .compass-read { display: none; } }
+@media (max-width: 900px) {
+  .compass { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); padding: 4px; }
+  .compass-read { display: none; }
+}

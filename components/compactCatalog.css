@@ -1,0 +1,51 @@
+/* Furniture catalog on a finger: card actions always visible under the label, big targets (coarse pointers and compact screens).
+   Compact screens (data-vp not "regular": 800x480, 1024x600, phones): the catalog is a sheet (components/ui/sheet.css) laid out as search, one row of chips, two columns of big cards. Desktop is untouched. */
+
+/* ---------- coarse pointer or compact: actions in a row under the label, never over the thumbnail ---------- */
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-card { display: flex; flex-direction: column; gap: 4px; height: 204px; contain-intrinsic-size: auto 204px; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-card .cat-main { flex: 1; height: auto; min-height: 0; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-act { position: static; flex: none; opacity: 1; gap: 4px; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-act.has-fav .cat-btn:not(.cat-star) { opacity: 1; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-btn { flex: 1; width: auto; min-width: 44px; height: 44px; background: none; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-btn svg { width: 20px; height: 20px; }
+html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-btn:active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- compact screens ---------- */
+html:not([data-vp="regular"]) .drawer.catalog { gap: 8px; }
+html:not([data-vp="regular"]) .drawer.catalog > *, .cc > * { flex-shrink: 0; } /* the sheet scrolls; nothing in it may squash */
+html:not([data-vp="regular"]) .app .hud.drawer.catalog > :is(.sheet-grab, .hud-head) { background: #070b0f; } /* cards scroll under them: no see-through */
+html:not([data-vp="regular"]) .drawer.catalog .search { position: sticky; top: 44px; z-index: 2; flex: none; gap: 8px; background: #070b0f; }
+html:not([data-vp="regular"])[data-orient="portrait"] .drawer.catalog .search { top: 72px; }
+html:not([data-vp="regular"]) .drawer.catalog .search svg { width: 20px; height: 20px; flex: none; }
+html:not([data-vp="regular"]) .drawer.catalog .search input { padding-block: 0; }
+/* the sheet scrolls as a whole (search stays under the header), so the card list is not a second scroller */
+html:not([data-vp="regular"]) .drawer.catalog .cards { flex: none; overflow: visible; gap: 8px; padding: 0 0 4px; }
+
+html:not([data-vp="regular"]) .cat-card { height: 222px; contain-intrinsic-size: auto 222px; }
+html:not([data-vp="regular"]) .cat-thumb { height: 76px; }
+html:not([data-vp="regular"]) .cat-thumb svg, html:not([data-vp="regular"]) .cat-thumb img { height: 76px; }
+html:not([data-vp="regular"]) .cat-card .card-label { font-size: 13px; }
+html:not([data-vp="regular"]) .cmf-real { font-size: 12px; padding: 3px 6px; letter-spacing: 0.06em; }
+
+/* chips: one row that scrolls sideways, then the panel of the chip that is open */
+.cc { display: flex; flex-direction: column; gap: 8px; margin: 0 -12px; }
+.cc-row { display: flex; align-items: center; gap: 6px; padding: 0 12px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+.cc-row::-webkit-scrollbar { display: none; }
+.cc-chip { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; color: var(--muted); }
+.cc-chip:active { color: var(--text); background: var(--accent-soft); }
+.cc-chip[aria-pressed="true"], .cc-chip[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.cc-sep { flex: none; align-self: stretch; width: 1px; margin: 6px 2px; background: var(--accent-line); }
+.cc-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
+.cc-panel { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; border-block: 1px solid var(--accent-line); background: rgba(255, 255, 255, 0.015); }
+.cc-panel > .label { padding: 0 12px; }
+.cc-panel > :not(.label, .cc-row) { margin: 0 12px; }
+
+/* "My pieces": the three ways to add your own as one row to swipe */
+html:not([data-vp="regular"]) .cat-own-row { display: flex; gap: 6px; margin: 0 -12px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+html:not([data-vp="regular"]) .cat-own-row::-webkit-scrollbar { display: none; }
+html:not([data-vp="regular"]) .cat-own-btn { flex: 0 0 152px; min-height: 84px; }
+html:not([data-vp="regular"]) .cat-own-btn strong { font-size: 14px; }
+html:not([data-vp="regular"]) .cat-own-btn span { font-size: 12px; letter-spacing: 0.02em; }
+html:not([data-vp="regular"]) .cat-link { font-size: 12px; }
+html:not([data-vp="regular"]) .cat-own .label { font-size: 12px; }
+html:not([data-vp="regular"]) .cmr-check { min-height: 44px; }

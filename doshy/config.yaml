@@ -1,0 +1,37 @@
+# Home Assistant add-on definition. `version` is written by scripts/sync-version.mjs from package.json: do not edit it by hand.
+# The Supervisor pulls ghcr.io/voicub/doshy:<version> (built by .github/workflows/build.yml).
+name: Doshy
+version: "0.1.0"
+slug: doshy
+description: Isometric 3D dashboard and home design tool for Home Assistant
+url: https://github.com/voicub/Doshy
+# Not verified on a real Supervisor yet; set to stable (or remove the line) once it has been installed and used.
+stage: experimental
+arch:
+  - amd64
+  - aarch64
+image: ghcr.io/voicub/doshy
+startup: application
+boot: auto
+# SUPERVISOR_TOKEN works against http://supervisor/core/api and ws://supervisor/core/api/websocket; the entrypoint wires it up.
+homeassistant_api: true
+# No ingress: the app serves absolute paths (/_next, /api) and Next.js fixes its base path at build time, but ingress changes the path per installation.
+ports:
+  3000/tcp: 3000
+webui: "http://[HOST]:[PORT:3000]"
+watchdog: "http://[HOST]:[PORT:3000]/"
+# The database runs in WAL mode: stop the add-on during a backup so the copy is consistent.
+backup: cold
+# The map cache is downloaded again on demand.
+backup_exclude:
+  - site-cache/*
+options:
+  automation: true
+schema:
+  ha_url: url?
+  ha_token: password?
+  sketchfab_token: password?
+  automation: bool
+  site_tile_url: str?
+  site_tile_max_zoom: int(1,22)?
+  site_tile_credit: str?

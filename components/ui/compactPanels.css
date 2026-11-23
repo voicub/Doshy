@@ -1,0 +1,112 @@
+/* Compact screens (every data-vp but regular: 800x480, 1024x600 touch displays, phones): the Plan-mode side panels Surroundings (SitePanel), New plan (NewPlanPanel) and Building (BuildingPanel),
+   plus the on-canvas bar of "Line it up on the plan" (plan/SiteAlignBar). The panels are sheets (ui/sheet.css): a single column about 356 px wide, a finger-sized target everywhere,
+   most-used things first, rare things under "More". Everything here is scoped to compact screens: regular screens look exactly as before. */
+
+/* ---------- Surroundings ---------- */
+html:not([data-vp="regular"]) .app .hud.sp .sp-body { flex: none; overflow: visible; padding-right: 0; gap: 16px; }
+/* the order that matches what people do: place the map, line it up, then the rest */
+html:not([data-vp="regular"]) .sp-b-where { order: 1; }
+html:not([data-vp="regular"]) .sp-b-align { order: 2; }
+html:not([data-vp="regular"]) .sp-b-far, html:not([data-vp="regular"]) .sp-b-show, html:not([data-vp="regular"]) .sp-b-status { order: 3; }
+html:not([data-vp="regular"]) .sp-credits { order: 4; }
+
+html:not([data-vp="regular"]) .app .hud.sp .sp-switch { min-height: 56px; padding: 8px 12px; font: 500 14px/1.3 var(--sans); }
+html:not([data-vp="regular"]) .app .hud.sp .sp-wide { min-height: 48px; }
+html:not([data-vp="regular"]) .app .hud.sp :is(.hint, .sp-place, .sp-status, .sp-status small, .sp-credits, .sp-what .hint) { font-size: 13px; }
+html:not([data-vp="regular"]) .app .hud.sp :is(.sp-status small, .sp-credits, .sp-seg small, .sp-adv summary, .sp-what summary) { font-size: 12px; }
+html:not([data-vp="regular"]) .app .hud.sp :is(.sp-adv summary, .sp-what summary) { display: flex; align-items: center; min-height: 44px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .sp-coords { grid-template-columns: 1fr; }
+
+html:not([data-vp="regular"]) .app .hud.sp .sp-seg button { height: 56px; }
+html:not([data-vp="regular"]) .sp-chip { min-height: 48px; padding: 6px 10px; font-size: 12px; line-height: 1.2; letter-spacing: 0.04em; }
+
+/* the nudge pad: four big arrows, and the step they take */
+html:not([data-vp="regular"]) .sp-pad { grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px); gap: 4px; }
+html:not([data-vp="regular"]) .app .hud.sp .btn.sp-arrow { width: 56px; min-width: 56px; height: 56px; min-height: 56px; }
+html:not([data-vp="regular"]) .app .hud.sp .btn.sp-arrow svg { width: 24px; height: 24px; }
+html:not([data-vp="regular"]) .sp-nudge-row { gap: 16px; }
+html:not([data-vp="regular"]) .sp-nudge-row .field-note { font-size: 13px; }
+
+/* turning the plan: N E S W across the full width, the two 5 degree buttons under them */
+html:not([data-vp="regular"]) .sp-turn-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+html:not([data-vp="regular"]) .sp-turn-btns .sp-faces { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); }
+html:not([data-vp="regular"]) .app .hud.sp .sp-faces button { width: auto; min-width: 0; height: 52px; font-size: 14px; border: 1px solid var(--accent-line); }
+html:not([data-vp="regular"]) .app .hud.sp .sp-turn-btns > .btn.sp-arrow { width: 100%; gap: 8px; }
+.sp-turn-t { display: none; }
+html:not([data-vp="regular"]) .sp-turn-t { display: inline; font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .sp-body .field input[type="range"] { min-height: 44px; }
+
+/* ---------- the on-canvas bar of "Line it up on the plan": one row above the edit strip, the map stays visible ---------- */
+html:not([data-vp="regular"]) .app .sp-touchbar {
+  position: absolute; z-index: 46; box-sizing: border-box; transform: none; top: auto; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+  left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-h, 56px) + var(--tools-h, 56px) + 6px);
+  max-width: none; padding: 6px 8px; --l: 6px;
+}
+html:not([data-vp="regular"]) .sp-ab-hint { margin: 0; font: 500 12px/1.3 var(--mono); letter-spacing: 0.02em; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html:not([data-vp="regular"]) .sp-ab-row { display: flex; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+html:not([data-vp="regular"]) .sp-ab-row::-webkit-scrollbar { display: none; }
+html:not([data-vp="regular"]) .app .sp-touchbar .sp-ab-btn { flex: none; min-width: 48px; height: 48px; min-height: 48px; padding: 0 10px; }
+html:not([data-vp="regular"]) .app .sp-touchbar .sp-ab-text { min-width: 88px; font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .sp-ab-sep { flex: none; width: 1px; height: 28px; margin: 0 4px; background: var(--accent-line); }
+html:not([data-vp="regular"]) .sp-ab-row .btn:active { background: var(--accent-soft); border-color: var(--accent); }
+html:not([data-vp="regular"]) .sp-ab-row > .primary { margin-left: auto; }
+/* wide and short (800x480, a phone on its side): the hint shares the row to save height */
+@media (min-width: 760px) {
+  html:not([data-vp="regular"]) .app .sp-touchbar { flex-direction: row; align-items: center; gap: 10px; }
+  html:not([data-vp="regular"]) .sp-ab-hint { flex: 1; min-width: 0; white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+  html:not([data-vp="regular"]) .sp-ab-row { flex: none; max-width: 100%; }
+}
+/* portrait phone: the buttons wrap to a second row (Settings and Done) instead of hiding off to the right */
+html:not([data-vp="regular"])[data-orient="portrait"] .sp-ab-row { flex-wrap: wrap; overflow: visible; }
+html:not([data-vp="regular"])[data-orient="portrait"] .sp-ab-sep { display: none; }
+html:not([data-vp="regular"])[data-orient="portrait"] .app .sp-touchbar .sp-ab-text { flex: 1 1 120px; }
+html:not([data-vp="regular"])[data-orient="portrait"] .sp-ab-row > .primary { margin-left: 0; }
+html:not([data-vp="regular"])[data-orient="portrait"] .sp-ab-hint { white-space: normal; }
+/* the hint line of the edit strip would sit on the bar */
+html:not([data-vp="regular"]) .app:has(.sp-touchbar) .es-hint { display: none; }
+
+/* ---------- New plan ---------- */
+html:not([data-vp="regular"]) .np-list { gap: 10px; }
+html:not([data-vp="regular"]) .np-card { min-height: 100px; padding: 10px; border-width: 1px; }
+html:not([data-vp="regular"]) .np-card:active { background: var(--accent-soft); }
+html:not([data-vp="regular"]) .np-card[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+html:not([data-vp="regular"]) .np-name { font-size: 15px; }
+html:not([data-vp="regular"]) .np-sum { font-size: 13px; }
+html:not([data-vp="regular"]) .np-meta { font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .np-confirm { flex: 1 0 auto; }
+html:not([data-vp="regular"]) .np-confirm .hint { font-size: 14px; }
+html:not([data-vp="regular"]) .app .hud.new-plan .np-actions .btn { min-height: 48px; }
+/* the answer button stays in reach while the list scrolls */
+html:not([data-vp="regular"]) .np-foot {
+  position: sticky; bottom: -12px; z-index: 2; display: flex; gap: 8px; margin: auto -12px -12px; padding: 10px 12px 12px; border-top: 1px solid var(--accent-line);
+  background: var(--glass, rgba(6, 9, 12, 0.92)); backdrop-filter: blur(var(--blur, 12px));
+}
+html:not([data-vp="regular"]) .np-foot .btn { flex: 1; min-height: 52px; font-size: 13px; }
+html:not([data-vp="regular"]) .np-foot .btn.primary { flex: 2; }
+html:not([data-vp="regular"]) .np-foot .btn:disabled { opacity: 0.45; }
+
+/* ---------- Building ---------- */
+html:not([data-vp="regular"]) .app .hud.building-panel .seg { display: flex; width: 100%; padding: 2px; gap: 2px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+html:not([data-vp="regular"]) .app .hud.building-panel .seg button { flex: 1; justify-content: center; min-height: 48px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .entry-seg { flex-direction: column; }
+html:not([data-vp="regular"]) .app .hud.building-panel .grid3 { grid-template-columns: 1fr; gap: 12px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-row { padding: 10px; gap: 12px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-head { gap: 6px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-head .preset { min-width: 72px; padding: 0 10px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-head input { min-height: 48px; font-size: 16px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-head .icon-btn { width: 48px; height: 48px; border: 1px solid var(--accent-line); }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-head .icon-btn svg { width: 20px; height: 20px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-confirm { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid rgba(255, 106, 61, 0.45); border-radius: var(--r); background: rgba(255, 106, 61, 0.08); }
+html:not([data-vp="regular"]) .level-confirm .hint { margin: 0; font-size: 14px; color: var(--text); }
+html:not([data-vp="regular"]) .level-confirm .presets > .btn { flex: 1; }
+html:not([data-vp="regular"]) .app .hud.building-panel .presets > .btn { flex: 1 1 100%; min-height: 48px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .presets > .preset { flex: 1 1 30%; }
+html:not([data-vp="regular"]) .app .hud.building-panel .level-confirm .presets > .btn { flex: 1 1 40%; }
+html:not([data-vp="regular"]) .bp-more > summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 12px; cursor: pointer; list-style: none; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1.4 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+html:not([data-vp="regular"]) .bp-more > summary::-webkit-details-marker { display: none; }
+html:not([data-vp="regular"]) .bp-more > summary::after { content: "+"; font-size: 18px; line-height: 1; }
+html:not([data-vp="regular"]) .bp-more[open] > summary { color: var(--accent); border-color: var(--accent); }
+html:not([data-vp="regular"]) .bp-more[open] > summary::after { content: "\2212"; }
+html:not([data-vp="regular"]) .bp-more { display: flex; flex-direction: column; }
+html:not([data-vp="regular"]) .bp-more[open] { gap: 12px; }
+html:not([data-vp="regular"]) .app .hud.building-panel .hint { font-size: 13px; }

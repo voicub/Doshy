@@ -1,0 +1,216 @@
+/*
+ * The compact HUD: one slim strip on top, a four-mode bar at the bottom, the menu sheet, a room strip, and every other card sized for a 7 inch touch screen or a phone.
+ * Applies to html[data-vp="tiny"] (800x480, phones) and html[data-vp="small"] (1024x600); the regular desktop layout is untouched. See lib/viewport.ts for the attributes.
+ * Sizing rules: finger targets 44px or more, text 12px or more, nothing positioned by the pointer, no blur behind the HUD (a Raspberry Pi GPU pays for it on every frame).
+ * Do not use raw vh/vw here: the interface-scale zoom multiplies them. Use % of the .chrome box.
+ */
+
+/* ---------- insets every compact panel can rely on ---------- */
+html:not([data-vp="regular"]) .app {
+  --banner-h: 0px;
+  --strip-h: calc(env(safe-area-inset-top, 0px) + var(--banner-h) + 44px);
+  --dock-h: calc(56px + env(safe-area-inset-bottom, 0px));
+  --top: calc(var(--strip-h) - 44px); /* the older panels sit at var(--top) + 52px: just under the strip */
+}
+html:not([data-vp="regular"]) .app.offline { --banner-h: 28px; --top: calc(var(--strip-h) - 44px); }
+html:not([data-vp="regular"]) .banner { top: env(safe-area-inset-top, 0px); height: 28px; font-size: 12px; }
+
+/* a flat panel over a 3D canvas: opaque enough to read, no backdrop blur */
+html:not([data-vp="regular"]) :is(.hud, .chip, .ring, .badge, .scrim, .palette, .rail-item.active) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+html:not([data-vp="regular"]) .hud { background: rgba(6, 9, 12, 0.9); }
+html:not([data-vp="regular"]) .label { font-size: 12px; }
+
+/* ---------- top strip ---------- */
+.chrome .cstrip { container: cs / inline-size; position: absolute; top: 0; left: 0; right: 0; z-index: 52; height: var(--strip-h); display: flex; align-items: center; gap: 4px; padding: calc(env(safe-area-inset-top, 0px) + var(--banner-h)) calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px)); border-width: 0 0 1px; border-radius: 0; background: rgba(6, 9, 12, 0.94); }
+.cs-ha { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 0 6px; }
+.cs-ha .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.cs-ha.online .dot { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.cs-ha.offline .dot { background: var(--err); box-shadow: 0 0 6px var(--err); }
+.cs-ha.loading .dot { animation: blink 1s steps(2) infinite; }
+.cs-ha-text { font: 500 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--err-text); }
+.cs-clock { flex: none; padding: 0 8px; font: 600 22px/1 var(--mono); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.cs-house, .cs-lights { display: inline-flex; align-items: center; gap: 14px; flex: none; min-height: 44px; padding: 0 10px; border-left: 1px solid var(--accent-line); text-align: left; }
+.cs-house:active { background: var(--accent-soft); }
+.cs-house[aria-expanded="true"] { box-shadow: inset 0 -2px 0 var(--accent); background: var(--accent-soft); }
+.cs-item { display: inline-flex; align-items: baseline; gap: 5px; }
+.cs-item svg { align-self: center; flex: none; color: var(--accent); }
+.cs-item b { font: 600 18px/1 var(--mono); letter-spacing: 0.01em; font-variant-numeric: tabular-nums; color: var(--text); }
+.cs-item b i { font-style: normal; color: var(--muted); margin: 0 1px; }
+.cs-item small { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; color: var(--muted); }
+.cs-gap { flex: 1; min-width: 0; }
+.cs-house, .cs-lights { display: inline-flex; align-items: center; gap: 14px; flex: none; min-height: 44px; padding: 0 10px; border-left: 1px solid var(--accent-line); text-align: left; }
+.cs-lights b { display: inline-flex; align-items: center; }
+.cstrip .t-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; padding: 0 8px; flex: none; }
+.cstrip .t-val { font: 600 16px/1 var(--mono); }
+.cstrip .t-inbox-up { margin-left: 4px; }
+/* the strip is a size container, so it is the containing block: the list of open windows drops from the strip's lower edge, edge to edge */
+.cstrip .t-weather { position: static; }
+.cstrip .t-menu { position: absolute; top: 100%; left: 8px; right: 8px; margin-top: 4px; min-width: 0; }
+.cstrip .t-cal-text { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 14px/1 var(--mono); color: var(--muted); }
+.cs-menu { border-left: 1px solid var(--accent-line); }
+.cs-menu[aria-expanded="true"] { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.cstrip .cs-media { color: var(--accent); }
+html[data-vp="tiny"] .cstrip .t-cal-text { display: none; }
+/* narrow strip (a phone upright, or the interface scaled up): drop the least useful items first */
+@container cs (max-width: 760px) { .cs-item small { display: none; } }
+@container cs (max-width: 640px) { .cs-lights, .cstrip .t-cal { display: none; } }
+@container cs (max-width: 520px) { .cs-power, .cstrip .t-inbox-up, .cstrip .t-inbox-up + .t-val { display: none; } .cs-house { gap: 10px; padding: 0 6px; } .cs-clock { padding: 0 4px; font-size: 20px; } }
+@container cs (max-width: 440px) { .cstrip .cs-media { display: none; } .cs-ha { padding: 0 4px; } .cs-house { gap: 8px; padding: 0 4px; } .cs-clock { font-size: 19px; } .cstrip .t-btn { padding: 0 6px; } }
+
+/* ---------- bottom mode bar ---------- */
+.chrome .cdock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 52; height: var(--dock-h); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); display: grid; grid-template-columns: repeat(5, 1fr); border-width: 1px 0 0; border-radius: 0; background: rgba(6, 9, 12, 0.94); }
+.cd-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 56px; color: var(--muted); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.15s, background 0.15s; }
+.cd-btn svg { width: 24px; height: 24px; }
+.cd-btn[aria-pressed="true"], .cd-btn[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 2px 0 var(--accent); }
+html[data-vp="small"] .cd-btn { flex-direction: row; gap: 10px; }
+html[data-kbd-open="1"] :is(.cdock, .rail) { display: none; }
+
+/* ---------- sheets: a side sheet in landscape, a bottom sheet in portrait ---------- */
+.csheet-scrim { position: absolute; z-index: 51; left: 0; right: 0; top: var(--strip-h); bottom: var(--dock-h); background: rgba(2, 4, 6, 0.28); }
+html:not([data-vp="regular"]) .chrome .csheet { position: absolute; z-index: 53; top: var(--strip-h); bottom: var(--dock-h); right: env(safe-area-inset-right, 0px); left: auto; width: min(380px, 55%); max-height: none; display: flex; flex-direction: column; gap: 0; padding: 0; border-width: 0 0 0 1px; border-radius: 0; background: rgba(6, 9, 12, 0.97); overflow: hidden; animation: slide-in-r 0.2s var(--ease); }
+html[data-vp="small"] .chrome .csheet { width: min(420px, 45%); }
+html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .csheet { top: auto; left: 0; right: 0; bottom: var(--dock-h); width: auto; max-height: calc(100% - var(--strip-h) - var(--dock-h) - 48px); border-width: 1px 0 0; animation-name: rise; }
+.csheet.hud::after { display: none; } /* no corner brackets on an edge-to-edge sheet */
+.csheet:focus-visible { outline: 0; box-shadow: none; }
+.csheet-head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 6px 0 16px; border-bottom: 1px solid var(--accent-line); touch-action: pan-y; }
+.csheet-head .label { color: var(--accent); font-size: 13px; }
+html[data-orient="portrait"] .csheet-head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: rgba(138, 160, 173, 0.4); }
+.csheet-close { width: 44px; height: 44px; margin: 0; }
+.csheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
+
+/* menu rows */
+.cm-sec { display: flex; flex-direction: column; gap: 10px; }
+.cm-sec + .cm-sec { padding-top: 14px; border-top: 1px solid var(--accent-line); }
+.cm-title { color: var(--accent); }
+.more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.more-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(255, 255, 255, 0.02); color: var(--text); font: 500 14px/1.25 var(--sans); transition: color 0.15s, background 0.15s, border-color 0.15s; }
+.more-row > svg { flex: none; width: 20px; height: 20px; color: var(--muted); }
+.more-row.active, .more-row[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.more-row.active > svg, .more-row[aria-pressed="true"] > svg { color: var(--accent); }
+.more-row:disabled { opacity: 0.35; }
+.more-row:active:not(:disabled) { background: var(--accent-soft); }
+.more-text { min-width: 0; overflow-wrap: anywhere; }
+.more-text small { display: block; margin-top: 3px; font: 400 12px/1.3 var(--mono); letter-spacing: 0.02em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-sep { grid-column: 1 / -1; width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--accent-line); }
+.cm-group { display: flex; flex-direction: column; gap: 6px; }
+.cm-seg.seg { display: flex; flex-wrap: wrap; gap: 4px; border: 0; padding: 0; }
+.cm-seg.seg button { flex: 1 1 auto; height: 44px; padding: 0 12px; border: 1px solid var(--accent-line); font-size: 12px; }
+.cm-embed .hud { position: static; transform: none; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0; border: 0; background: none; }
+.cm-embed .hud::after { display: none; }
+.cm-embed .seg { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 4px; }
+.cm-embed .seg button { flex: 1 1 auto; height: 44px; border: 1px solid var(--accent-line); font-size: 12px; }
+.cm-embed .kbd { display: none; }
+.cm-embed .hud > .label { display: block; flex: 1 1 100%; }
+.cm-details summary { display: flex; align-items: center; min-height: 44px; font: 500 12px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); cursor: pointer; }
+.cm-details[open] > .seg { margin-bottom: 6px; }
+
+/* the house card (the strip's numbers, opened) is a sheet too */
+html:not([data-vp="regular"]) .chrome .livebar.csheet { gap: 12px; padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+.livebar.csheet .lb-head { min-height: 52px; margin: 0 -12px; padding: 0 6px 0 16px; border-bottom: 1px solid var(--accent-line); }
+.livebar.csheet .lb-big b { font-size: 30px; }
+.livebar.csheet .lb-sub { font-size: 12px; }
+.livebar.csheet .lb-v { font-size: 18px; }
+.livebar.csheet .lb-tile > span { font-size: 12px; }
+.livebar.csheet .lb-tile > div { font-size: 16px; }
+.livebar.csheet .lb-person { min-width: 32px; height: 30px; font-size: 12px; }
+
+/* ---------- room strip ---------- */
+/* landscape: a column down the left edge. Each room is one big chip (name, temperature, lights on); the chosen room unfolds its two actions. */
+html:not([data-vp="regular"]) .chrome .rail { left: calc(8px + env(safe-area-inset-left, 0px)); top: calc(var(--strip-h) + 8px); bottom: calc(var(--dock-h) + 8px); width: 156px; max-height: none; gap: 4px; padding: 0; pointer-events: none; overflow-y: auto; scrollbar-width: none; }
+html:not([data-vp="regular"]) .app.multi-level .chrome .rail { top: calc(var(--strip-h) + 60px); }
+html:not([data-vp="regular"]) .rail > * { pointer-events: auto; }
+html:not([data-vp="regular"]) .rail-title, html:not([data-vp="regular"]) .rail-live { display: none; }
+html:not([data-vp="regular"]) .rail-bottom { display: flex; }
+html:not([data-vp="regular"]) .rail-row { flex-wrap: wrap; gap: 2px; }
+html:not([data-vp="regular"]) .rail-item { flex: 1 1 100%; min-height: 52px; gap: 6px; padding: 7px 9px; background: rgba(6, 9, 12, 0.85); border-color: var(--accent-line); color: var(--text); }
+html:not([data-vp="regular"]) .rail-item.active { border-color: var(--accent); background: rgba(10, 22, 30, 0.95); }
+html:not([data-vp="regular"]) .rail-top { font-size: 13px; letter-spacing: 0.05em; }
+html:not([data-vp="regular"]) .rail-top small, html:not([data-vp="regular"]) .rail-bottom small { font-size: 13px; }
+html:not([data-vp="regular"]) .bars { height: 3px; }
+html:not([data-vp="regular"]) .bars i { width: 10px; height: 3px; }
+html:not([data-vp="regular"]) .rail-open { font-size: 12px; }
+html:not([data-vp="regular"]) :is(.rail-enter, .rail-dev) { display: none; }
+html:not([data-vp="regular"]) .rail-item.active ~ :is(.rail-enter, .rail-dev) { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 calc(50% - 1px); width: auto; min-height: 44px; border: 1px solid var(--accent-line); background: rgba(6, 9, 12, 0.9); color: var(--text); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+html:not([data-vp="regular"]) .rail-enter::after { content: "Enter"; }
+html:not([data-vp="regular"]) .rail-enter[aria-pressed="true"]::after { content: "Leave"; }
+html:not([data-vp="regular"]) .rail-dev::after { content: "Devices"; }
+html:not([data-vp="regular"]) .rail-enter svg, html:not([data-vp="regular"]) .rail-dev svg { width: 16px; height: 16px; color: var(--accent); }
+html:not([data-vp="regular"]) .rail-level { min-height: 44px; align-items: center; padding: 0 9px; font-size: 12px; background: rgba(6, 9, 12, 0.85); }
+html:not([data-vp="regular"]) .sk { height: 52px; }
+/* portrait: a row of chips above the mode bar that you swipe sideways */
+html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .rail { left: 0; right: 0; top: auto; bottom: calc(var(--dock-h) + 8px); width: auto; flex-direction: row; align-items: flex-end; gap: 6px; padding: 0 8px; overflow: auto hidden; scroll-snap-type: x proximity; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .app.multi-level .chrome .rail { top: auto; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .rail-row { flex: none; width: 156px; scroll-snap-align: start; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .rail-level { flex: none; width: auto; margin: 0; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .sk { flex: none; width: 156px; }
+
+/* level chips (several storeys): one row under the strip; one storey needs no label */
+html:not([data-vp="regular"]) .chrome .levels { top: calc(var(--strip-h) + 8px); left: calc(8px + env(safe-area-inset-left, 0px)); max-width: calc(100% - 16px); flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
+html:not([data-vp="regular"]) .levels.single { display: none; }
+html:not([data-vp="regular"]) .level-chip { flex: none; min-height: 44px; align-items: center; padding: 0 12px; font-size: 13px; background: rgba(6, 9, 12, 0.88); }
+html:not([data-vp="regular"]) .level-chip small { font-size: 12px; }
+
+/* ---------- compass: a small dial, no read-out ---------- */
+html:not([data-vp="regular"]) .chrome .compass { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-h) + 8px); padding: 2px; background: rgba(6, 9, 12, 0.55); }
+html:not([data-vp="regular"]) .compass-btn svg { width: 56px; height: 56px; }
+html:not([data-vp="regular"]) .compass-read { display: none; }
+html:not([data-vp="regular"]) .compass-pop { left: auto; right: 0; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .compass { bottom: auto; top: calc(var(--strip-h) + 8px); }
+html[data-orient="portrait"]:not([data-vp="regular"]) .compass-pop { bottom: auto; top: calc(100% + 8px); }
+
+/* ---------- toasts, hints, banners ---------- */
+html:not([data-vp="regular"]) .chrome .inbox-toast { top: calc(var(--strip-h) + 6px); left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); width: auto; max-width: 520px; margin-left: auto; }
+html:not([data-vp="regular"]) :is(.sync-toast, .sync-banner) { top: calc(var(--strip-h) + 6px); }
+html:not([data-vp="regular"]) .sync { top: auto; left: calc(8px + env(safe-area-inset-left, 0px)); bottom: calc(var(--dock-h) + var(--tools-h, 0px) + 6px); }
+html:not([data-vp="regular"]) .chrome .gp-notice { bottom: calc(var(--dock-h) + var(--tools-h, 0px) + 8px); width: min(460px, calc(100% - 16px)); }
+html:not([data-vp="regular"]) .gp-notice p, html:not([data-vp="regular"]) .inbox-toast-main span { font-size: 13px; }
+html:not([data-vp="regular"]) .chrome .dock-hint { bottom: calc(var(--dock-h) + var(--tools-h, 0px) + 8px); max-width: calc(100% - 16px); font-size: 13px; }
+html:not([data-vp="regular"]) .chrome .room-bar { top: calc(var(--strip-h) + 6px); flex-wrap: wrap; justify-content: center; max-width: calc(100% - 16px); }
+html:not([data-vp="regular"]) .room-bar-name { font-size: 14px; }
+html:not([data-vp="regular"]) :is(.room-bar-btn, .room-bar-chip, .room-bar-exit) { min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 12px; }
+
+/* ---------- cards that open where you tapped become centred cards ---------- */
+html:not([data-vp="regular"]) .chrome :is(.devcard, .camcard):not(.big) { left: 50% !important; top: var(--strip-h) !important; bottom: var(--dock-h) !important; right: auto !important; height: fit-content; margin: auto 0; max-height: calc(100% - var(--strip-h) - var(--dock-h) - 16px); width: min(420px, calc(100% - 16px)); transform: translateX(-50%) !important; }
+/* a percentage of a fit-content box means nothing, so the cards inside use the screen height (--vh is 1vh with the interface scale taken out, set on .chrome) */
+html:not([data-vp="regular"]) .chrome :is(.dc, .cc) { max-height: calc(100 * var(--vh, 1vh) - var(--strip-h) - var(--dock-h) - 16px); overflow-x: hidden; }
+html:not([data-vp="regular"]) .camcard.big { width: calc(100% - 16px); }
+html:not([data-vp="regular"]) :is(.dc-state small, .dc-title small, .cc-size, .cc small, .cc-meta small) { font-size: 12px; }
+
+/* ---------- command palette and shortcut list ---------- */
+.palette-close { display: none; }
+html:not([data-vp="regular"]) .scrim { padding: calc(8px + env(safe-area-inset-top, 0px)) 8px 8px; }
+html:not([data-vp="regular"]) .palette { width: 100%; max-width: 640px; }
+html:not([data-vp="regular"]) .palette-close { display: grid; }
+html:not([data-vp="regular"]) .palette-list { max-height: calc(100dvh - 200px); min-height: 120px; }
+html:not([data-vp="regular"]) .palette .dp-hint { margin: 0; padding: 10px 14px; border-top: 1px solid var(--accent-line); font-size: 12px; }
+html:not([data-vp="regular"]) .cmd { min-height: 48px; font-size: 15px; }
+html:not([data-vp="regular"]) .palette-input input { font-size: 16px; }
+html[data-coarse="1"] .palette-foot { display: none; }
+html:not([data-vp="regular"]) .shortcuts { max-height: calc(100dvh - 24px); overflow-y: auto; }
+html:not([data-vp="regular"]) .sc-grid { grid-template-columns: 1fr; gap: 16px; }
+
+/* ---------- a wall display ---------- */
+html[data-kiosk="1"] [data-dev] { display: none !important; }
+html[data-kiosk="1"][data-coarse="1"], html[data-kiosk="1"][data-coarse="1"] * { cursor: none !important; }
+html[data-kiosk="1"] .app .dock-hint:not(.err) { display: none; }
+
+/* ---------- finger-sized controls inside the live panels ---------- */
+/* Browsers on a Pi do not always report a coarse pointer, so this follows the layout, not the pointer media query. The entity browser is an edit panel (sheet.css). */
+html:not([data-vp="regular"]) :is(.cal, .inbox, .mp, .stats, .energy, .rd, .climate, .plexcard, .dc, .cc, .gp, .dp) :is(button, [role="tab"], [role="switch"], summary) { min-height: 44px; min-width: 44px; }
+html:not([data-vp="regular"]) :is(.cal, .inbox, .mp, .stats, .energy, .rd, .climate, .plexcard, .dc, .cc, .gp, .dp) input[type="range"] { height: 44px; }
+html:not([data-vp="regular"]) :is(.hud.sheet, .hud.drawer) { background: rgba(6, 9, 12, 0.98); }
+/* text never below 12 px in the live panels (the sheets of the edit panels do this in sheet.css) */
+html:not([data-vp="regular"]) :is(.sync, .cal-views button, .cal-today, .cal-filter, .cal-check, .cal-note, .cal-dow, .cal-add, .cal-cardsw, .inbox-tabs button, .nt-btn, .nt-time, .nt-note, .mp-empty, .mp-others summary, .mp-rowsub, .eb-chip, .d-action, .en-empty, .en-row span, .st-error b, .hud-meta, .field-note, .rd-empty, .rd-group, .rd-val, .rd :is(span, small), .gp-name, .gp-cost, .gp-box small) { font-size: 12px; }
+
+/* ---------- cinema mode on a touch screen: no Esc key, so an Exit button appears with any touch and fades with the idle timer ---------- */
+.cinema-exit { display: none; }
+html:not([data-vp="regular"]) .cinema-exit, html[data-coarse="1"] .cinema-exit { display: inline-flex; position: fixed; z-index: 77; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(6, 9, 12, 0.85); font: 500 13px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); transition: opacity 0.3s; }
+html.idle .cinema-exit { opacity: 0; pointer-events: none; }
+html:not([data-vp="regular"]) .esc-hint, html[data-coarse="1"] .esc-hint { display: none; }
+html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .levels { max-width: calc(100% - 80px); }
+
+/* the statistics panel's own small print */
+html:not([data-vp="regular"]) :is(.kpi .label, .kpi b small, .kpi > span, .st-meta, .st-warn, .st-stats, .sc-ax, .sc-unit, .sc-legend li, .sc-legend small, .st-bars li, .g-label, .g-open, .g-none, .g-total, .st-log em, .st-log b) { font-size: 12px; }
+
+/* Furniture mode on a compact screen: the live device labels (rings, clusters, chips) are noise over the pieces being edited and a tap on one would open a live sheet */
+html:not([data-vp="regular"]) .app.view-furniture .dc-layer { display: none; }

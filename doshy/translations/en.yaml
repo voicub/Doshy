@@ -1,0 +1,24 @@
+configuration:
+  ha_url:
+    name: Home Assistant address
+    description: Leave empty when this add-on runs on Home Assistant itself (it connects through the Supervisor). Only for a Home Assistant somewhere else, e.g. https://ha.example.com.
+  ha_token:
+    name: Long-lived access token
+    description: Needed together with the address above, never for the normal add-on setup. Create it on your Home Assistant profile page, Security tab.
+  sketchfab_token:
+    name: Sketchfab API token
+    description: Optional. Lets Doshy download real 3D car models.
+  automation:
+    name: Dawn curtain automation
+    description: Closes the sun-blocking curtains by itself at dawn. Switch off to stop it; the dashboard still shows the cards.
+  site_tile_url:
+    name: Satellite tile URL
+    description: Optional. Tile template with {z} {y} {x} for the Surroundings photo. Empty uses Esri World Imagery.
+  site_tile_max_zoom:
+    name: Satellite tile max zoom
+    description: Optional. Deepest zoom level the tile provider has for your area (default 17).
+  site_tile_credit:
+    name: Satellite tile credit
+    description: Optional. Credit text shown with your own tile provider.
+network:
+  3000/tcp: Doshy web interface

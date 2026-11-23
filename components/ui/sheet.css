@@ -1,0 +1,51 @@
+/* Sheets: the editing panels (catalog, inspectors, building, surroundings, entities, ...) on compact screens (data-vp tiny and small; Sheet.tsx and HudPanel.tsx).
+   Landscape (800x480, phone on its side): a side sheet on the right, from under the top strip to the bottom bars; the scene stays visible on the left.
+   Portrait (phone): a bottom sheet with a drag handle: "peek" leaves the scene visible, "full" is for long forms.
+   Insets come from the chrome (--strip-h top strip, --dock-h bottom bar) and from the edit strip (--tools-h, EditStrip.tsx); the 3D view keeps the scene in what they leave free (ViewInset.tsx). */
+
+.sheet-grab { display: none; }
+
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) {
+  position: absolute; z-index: 45; box-sizing: border-box;
+  left: auto; right: env(safe-area-inset-right, 0px); top: var(--strip-h, 44px); bottom: calc(var(--dock-h, 56px) + var(--tools-h, 0px));
+  width: min(380px, calc(55 * var(--vw, 1vw))); height: auto; max-height: none; margin: 0;
+  display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  animation: sheet-in-r 0.22s var(--ease);
+}
+@keyframes sheet-in-r { from { opacity: 0; transform: translateX(16px); } }
+@keyframes sheet-in-b { from { opacity: 0; transform: translateY(16px); } }
+
+/* a short landscape screen (phone on its side): the side sheet may run down over the edit strip, whose undo and redo stay on the left */
+@media (max-height: 420px) {
+  html:not([data-vp="regular"])[data-orient="landscape"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) { bottom: var(--dock-h, 56px); }
+}
+
+/* portrait: a bottom sheet, peek by default */
+html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) {
+  left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); top: auto; width: auto;
+  height: min(calc(46 * var(--vh, 1dvh)), calc(100 * var(--vh, 1dvh) - var(--strip-h, 44px) - var(--dock-h, 56px) - var(--tools-h, 0px)));
+  transition: height 0.2s var(--ease); animation-name: sheet-in-b;
+}
+html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet)[data-sheet="full"] {
+  height: calc(100 * var(--vh, 1dvh) - var(--strip-h, 44px) - var(--dock-h, 56px) - var(--tools-h, 0px));
+}
+html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) .sheet-grab {
+  display: block; position: sticky; top: 0; z-index: 4; flex: none; align-self: center; width: 96px; height: 0; margin: 0 0 -10px; padding: 0; overflow: visible; touch-action: none; cursor: grab; /* sits on the header's top edge, a 44 px tall hit area */
+}
+.sheet-grab::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 44px; }
+.sheet-grab i { position: absolute; left: 50%; top: 5px; width: 44px; height: 4px; margin-left: -22px; border-radius: 2px; background: var(--accent-line); }
+.sheet-grab:focus-visible i { background: var(--accent); }
+
+/* header: title, count, a 44 px close button; it stays on top while the form scrolls */
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head {
+  position: sticky; top: 0; z-index: 2; flex: none; min-height: 44px; margin: 0 -12px; padding: 0 4px 0 12px; background: var(--glass, rgba(6, 9, 12, 0.86)); backdrop-filter: blur(var(--blur, 12px));
+}
+html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head { padding-top: 8px; }
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head .icon-btn { width: 44px; height: 44px; margin: 0; flex: none; }
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head .hud-meta { font-size: 12px; letter-spacing: 0.06em; }
+
+/* text never below 12 px in a sheet, every button a finger wide */
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) :is(.label, .field-note, .tab, .card-meta, .hint, .preset, .cat-n, .empty, .level-tag, .seg button, .btn) { font-size: 12px; letter-spacing: 0.04em; }
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) :is(.btn, .tab, .preset, .seg button, .icon-btn) { min-height: 44px; }
+html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) :is(input:not([type="checkbox"], [type="radio"], [type="color"], [type="range"]), select) { min-height: 44px; font-size: 16px; }

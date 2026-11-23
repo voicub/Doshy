@@ -1,0 +1,15 @@
+/* The three entrance choices share the panel width and wrap rather than overflow. */
+.entry-seg { display: flex; flex-wrap: wrap; width: 100%; border: 1px solid var(--accent-line); border-radius: var(--r); padding: 2px; gap: 2px; }
+.entry-seg button { flex: 1 1 auto; justify-content: center; height: 28px; padding: 0 8px; font-size: 10px; letter-spacing: 0.1em; }
+@media (pointer: coarse) { .entry-seg button { min-height: 44px; } }
+
+/* While the Building panel is open it owns the left edge: the plan's title block steps aside instead of hiding under it. */
+.app:has(.building-panel) .bp-title { display: none; }
+
+.building-panel { overflow-y: auto; }
+.level-row { display: flex; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.level-row.active { border-color: var(--accent); background: var(--accent-soft); }
+.level-head { display: flex; align-items: center; gap: 8px; }
+.level-head input { flex: 1; min-width: 0; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--accent-line); border-radius: var(--r); padding: 6px 8px; font: 500 12px/1.2 var(--sans); color: var(--text); }
+.level-head input:focus-visible { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px rgba(90, 215, 255, 0.15); }
+.level-head .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }

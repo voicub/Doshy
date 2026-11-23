@@ -1,0 +1,29 @@
+node_modules
+.next
+.env*
+!.env.example
+next-env.d.ts
+*.tsbuildinfo
+.DS_Store
+
+# local database (settings, plans, imported models, backups, site cache)
+/data/
+
+# the maintainer's own plan exports and reference photos (private, never published)
+/housey-plan.json
+/ref-img/
+/docs/cars-reference/
+
+# tool and scratch leftovers
+/offline-cache/
+.tmp-*
+_*.png
+_*.jpg
+*.log
+
+# docker image exports
+/dist/
+*.tar
+
+# python bytecode (custom_components, tests)
+__pycache__/

@@ -1,0 +1,12 @@
+/* Animal options (CritterOptions): coat, wandering, pose, size */
+.critter-opts { display: flex; flex-direction: column; gap: 12px; }
+.critter-opts .field { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.critter-slider { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.critter-slider .rng { width: 100%; }
+.critter-opts .swatch:focus-visible, .critter-opts .swatch-custom:focus-visible, .critter-opts .preset:focus-visible, .critter-slider .rng:focus-visible { outline: 2px solid #5ad7ff; outline-offset: 2px; }
+@media (pointer: coarse) {
+  .critter-opts .swatches { gap: 10px; }
+  .critter-opts .swatch, .critter-opts .swatch-custom { width: 44px; height: 44px; }
+  .critter-opts .preset { min-height: 44px; min-width: 44px; padding: 0 12px; }
+  .critter-slider .rng { height: 44px; }
+}

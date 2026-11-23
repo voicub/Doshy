@@ -1,0 +1,52 @@
+# Builds the Docker image for the Home Assistant add-on, Docker and Portainer and pushes it to ghcr.io/voicub/doshy.
+# Release: `npm version 0.2.0` (bumps package.json, syncs doshy/config.yaml and the integration manifest, commits, tags v0.2.0),
+# then `git push --follow-tags`. The Supervisor pulls ghcr.io/voicub/doshy:<version>, so the image has to exist before users see the update.
+name: Build image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/voicub/doshy
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the version and check every copy of it agrees
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          node scripts/sync-version.mjs --check
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

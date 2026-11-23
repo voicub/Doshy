@@ -1,0 +1,65 @@
+/* Top-right telemetry strip: clock, weather, climate, open windows, season, and the t-* cells and menus shared with the chips elsewhere */
+.telemetry { position: absolute; top: var(--top); right: 20px; display: flex; align-items: stretch; height: 32px; --l: 6px; }
+.telemetry > * { display: flex; align-items: center; padding: 0 10px; border-left: 1px solid var(--accent-line); }
+.telemetry > :first-child { border-left: 0; }
+.t-cell { gap: 9px; }
+.t-val { font: 500 11.5px/1 var(--mono); letter-spacing: 0.06em; color: var(--text); font-variant-numeric: tabular-nums; }
+.t-val i { font-style: normal; color: var(--muted); margin: 0 1px; }
+.t-btn { gap: 7px; font: 500 10.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); transition: color 0.15s, background 0.15s; }
+.t-btn:hover { color: var(--text); background: var(--accent-soft); }
+.t-btn[aria-pressed="true"] { color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
+.telemetry .seg { padding: 0 4px; gap: 1px; align-items: center; }
+.telemetry .seg button { height: 22px; padding: 0 8px; }
+.telemetry > .t-weather { position: relative; padding: 0; }
+.t-wx { height: 100%; padding: 0 10px; }
+.t-wx .t-val { font-size: 11px; }
+.t-cond { max-width: 11ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-weight: 400; letter-spacing: 0.1em; }
+.t-forced { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+.t-sun .t-val { color: var(--muted); }
+.t-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 168px; display: flex; flex-direction: column; padding: 4px; background: rgba(6, 9, 12, 0.94); animation: rise 0.15s var(--ease); }
+.t-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; height: 28px; padding: 0 9px; border-radius: var(--r); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); text-align: left; }
+.t-item small { font-size: 9px; letter-spacing: 0.08em; text-transform: lowercase; opacity: 0.8; }
+.t-item:hover, .t-item:focus-visible { color: var(--text); background: var(--accent-soft); }
+.t-item[aria-checked="true"] { color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); background: var(--accent-soft); }
+.t-act { font: 500 10px/1 var(--mono); letter-spacing: 0.14em; color: var(--muted); }
+.t-climate { gap: 8px; height: 100%; padding: 0 10px; }
+.t-climate.heating .t-act { color: #ffb066; }
+.t-climate.heating svg { color: #ff9d2e; animation: warm 2.4s ease-in-out infinite; }
+@keyframes warm { 0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 157, 46, 0)); } 50% { filter: drop-shadow(0 0 5px rgba(255, 157, 46, 0.9)); } }
+/* The pulse fades a glow layer in and out (opacity runs on the compositor); animating box-shadow itself repaints the strip on every frame for as long as a window stays open. */
+.t-open { position: relative; gap: 10px; height: 100%; padding: 0 10px; color: var(--err-text); box-shadow: inset 0 0 0 1px rgba(255, 106, 61, 0.55); }
+.t-open::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 106, 61, 0.95), 0 0 12px rgba(255, 106, 61, 0.25); opacity: 0; animation: open-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .t-open::after { animation: none; opacity: 0.5; } }
+.t-open .t-val, .t-open .t-act { color: var(--err-text); }
+.t-open.rain .t-act { background: var(--err); padding: 3px 5px; border-radius: var(--r); color: #1a0903; font-weight: 600; }
+.t-open:hover { background: rgba(255, 106, 61, 0.12); }
+@keyframes open-pulse { 50% { opacity: 1; } }
+.t-openlist { min-width: 260px; }
+.t-openlist .t-item { height: auto; min-height: 30px; padding: 6px 9px; flex-direction: column; align-items: flex-start; gap: 4px; text-transform: none; letter-spacing: 0.04em; font-size: 11.5px; color: var(--text); }
+.t-openlist .t-item small { text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-size: 9.5px; }
+@media (max-width: 1680px) { .t-cond, .t-sun .label, .t-lbl, .t-climate .t-act, .t-open:not(.rain) .t-act { display: none; } .telemetry .seg button { padding: 0 6px; } }
+@media (max-width: 1560px) { .t-clock { display: none !important; } }
+@media (max-width: 1440px) { .t-env { display: none !important; } .t-sun { display: none !important; } }
+.t-val.warn { color: var(--err-text); }
+.t-season { display: flex; align-items: stretch; }
+.t-season .t-wx + .t-wx { border-left: 1px solid var(--accent-line); }
+.t-name { max-width: 14ch; }
+.t-season-menu { min-width: 200px; max-height: calc(100vh - var(--top) - 70px); overflow-y: auto; }
+.t-sect { padding: 9px 9px 5px; font: 500 9.5px/1 var(--mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+.t-sect:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--accent-line); }
+@media (max-width: 1500px) { .t-season .t-name { display: none; } }
+.app .telemetry { right: calc(20px + env(safe-area-inset-right, 0px)); }
+@media (pointer: coarse) {
+  .telemetry { height: var(--touch); }
+  .telemetry .t-btn, .telemetry .seg button, .telemetry .t-cell { height: var(--touch); }
+  .t-btn { min-height: var(--touch); min-width: var(--touch); }
+  .t-item { height: var(--touch); }
+  .t-openlist .t-item { min-height: var(--touch); }
+}
+@media (max-width: 900px) {
+  .telemetry { right: calc(8px + env(safe-area-inset-right, 0px)); max-width: calc(100vw - 150px); overflow-x: auto; scrollbar-width: none; }
+}
+.t-sep { height: 1px; margin: 4px 2px; background: var(--accent-line); }
+.t-winddir { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 2px; }
+.t-dir { justify-content: center; padding: 0; height: 26px; gap: 0; }
+@media (pointer: coarse) { .t-dir { height: var(--touch); } }

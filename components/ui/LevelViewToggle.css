@@ -1,0 +1,4 @@
+/* Floating view switch for the levels (all / current) */
+.levelview { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; --l: 6px; position: absolute; left: 50%; bottom: 122px; transform: translateX(-50%); }
+.levelview .seg button { height: 24px; padding: 0 8px; font-size: 10px; letter-spacing: 0.12em; }
+.app.multi-level .levelview { bottom: 126px; }

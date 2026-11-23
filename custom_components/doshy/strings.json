@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Doshy",
+        "description": "Enter the address where Doshy runs. Home Assistant checks that it answers there. Your browser has to reach the same address, and a Home Assistant opened over https can only show an https address.",
+        "data": {
+          "url": "Doshy address"
+        },
+        "data_description": {
+          "url": "For example http://homeassistant.local:3000 (the Doshy add-on or Docker container)."
+        }
+      },
+      "reconfigure": {
+        "title": "Change the Doshy address",
+        "description": "Enter the address where Doshy runs. Home Assistant checks that it answers there.",
+        "data": {
+          "url": "Doshy address"
+        },
+        "data_description": {
+          "url": "For example http://homeassistant.local:3000 (the Doshy add-on or Docker container)."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Doshy did not answer at this address. Check that it is running and the address and port are right.",
+      "invalid_url": "This is not a valid address. Use http:// or https://, the host and the port, for example http://homeassistant.local:3000."
+    },
+    "abort": {
+      "single_instance_allowed": "Doshy is already set up. Use its Configure or Reconfigure options to change it.",
+      "reconfigure_successful": "The Doshy address was updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Doshy sidebar",
+        "data": {
+          "title": "Sidebar title",
+          "icon": "Sidebar icon",
+          "show_in_sidebar": "Show in the sidebar",
+          "require_admin": "Only for administrators"
+        },
+        "data_description": {
+          "title": "The name of the entry in the sidebar and above the panel.",
+          "icon": "A Material Design icon, for example mdi:floor-plan.",
+          "show_in_sidebar": "Off keeps the panel reachable at /doshy but removes it from the sidebar.",
+          "require_admin": "Hide the panel from users who are not administrators."
+        }
+      }
+    }
+  }
+}

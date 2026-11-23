@@ -1,0 +1,61 @@
+/* Plan mode (Editor2D) on compact screens (every data-vp except regular: 800x480 and 1024x600 touch displays, phones). Everything for tiny is scoped to it: the desktop look is untouched.
+   - the Fit / Dimensions buttons sit under the top strip
+   - the drawing-sheet frame and title block are decoration: hidden
+   - the Wall / Pillar / Door / Window option bars become one row above the edit strip and its one-line hint, scrolling sideways (OpeningToolbar adds a "Colour & size" chip + popover) */
+
+.plan-corner { position: absolute; left: 16px; top: 88px; display: flex; gap: 6px; }
+
+html:not([data-vp="regular"]) .app .plan-corner { top: calc(var(--strip-h, 44px) + 8px); left: calc(8px + env(safe-area-inset-left, 0px)); z-index: 3; }
+html:not([data-vp="regular"]) .plan-corner .kbd { height: 44px !important; min-width: 44px; padding: 0 12px; justify-content: center; font-size: 12px; letter-spacing: 0.06em; }
+html:not([data-vp="regular"]) .plan-key { display: none; }
+
+/* a long press must not select text or open the system menu while drawing */
+html:not([data-vp="regular"]) .plan-svg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+html:not([data-vp="regular"]) :is(.bp-frame, .bp-title) { display: none; }
+
+/* ---------- option bars: one scrolling row above the hint line ---------- */
+html:not([data-vp="regular"]) .app :is(.wall-toolbar, .pillar-toolbar, .opening-toolbar) {
+  position: absolute; z-index: 42; box-sizing: border-box; display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; justify-content: flex-start; gap: 0;
+  left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--dock-h, 56px) + var(--tools-h, 56px) + 44px); /* the hint line (about 34 px) sits between this bar and the edit strip */
+  width: auto; max-width: none; max-height: none; margin: 0; padding: 6px 0; overflow: visible; transform: none; animation: none; background: rgba(6, 9, 12, 0.9);
+}
+html:not([data-vp="regular"]) .app :is(.wt-gallery, .pillar-gallery, .plan-bar-row) {
+  position: relative; flex: 1; min-width: 0; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 14px;
+  overflow-x: auto; overflow-y: hidden; scroll-snap-type: x proximity; overscroll-behavior-x: contain; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
+}
+html:not([data-vp="regular"]) :is(.wt-gallery, .pillar-gallery, .plan-bar-row)::-webkit-scrollbar { display: none; }
+html:not([data-vp="regular"]) .pillar-head, html:not([data-vp="regular"]) .plan-bar-row .field-note { display: none; } /* the one-line hint says it */
+
+/* choices: a picture and a 12 px label side by side, 44 px tall */
+html:not([data-vp="regular"]) .app :is(.wall-toolbar .wt-choice, .pillar-toolbar .pillar-preset, .plan-bar-row .opening-style) {
+  flex: none; width: auto; max-width: none; min-height: 44px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding: 0 12px 0 5px; scroll-snap-align: start;
+  font: 500 12px/1.1 var(--mono); letter-spacing: 0.04em; white-space: nowrap;
+}
+html:not([data-vp="regular"]) .app :is(.wall-toolbar .wt-choice, .pillar-toolbar .pillar-preset, .plan-bar-row .opening-style):active { background: var(--accent-soft); }
+html:not([data-vp="regular"]) .app :is(.wall-toolbar .wt-choice, .pillar-toolbar .pillar-preset, .plan-bar-row .opening-style) > span { min-height: 0; display: block; font: inherit; letter-spacing: inherit; }
+html:not([data-vp="regular"]) .wall-toolbar .wt-pic { width: 32px; height: 32px; flex: none; }
+html:not([data-vp="regular"]) .pillar-toolbar .pillar-preset svg, html:not([data-vp="regular"]) .plan-bar-row .opening-style svg { width: 36px; height: 36px; flex: none; }
+html:not([data-vp="regular"]) .opening-style { font-size: 12px; } /* also inside the inspector sheet */
+html:not([data-vp="regular"]) .plan-bar-row .opening-gallery { display: contents; }
+html:not([data-vp="regular"]) .plan-bar-pop .preset { flex: none; min-height: 44px; padding: 0 14px; font-size: 12px; letter-spacing: 0.04em; }
+html:not([data-vp="regular"]) .plan-more { flex: none; min-height: 44px; margin: 0 10px 0 2px; padding: 0 14px; font-size: 12px; letter-spacing: 0.04em; color: var(--accent); border-color: var(--accent-line); }
+
+/* the "Size and colour" popover: over the hint and the bar, scrolls inside when the screen is short */
+html:not([data-vp="regular"]) .app .plan-bar-pop {
+  position: absolute; z-index: 44; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 8px 12px 12px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; background: rgba(6, 9, 12, 0.96);
+  left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--dock-h, 56px) + var(--tools-h, 56px) + 8px);
+  max-height: calc(100dvh - var(--strip-h, 44px) - var(--dock-h, 56px) - var(--tools-h, 56px) - 16px);
+}
+.plan-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: -8px; z-index: 2; background: rgba(6, 9, 12, 0.96); }
+.plan-pop-head .btn { min-width: 88px; min-height: 44px; color: var(--accent); }
+html:not([data-vp="regular"]) .plan-bar-pop .opening-row { gap: 8px 10px; }
+html:not([data-vp="regular"]) .plan-bar-pop .opening-row > .label { min-width: 52px; font-size: 12px; }
+html:not([data-vp="regular"]) .plan-bar-pop .swatch { width: 44px; height: 44px; }
+html:not([data-vp="regular"]) .plan-bar-pop .opening-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+html:not([data-vp="regular"]) .plan-bar-pop .numf.has-steps { display: block; }
+html:not([data-vp="regular"]) .plan-bar-pop .numf .label { font-size: 12px; letter-spacing: 0.04em; }
+html:not([data-vp="regular"])[data-orient="portrait"] .plan-bar-pop .opening-fields { grid-template-columns: minmax(0, 1fr); }

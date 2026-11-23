@@ -1,0 +1,23 @@
+/* NumField (ui/NumField.tsx): the - and + buttons are always in the markup and hidden for a desktop mouse; compact screens and touch screens show them. */
+.num-step { display: none; }
+.numf > label { display: block; min-width: 0; }
+
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; align-items: stretch; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step {
+  display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0;
+  color: var(--accent); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--accent-line); border-radius: var(--r);
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background 0.12s, border-color 0.12s;
+}
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step:active { background: var(--accent-soft); border-color: var(--accent); }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step:disabled { opacity: 0.4; }
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > input { min-height: 44px; height: 44px; padding: 0 38px; text-align: center; }
+/* the unit sits inside the right end of the input, left of the + button */
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > i { right: 56px; font-size: 12px; }
+
+/* three fields in a row cannot hold two buttons each: one column of full-width fields */
+html:is(:not([data-vp="regular"]), [data-coarse="1"]) .grid3:has(.has-steps) { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+
+/* a short screen: the name sits left of the field, one row per number */
+html:not([data-vp="regular"]) .numf.has-steps { display: grid; grid-template-columns: minmax(64px, 84px) minmax(0, 1fr); column-gap: 8px; align-items: center; }
+html:not([data-vp="regular"]) .numf.has-steps > label .label { font-size: 12px; line-height: 1.25; letter-spacing: 0.04em; }

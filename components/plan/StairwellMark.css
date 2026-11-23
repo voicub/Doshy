@@ -1,0 +1,3 @@
+/* Stairwell opening on the blueprint: lettering in the HUD mono face, handles stay reachable on touchscreens (sized in JS via the `touch` prop). */
+.sw-mark text { font-family: var(--font-geist-mono), ui-monospace, monospace; font-weight: 600; }
+.sw-mark g[style*="cursor"] { touch-action: none; }

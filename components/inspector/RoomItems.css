@@ -1,0 +1,15 @@
+/* "Items in this room" section of the furniture and link inspectors (RoomItems.tsx). */
+.room-items { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--accent-line); }
+.room-items > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; min-height: 24px; }
+.room-items > summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.ri-count { font: 500 10.5px/1 var(--mono); letter-spacing: 0.1em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.room-items[open] > summary { margin-bottom: 2px; }
+.ri-search { width: 100%; }
+.ri-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; max-height: 220px; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.ri-list li + li { border-top: 1px solid var(--accent-line); }
+.ri-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 6px 9px; text-align: left; color: var(--text); font: 500 11px/1.25 var(--mono); letter-spacing: 0.05em; }
+.ri-row small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 400 10px/1.2 var(--mono); letter-spacing: 0.04em; }
+.ri-row:hover, .ri-row:focus-visible { background: var(--accent-soft); outline: 0; }
+.ri-row[aria-current="true"] { box-shadow: inset 2px 0 0 var(--accent); color: var(--accent); }
+.ri-empty { padding: 8px 9px; color: var(--muted); font: 400 11px/1.3 var(--mono); }
+@media (pointer: coarse) { .ri-row { min-height: var(--touch); justify-content: center; } .room-items > summary { min-height: var(--touch); } }

@@ -1,0 +1,4 @@
+/* Lock glyph of a locked piece: item lists (RoomItems.tsx) and the furniture inspector. */
+.lock-glyph { display: inline-block; margin-left: 6px; vertical-align: -1px; color: var(--accent); }
+.lock-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lock-row .hint { margin: 0; }

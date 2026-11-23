@@ -1,0 +1,70 @@
+/* Compact screens (data-vp tiny and small: 800x480 and 1024x600 touch displays, phones): the editing chrome of Plan, Furniture and Home Assistant mode.
+   EditStrip.tsx = one row above the dock (undo/redo pinned left, tools scroll, Edit pinned right) plus a one-line hint. Panels become sheets (components/ui/sheet.css).
+   Desktop (data-vp="regular") is untouched: everything here is scoped to non-regular. */
+
+/* ---------- edit strip ---------- */
+.edit-strip, .es-hint { display: none; }
+
+html:not([data-vp="regular"]) .app .edit-strip {
+  display: flex; align-items: center; gap: 4px; position: absolute; z-index: 44; box-sizing: border-box;
+  left: env(safe-area-inset-left, 0px); right: env(safe-area-inset-right, 0px); bottom: var(--dock-h, 56px);
+  height: 56px; padding: 0 4px; --l: 7px;
+}
+.es-pin { display: flex; align-items: center; gap: 2px; flex: none; }
+.es-end { padding-left: 4px; border-left: 1px solid var(--accent-line); }
+.es-pin:not(.es-end) { padding-right: 4px; border-right: 1px solid var(--accent-line); }
+.es-scroll {
+  display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%); mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+  padding: 0 10px;
+}
+.es-scroll::-webkit-scrollbar { display: none; }
+.es-sep { flex: none; width: 1px; height: 24px; margin: 0 6px; background: var(--accent-line); }
+
+.es-btn {
+  position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-width: 48px; height: 48px; padding: 0 10px; border-radius: var(--r); color: var(--muted);
+  font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; transition: color 0.15s, background 0.15s;
+}
+.es-btn:active:not(:disabled) { background: var(--accent-soft); color: var(--text); }
+.es-btn[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line), inset 0 -2px 0 var(--accent); }
+.es-btn:disabled { opacity: 0.35; }
+.es-ico { display: inline-flex; }
+.es-ico svg { width: 22px; height: 22px; }
+.es-primary { color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft); padding: 0 14px; }
+.es-primary:disabled { opacity: 0.4; }
+.es-danger { color: #ff9a70; }
+.es-what { flex: none; max-width: 40vw; padding-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 12px/1 var(--mono); letter-spacing: 0.06em; color: var(--muted); }
+.es-error { flex: none; padding-left: 8px; color: var(--err-text); font: 500 12px/1.2 var(--mono); }
+
+/* the furniture view's quick buttons, docked into the strip (QuickToolbar docked) */
+.edit-strip .quick-docked { display: flex; flex-wrap: nowrap; align-items: center; gap: 0; flex: none; position: static; width: max-content; max-width: none; transform: none; }
+.edit-strip .quick-docked[hidden] { display: none; }
+.quick-docked .quick-grp { border-left: 1px solid var(--accent-line); }
+.quick-docked .quick-grp:first-child { border-left: 0; }
+.quick-docked .quick-btn { min-width: 48px; height: 48px; padding: 0 6px; font-size: 12px; }
+.quick-docked .quick-btn svg { width: 22px; height: 22px; }
+.quick-docked .quick-btn:active:not(:disabled) { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- one-line hint over the canvas ---------- */
+html:not([data-vp="regular"]) .app .es-hint {
+  display: block; position: absolute; z-index: 43; box-sizing: border-box; margin: 0; padding: 6px 10px; border-radius: var(--r); pointer-events: none;
+  font: 500 12px/1.3 var(--mono); letter-spacing: 0.03em; color: var(--text); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; --l: 6px;
+}
+/* the 3D views draw their own hint line; compact screens use the strip's */
+html:not([data-vp="regular"]) .edit-overlay .edit-hint { display: none; }
+
+/* ---------- camera presets: icons only, a column under the top strip ---------- */
+html:not([data-vp="regular"]) .app .cam-chips {
+  top: calc(var(--strip-h, 44px) + 8px); left: calc(8px + env(safe-area-inset-left, 0px)); right: auto; transform: none; flex-direction: column; height: auto;
+}
+html:not([data-vp="regular"]) .app.multi-level .cam-chips { top: calc(var(--strip-h, 44px) + 60px); } /* under the level chips the chrome keeps at the top left */
+html:not([data-vp="regular"]) .app .cam-chip { width: 44px; height: 44px; padding: 0; justify-content: center; border-left: 0; border-top: 1px solid var(--accent-line); }
+html:not([data-vp="regular"]) .app .cam-chip:first-child { border-top: 0; }
+html:not([data-vp="regular"]) .app .cam-chip span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+html:not([data-vp="regular"]) .app .cam-chip svg { width: 20px; height: 20px; }
+
+/* the on-screen keyboard is up (KioskTouch sets data-kbd-open): the form needs the room */
+html[data-kbd-open="1"] .app .edit-strip, html[data-kbd-open="1"] .app .es-hint { display: none; }
+
+/* a 1280x800 touch panel keeps the desktop layout: the panel buttons the shared 40 px rule leaves are still a finger wide */
+@media (pointer: coarse) { .app :is(.drawer, .inspector) :is(.tab, .btn, .cmf-credits-link) { min-height: 44px; } }

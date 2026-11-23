@@ -1,0 +1,13 @@
+{
+  "domain": "doshy",
+  "name": "Doshy",
+  "codeowners": ["@voicub"],
+  "config_flow": true,
+  "dependencies": ["frontend"],
+  "documentation": "https://github.com/voicub/Doshy/blob/main/docs/home-assistant.md",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/voicub/Doshy/issues",
+  "single_config_entry": true,
+  "version": "0.1.0"
+}

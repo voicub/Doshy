@@ -1,0 +1,26 @@
+/* "Make it smart with a plug" section of the link inspector (PlugLink.tsx). */
+.plug-link { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--accent-line); }
+.pl-suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+.pl-pick { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; height: auto; padding: 6px 10px; text-align: left; }
+.pl-pick small { font: 400 10px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); }
+.pl-read { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid var(--accent-line); border-radius: 2px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.pl-read b { font-size: 18px; font-weight: 500; color: var(--accent); }
+.pl-read span { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+.pl-slider { display: flex; flex-direction: column; gap: 6px; }
+.pl-track { position: relative; display: block; height: 22px; }
+.pl-track input { width: 100%; margin: 0; }
+/* the live reading on the same scale as the slider: when the tick is right of the thumb, the appliance counts as running */
+.pl-live { position: absolute; top: 0; width: 2px; height: 22px; margin-left: -1px; background: #8a98a3; pointer-events: none; transition: left 0.4s; }
+.pl-live.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.pl-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (pointer: coarse) { .pl-pick, .plug-link .btn { min-height: 44px; } }
+
+/* compact screens: big suggestion buttons, 12 px+ text, a slider a finger can hit */
+html:not([data-vp="regular"]) .plug-link { gap: 10px; }
+html:not([data-vp="regular"]) .pl-pick { min-height: 56px; font-size: 14px; }
+html:not([data-vp="regular"]) .pl-pick small { font-size: 12px; }
+html:not([data-vp="regular"]) .pl-read span { font-size: 12px; }
+html:not([data-vp="regular"]) .pl-track { height: 44px; display: flex; align-items: center; }
+html:not([data-vp="regular"]) .pl-track input { height: 44px; }
+html:not([data-vp="regular"]) .pl-live { top: 11px; height: 22px; }
+html:not([data-vp="regular"]) .pl-actions .btn { flex: 1 1 130px; }

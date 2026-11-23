@@ -1,0 +1,108 @@
+/* "Make this car look exact": search, progress and fitting dialog, the real-model credits list and the catalog badge. Dialog shell: pieceBuilder.css. */
+.cmf-search { display: flex; align-items: flex-end; gap: 8px; }
+.cmf-q { flex: 1; min-width: 0; }
+.cmf-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.cmf-check { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; font: 400 10.5px/1.4 var(--mono); letter-spacing: 0.03em; color: var(--muted); }
+.cmf-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.cmf-err ol { margin: 8px 0 0; padding-left: 20px; }
+.cmf-err { padding: 10px 12px; border: 1px solid rgba(255, 106, 61, 0.4); border-radius: var(--r); font: 400 11.5px/1.6 var(--mono); color: var(--err-text); }
+.cmf-err p { margin: 0; }
+.cmf-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; min-height: 0; overflow-y: auto; flex: 1; align-content: start; padding-right: 4px; overscroll-behavior: contain; }
+.cmf-results > .field-note, .cmf-results > .btn { grid-column: 1 / -1; }
+.cmf-card { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(255, 255, 255, 0.015); }
+.cmf-card img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #05070a; border-radius: var(--r); display: block; }
+.cmf-card h3 { margin: 0; font: 500 12px/1.3 var(--sans); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmf-by { margin: 0; font: 400 10.5px/1.4 var(--mono); color: var(--muted); }
+.cmf-by a, .cmf-foot a, .cmf-credit a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cmf-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; font: 500 9.5px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.cmf-badges span { padding: 4px 6px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.cmf-badges .cmf-lic { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.cmf-card-act { display: flex; gap: 6px; margin-top: auto; }
+.cmf-card-act .btn { flex: 1; }
+.cmf-card-act .btn:disabled { opacity: 0.45; cursor: default; }
+.cmf-foot { align-items: flex-start; }
+
+.cmf-work { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 24px 4px; font: 400 12px/1.5 var(--mono); color: var(--text); }
+.cmf-work p { margin: 0; }
+.cmf-bar { width: 100%; height: 6px; border: 1px solid var(--accent-line); border-radius: var(--r); overflow: hidden; background: #05070a; }
+.cmf-bar i { display: block; height: 100%; background: var(--accent); transition: width 0.25s; }
+
+.cmf-fit { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 14px; min-height: 0; flex: 1; overflow: hidden; }
+.cmf-preview { min-height: 340px; border: 1px solid var(--accent-line); border-radius: var(--r); overflow: hidden; background: #05070a; touch-action: none; }
+.cmf-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.cmf-help { margin: 0; font: 400 11.5px/1.6 var(--mono); color: var(--text); }
+.cmf-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cmf-big { height: 40px; }
+.cmf-warn { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px; border: 1px solid rgba(255, 106, 61, 0.4); border-radius: var(--r); font: 400 11px/1.5 var(--mono); color: var(--err-text); }
+.cmf-warn svg { flex: none; margin-top: 2px; }
+.cmf-credit { margin: 0; font: 400 10px/1.5 var(--mono); color: var(--muted); }
+.cmf-search .btn:disabled { opacity: 0.4; cursor: default; }
+
+/* credits list */
+.cmc-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; overflow-y: auto; min-height: 0; }
+.cmc-list li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 400 11px/1.5 var(--mono); color: var(--muted); }
+.cmc-list strong { font: 500 12px/1.3 var(--sans); color: var(--text); }
+.cmc-list a, .cmc-note a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cmc-note { margin: 0; font: 400 11px/1.6 var(--mono); color: var(--muted); }
+
+/* catalog badge */
+.cmf-real { position: absolute; top: 6px; left: 6px; z-index: 1; padding: 3px 5px; border: 1px solid var(--accent); border-radius: var(--r); background: rgba(5, 7, 10, 0.85); font: 500 8.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); pointer-events: none; }
+
+@media (max-width: 760px) {
+  .cmf-fit { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .cmf-side { overflow: visible; }
+  .cmf-search { flex-wrap: wrap; }
+}
+@media (pointer: coarse) {
+  .cmf-big, .cmf-card-act .btn, .cmf-search .btn { height: 44px; }
+  .cmf-check { min-height: 44px; }
+  .cmf-check input { width: 24px; height: 24px; }
+  .cmf-by a { display: inline-block; min-height: 44px; line-height: 44px; }
+}
+.cmf-credits-link { align-self: flex-start; min-height: 24px; padding: 0 2px; font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.cmf-credits-link:hover { color: var(--accent); }
+@media (pointer: coarse) { .cmf-credits-link { min-height: 44px; } }
+
+/* automatic pick, token card, plan tools */
+.cmf-token-card { padding: 12px 14px; border: 1px solid var(--accent); border-radius: var(--r); background: var(--accent-soft); font: 400 11.5px/1.6 var(--mono); color: var(--text); }
+.cmf-token-card h3 { margin: 0 0 8px; font: 500 12px/1.3 var(--sans); color: var(--accent); }
+.cmf-token-card ol { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.cmf-token-card a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.cmf-token-card code { padding: 1px 4px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.35); word-break: break-all; }
+.cmf-envline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.cmf-envrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.cmf-token-card .field-note { margin: 4px 0 0; }
+.cmf-auto { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 400 11px/1.5 var(--mono); color: var(--text); }
+.cmf-auto p { margin: 0; }
+.cmf-auto.bad { border-color: rgba(255, 106, 61, 0.4); color: var(--err-text); }
+.cmf-auto .cmf-bar { width: 100%; }
+.cmf-tools { display: flex; flex-direction: column; gap: 8px; align-items: stretch; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--accent-line); }
+.cmf-tools .btn:disabled, .cmr .btn:disabled { opacity: 0.45; cursor: default; }
+.cmf-joblist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font: 400 10.5px/1.4 var(--mono); color: var(--muted); }
+.cmf-joblist li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; padding: 4px 6px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.cmf-joblist li.done { color: var(--ok); }
+.cmf-joblist li.failed { color: var(--err-text); }
+.cmf-joblist small { flex-basis: 100%; }
+@media (pointer: coarse) { .cmf-envrow .btn, .cmf-envline .btn { height: 44px; } }
+
+/* compact screens: the dialog (pieceBuilder.css) is a full-screen page; its middle scrolls as one, results are plain cards in that scroll */
+html:not([data-vp="regular"]) .cmf-search { flex-wrap: wrap; align-items: stretch; }
+html:not([data-vp="regular"]) .cmf-search .btn { flex: 1 1 100%; }
+html:not([data-vp="regular"])[data-orient="landscape"] .cmf-search .btn { flex: none; align-self: flex-end; }
+html:not([data-vp="regular"]) .cmf-results { overflow: visible; flex: none; padding-right: 0; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+html:not([data-vp="regular"]) .cmf-card-act .btn { min-height: 44px; }
+html:not([data-vp="regular"]) .cmf-card h3 { font-size: 14px; }
+html:not([data-vp="regular"]) :is(.cmf-by, .cmf-check, .cmf-help, .cmf-credit, .cmf-warn, .cmf-err, .cmf-token-card, .cmf-auto, .cmf-joblist, .cmc-list li, .cmc-note, .cmf-work) { font-size: 12px; }
+html:not([data-vp="regular"]) .cmf-badges { font-size: 12px; }
+html:not([data-vp="regular"]) .cmf-big { height: 44px; }
+html:not([data-vp="regular"]) .cmf-by a { display: inline-block; min-height: 44px; line-height: 44px; }
+html:not([data-vp="regular"]) .cmf-check { min-height: 44px; }
+html:not([data-vp="regular"]) .cmf-check input { width: 24px; height: 24px; flex: none; }
+html:not([data-vp="regular"]) .cmf-fit { gap: 10px; overscroll-behavior: contain; }
+html:not([data-vp="regular"]) .cmf-preview { min-height: 0; }
+html:not([data-vp="regular"])[data-orient="portrait"] .cmf-preview { min-height: min(300px, 40dvh); }
+html:not([data-vp="regular"]) .cmf-side { overscroll-behavior: contain; }
+html:not([data-vp="regular"]) .cmc-list { overflow: visible; }
+html:not([data-vp="regular"]) .cmf-credits-link { min-height: 44px; font-size: 12px; }
+html:not([data-vp="regular"]) .cmf-tools .btn, html:not([data-vp="regular"]) .cmr-check { min-height: 44px; }
+html:not([data-vp="regular"]) :is(.cmc-list li, .cmc-note, .cmf-token-card, .cmf-auto, .cmf-joblist li) { overflow-wrap: anywhere; min-width: 0; }

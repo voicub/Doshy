@@ -1,0 +1,4 @@
+# Override that builds the image from this folder: docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  doshy:
+    build: .

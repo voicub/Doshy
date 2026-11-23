@@ -1,0 +1,22 @@
+/* New plan panel: template cards with a schematic preview. Colours and radii come from the HUD tokens in globals.css. */
+.hud.new-plan { background: rgba(6, 9, 12, 0.94); overflow-y: auto; }
+.np-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.np-card { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; padding: 8px; text-align: left; color: var(--text); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--accent-line); border-radius: var(--r); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.np-card:hover { border-color: var(--accent); background: var(--accent-soft); }
+.np-prev { display: block; width: 112px; height: 84px; background: var(--bg-2); border: 1px solid var(--accent-line); border-radius: var(--r); }
+.np-prev svg { display: block; width: 100%; height: 100%; }
+.np-room { fill: var(--accent); fill-opacity: 0.1; }
+.np-grass { fill: var(--ok); fill-opacity: 0.12; }
+.np-wall { stroke: var(--text); stroke-opacity: 0.85; stroke-linecap: square; }
+.np-door { stroke: var(--bg-2); }
+.np-win { stroke: var(--accent); }
+.np-empty { fill: none; stroke: var(--accent-line); stroke-width: 0.04; stroke-dasharray: 0.16 0.12; }
+.np-plus { fill: none; stroke: var(--muted); stroke-width: 0.05; }
+.np-text { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.np-name { font: 500 14px/1.2 var(--sans); letter-spacing: -0.01em; }
+.np-sum { font: 400 11.5px/1.4 var(--sans); color: var(--muted); }
+.np-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.np-tag { padding: 2px 6px; border: 1px solid var(--accent-line); border-radius: var(--r); color: var(--accent); }
+.np-confirm { display: flex; flex-direction: column; gap: 12px; }
+.np-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+@media (pointer: coarse) { .np-card { min-height: 44px; } }

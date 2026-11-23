@@ -1,0 +1,9 @@
+.cur-auto { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--accent-line); }
+.cur-check input[type="checkbox"] { flex: none; width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; accent-color: var(--accent); }
+.cur-auto .cur-check { margin-top: 0; color: var(--text); }
+.cur-auto-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; font: 500 11px/1.3 var(--sans); color: var(--muted); }
+.cur-auto-row input[type="time"] { flex: 0 1 140px; width: auto; min-height: 32px; padding: 4px 8px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--accent-line); border-radius: var(--r); color: var(--text); font: 400 12px/1.3 var(--mono); color-scheme: dark; }
+.cur-auto-row input[type="time"]:focus-visible, .cur-auto-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cur-auto-clear { min-height: 32px; padding: 4px 10px; background: transparent; border: 1px solid var(--accent-line); border-radius: var(--r); color: var(--muted); font: 500 10.5px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.cur-auto-clear:hover { color: var(--text); border-color: var(--accent); }
+@media (pointer: coarse) { .cur-auto-row input[type="time"], .cur-auto-clear { min-height: var(--touch); } }

@@ -1,0 +1,40 @@
+/* Entity browser panel: virtualised group list, per-entity actions, area mapping */
+.eb { z-index: 46; width: 392px; gap: 12px; }
+.eb-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.eb-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.25); }
+.eb-head { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 2px; background: #0a1218; border-bottom: 1px solid var(--accent-line); }
+.eb-twist { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 6px; text-align: left; font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); }
+.eb-twist:disabled { cursor: default; }
+.eb-gname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-count { font-weight: 400; letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-on { color: var(--ok); letter-spacing: 0.08em; font-size: 10px; white-space: nowrap; }
+.eb-tag { font: 500 9.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding-right: 4px; white-space: nowrap; }
+.eb-ent { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 10px; border-bottom: 1px solid rgba(90, 215, 255, 0.07); }
+.eb-ent:hover { background: var(--accent-soft); }
+.eb-l { display: flex; align-items: center; gap: 6px; min-width: 0; height: 20px; }
+.eb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text); }
+.eb-state { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 11px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.eb-state.on { color: var(--accent); }
+.eb-state.bad { color: var(--err-text); }
+.eb-id { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 10px/1 var(--mono); letter-spacing: 0.02em; color: var(--muted); }
+.eb-act { height: 20px; padding: 0 7px; flex: none; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 9.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); white-space: nowrap; transition: color 0.15s, background 0.15s, border-color 0.15s; }
+.eb-act:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.eb-act:disabled { color: var(--ok); border-color: transparent; cursor: default; }
+.eb-act.armed { border-color: var(--err); color: var(--err-text); background: rgba(255, 106, 61, 0.1); }
+.eb-act.armed:hover { border-color: var(--err); color: var(--err-text); background: rgba(255, 106, 61, 0.18); }
+.eb-map { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.eb-map-head { display: flex; align-items: center; gap: 6px; }
+.eb-map-head .label { flex: 1; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eb-map-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.eb-area { display: flex; align-items: center; gap: 10px; padding: 9px 10px; text-align: left; font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid rgba(90, 215, 255, 0.07); }
+.eb-area span { flex: 1; }
+.eb-area small { font-size: 10px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.eb-area i { width: 10px; height: 10px; border: 1px solid var(--muted); border-radius: var(--r); }
+.eb-area:hover { color: var(--text); background: var(--accent-soft); }
+.eb-area[aria-checked="true"] { color: var(--text); }
+.eb-area[aria-checked="true"] i { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 6px var(--accent); }
+@media (pointer: coarse) {
+  .eb-act { position: relative; }
+  .eb-act::after { content: ""; position: absolute; inset: -9px -2px; }
+}
+@media (hover: none) { .eb-ent:hover { background: transparent; color: inherit; } }
