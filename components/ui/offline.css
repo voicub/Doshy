@@ -1,0 +1,15 @@
+/* The "Offline" chip (top centre, under the Home Assistant banner when there is one) and the "new version" toast (bottom centre). HUD tokens from globals.css. */
+.ofl-chip { position: absolute; z-index: 54; top: calc(var(--top) + 4px); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); padding: 6px 12px; background: var(--panel); border-color: rgb(var(--bad-rgb) / 0.5); font: 500 11px/1.35 var(--mono); letter-spacing: 0.05em; color: var(--err-text); pointer-events: none; --l: 6px; }
+.ofl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--err); box-shadow: 0 0 6px var(--err); }
+.ofl-dot.ready { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+.ofl-toast { position: absolute; z-index: 58; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; width: max-content; max-width: min(520px, calc(100% - 24px)); padding: 8px 8px 8px 14px; background: rgb(var(--panel-rgb) / 0.96); font-size: 12.5px; line-height: 1.4; pointer-events: auto; --l: 6px; }
+.ofl-toast .btn { height: 30px; }
+.ofl-x { width: 28px; height: 28px; flex: none; }
+
+/* compact screens: the chip sits just under the top strip, the toast above the dock; finger-sized buttons, text of 12 px or more */
+html:not([data-vp="regular"]) .ofl-chip { top: calc(var(--strip-h) + 6px); font-size: 12px; }
+html:not([data-vp="regular"]) .ofl-toast { bottom: calc(var(--dock-h, 56px) + 8px + env(safe-area-inset-bottom, 0px)); font-size: 13px; }
+html:not([data-vp="regular"]) :is(.ofl-toast .btn, .ofl-x) { min-height: 44px; }
+html:not([data-vp="regular"]) .ofl-x { min-width: 44px; }
+@media (pointer: coarse) { .ofl-toast .btn, .ofl-x { min-height: 44px; } .ofl-x { min-width: 44px; } }

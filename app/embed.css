@@ -1,0 +1,11 @@
+/* `?embed=1` (components/EmbedClass, EmbedDashboard): Doshy inside another page. Only the 3D scene is shown. */
+html[data-embed] .chrome,
+html[data-embed] .saver { display: none; } /* the embedded page renders no HUD; these are the layout-level parts that exist anyway */
+html[data-embed] .embed-wait { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text); opacity: 0.6; }
+
+/* View-only (no interactive=1): taps and drags do nothing and the page behind the card keeps scrolling by touch. */
+html[data-embed]:not([data-embed-interactive]) .stage,
+html[data-embed]:not([data-embed-interactive]) .stage canvas { pointer-events: none; touch-action: auto !important; }
+html[data-embed]:not([data-embed-interactive]),
+html[data-embed]:not([data-embed-interactive]) body,
+html[data-embed]:not([data-embed-interactive]) .app { overscroll-behavior: auto; touch-action: auto; }

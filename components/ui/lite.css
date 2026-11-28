@@ -1,0 +1,28 @@
+/*
+ * The Eco look. `html[data-lite]` is written by components/LiteClass.tsx while the graphics tier is Eco (lib/quality.ts `isLite`): a Raspberry Pi class GPU pays for every
+ * blurred, glowing, animated or translucent full-screen layer on every frame, and Eco exists to spend nothing on looks. The HUD keeps its shapes, borders and colours; it
+ * loses what only decorates: backdrop blur, glow shadows, endless pulses and the full-screen scanline/vignette layer. Light and up keep the full look.
+ * Everything here is `!important` so the load order of the component sheets does not matter. Contrast: the glass panels get a more opaque fill instead of the blur.
+ */
+
+/* Blur behind a panel makes the browser re-read and re-blur the 3D canvas under it every frame the canvas changes: the single costliest paint. A more opaque fill keeps the text readable (AA). */
+html[data-lite] { --glass: rgb(var(--panel-rgb) / 0.92); }
+html[data-lite] *, html[data-lite] *::before, html[data-lite] *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html[data-lite] :is(.hud, .palette) { background: rgb(var(--panel-rgb) / 0.92) !important; }
+html[data-lite] :is(.chip, .badge, .chip-dev, .sfx-badge, .wfx) { background: rgb(var(--panel-rgb) / calc(0.86 * var(--panel-k))) !important; }
+html[data-lite] .ring { background: rgb(var(--panel-rgb) / calc(0.8 * var(--panel-k))) !important; }
+
+/* Glows are big soft shadows: each is a blur pass that is painted again whenever the label moves. The border and fill colour keep saying "on" or "alert". */
+html[data-lite] :is(.chip.lit, .ring.on, .dc-cluster, .sfx-badge.alert, .wfx.attention) { box-shadow: none !important; }
+html[data-lite] .badge.warn { box-shadow: 0 0 0 1px rgb(var(--bad-rgb) / 0.6) !important; }
+html[data-lite] :is(.compass .cn, .compass .cs.up, .dial.heating .d-fill) { filter: none !important; }
+
+/* Endless decorative pulses keep the browser producing a new picture 60 times a second for ever, even when nothing else moves (a still wall display should idle).
+   Loading spinners and blinking "waiting" dots are information, not decoration: they stay. */
+html[data-lite] :is(.chip-occ, .occ.on, .reactor, .reactor::before, .badge.warn, .wfx.attention, .sfx-badge[data-anim], .t-climate.heating svg, .dial.heating .d-fill, .dial.heating .d-action i, .lc.attention::after, .rail-open svg) { animation: none !important; }
+html[data-lite] .t-open::after { animation: none !important; opacity: 0.5; }
+/* The scanline / vignette / sweep layer and the rain tint are full-screen translucent layers over the canvas (the browser blends them in on every frame; the tint is 5% of one colour). */
+html[data-lite] :is(.atm, .rain-tint) { display: none !important; }
+
+/* Every floating label was its own compositor layer (will-change); sixty of them are sixty textures. Without the hint the browser merges the still ones. */
+html[data-lite] :is(.dc-host, .dc-cluster) { will-change: auto !important; }
