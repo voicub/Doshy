@@ -1,0 +1,43 @@
+/* The Routines slide-over: cards with habits Doshy found, each with a 14-day dot strip and its buttons. Colours come from the theme tokens (app/theme-tokens.css); classes are `rt-*`.
+   The confirmation reuses the Automations sheet's `am-preview`, `am-confirm`, `am-field` (automation.css). Nothing here animates: it is cheap on the Eco tier as it is. */
+.rt { z-index: 46; width: 380px; gap: 12px; }
+.rt-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+.rt-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rt-when { font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.04em; color: var(--text-dim); }
+.rt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rt-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--sunken); }
+.rt-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.rt-ico { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: var(--r); color: var(--accent); background: var(--accent-soft); }
+.rt-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rt-who b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-who small { font: 400 10.5px/1.2 var(--mono); letter-spacing: 0.04em; color: var(--text-dim); }
+.rt-habit { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--text); }
+.rt-seen { margin: 0; font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.04em; color: var(--text-dim); }
+.rt-ask { margin: 0; font-size: 13px; line-height: 1.4; color: var(--text-2); }
+
+/* the 14 days: filled = it happened, hollow = it did not, a short dash = the idea does not apply that day (not shown by colour alone: the shapes differ) */
+.rt-strip { display: flex; flex-direction: column; gap: 3px; }
+.rt-dots { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.rt-dots i { height: 10px; border-radius: 1px; border: 1px solid var(--text-dim); box-sizing: border-box; }
+.rt-dots i[data-c="hit"] { background: var(--accent); border-color: var(--accent); }
+.rt-dots i[data-c="off"] { height: 2px; align-self: center; border: 0; background: var(--text-faint); }
+.rt-strip-caption { display: flex; justify-content: space-between; font: 400 9.5px/1 var(--mono); letter-spacing: 0.04em; color: var(--text-dim); }
+
+.rt-edit { display: flex; flex-direction: column; gap: 10px; }
+.rt-check { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); }
+.rt-check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.rt-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rt-done { display: flex; align-items: flex-start; gap: 8px; margin: 0; font-size: 13px; line-height: 1.4; color: var(--ok-text); }
+.rt-done svg { flex: none; margin-top: 2px; }
+.rt-hidden { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--text-2); }
+.rt-link { align-self: flex-start; padding: 6px 0; font: 500 10.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.rt-chip { align-self: flex-start; }
+
+/* touch targets: 44 px on a phone and on the 7 inch screen */
+html:not([data-vp="regular"]) .rt :is(button, summary, select, input:not([type="range"], [type="checkbox"])) { min-height: 44px; }
+html:not([data-vp="regular"]) .rt-check { min-height: 44px; }
+html:not([data-vp="regular"]) .rt-check input { width: 24px; height: 24px; }
+html:not([data-vp="regular"]) .rt-chip { min-height: 44px; }
+@media (pointer: coarse) {
+  .rt :is(button, summary), .rt-chip { min-height: 44px; }
+}

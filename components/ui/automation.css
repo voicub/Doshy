@@ -1,0 +1,36 @@
+/* The automation sheet ("Make it do something..."): a centred modal above the HUD. Colours and radii come from the HUD tokens in globals.css; classes are `am-*`. */
+.am-scrim { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: rgb(var(--scrim-rgb) / 0.66); backdrop-filter: blur(4px); animation: am-fade 0.15s ease-out; }
+.am { width: min(560px, 100%); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; background: rgb(var(--panel-rgb) / 0.97); --l: 10px; animation: am-rise 0.2s var(--ease); }
+@keyframes am-fade { from { opacity: 0; } }
+@keyframes am-rise { from { opacity: 0; transform: translateY(8px); } }
+.am-tabs { align-self: flex-start; border: 1px solid var(--accent-line); border-radius: var(--r); padding: 2px; gap: 2px; }
+.am-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+.am-new { display: flex; flex-direction: column; gap: 12px; }
+.am-recipes { display: flex; flex-direction: column; gap: 6px; }
+.am-recipe { padding: 10px 12px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-20); font-size: 12.5px; color: var(--text); transition: border-color 0.15s, background 0.15s; }
+.am-recipe:hover { border-color: var(--border-strong); }
+.am-recipe[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
+.am-field { display: flex; flex-direction: column; gap: 6px; }
+.am-field :is(select, input[type="time"], input[type="number"]) { padding: 9px 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-45); font: 400 13px/1.2 var(--mono); color: var(--text); color-scheme: dark; }
+.am-field :is(select, input):focus { border-color: var(--accent); outline: 0; }
+.am-field .seg { align-self: flex-start; border: 1px solid var(--accent-line); border-radius: var(--r); padding: 2px; gap: 2px; }
+.am-preview { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-30); }
+.am-preview .label { color: var(--accent); }
+.am-words { margin: 0; font-size: 14px; line-height: 1.4; color: var(--text); user-select: text; }
+.am-yaml summary { cursor: pointer; }
+.am-yaml pre { margin: 8px 0 0; padding: 10px; max-height: 240px; overflow: auto; border: 1px solid rgb(var(--line-rgb) / 0.1); border-radius: var(--r); background: var(--shade-50); font: 400 11px/1.5 var(--mono); color: var(--lg-c7d8e2); user-select: text; white-space: pre; }
+.am-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.am-confirm { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; border: 1px solid rgb(var(--lg-255-190-80) / 0.4); border-radius: var(--r); background: var(--shade-35); font-size: 12.5px; line-height: 1.4; }
+.am-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.am-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-20); }
+.am-row[data-off] .am-row-text b { color: var(--muted); }
+.am-row-text { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
+.am-row-text b { font-weight: 500; font-size: 13px; line-height: 1.35; }
+.am-row-text small { font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.04em; color: var(--muted); }
+
+html:not([data-vp="regular"]) .am { padding: 10px 12px 12px; }
+html:not([data-vp="regular"]) .am :is(button, summary, select, input:not([type="range"])) { min-height: 44px; }
+html:not([data-vp="regular"]) .am input[type="range"] { height: 44px; }
+html:not([data-vp="regular"]) .am .eb-chip { min-height: 44px; padding: 0 12px; }
+@media (pointer: coarse) { .am :is(button, summary) { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .am-scrim, .am { animation: none; } }

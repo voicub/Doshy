@@ -1,0 +1,18 @@
+/* The command box ("Ask Doshy..." in the command palette): what it understood, the answer, a question back. Colours and radii come from the HUD tokens in globals.css. */
+.cbx { display: flex; flex-direction: column; gap: 10px; padding: 14px; min-height: 120px; }
+.cbx .label { color: var(--accent); }
+.cbx-help { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.cbx-said { margin: 0; font-size: 16px; line-height: 1.35; color: var(--text); user-select: text; }
+.cbx-list { margin: 0; font: 400 11px/1.5 var(--mono); letter-spacing: 0.03em; color: var(--muted); overflow-wrap: anywhere; }
+.cbx-no { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--err-text); }
+.cbx-actions { display: flex; align-items: center; gap: 12px; }
+.cbx-key { font: 500 10px/1 var(--mono); letter-spacing: 0.14em; color: var(--muted); }
+.cbx-ex { height: 28px; padding: 0 10px; text-transform: none; letter-spacing: 0.02em; font-size: 11px; }
+.cbx-mic.on { color: var(--err-text); background: rgb(var(--bad-rgb) / 0.12); }
+html:not([data-vp="regular"]) :is(.cbx button, .cbx-mic) { min-height: 44px; min-width: 44px; }
+@media (pointer: coarse) { .cbx button, .cbx-mic { min-height: 44px; min-width: 44px; } }
+.palette:has([aria-label="Home Assistant Assist"]) { max-height: 78dvh; overflow-y: auto; }
+.cbx[aria-label="Home Assistant Assist"] { min-height: 0; border-top: 1px solid var(--accent-line); }
+.cbx[aria-label="Home Assistant Assist"] select { max-width: 100%; min-height: 36px; }
+.cbx [role="log"] { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; }
+html:not([data-vp="regular"]) .palette:has([aria-label="Home Assistant Assist"]) { max-height: 84dvh; }

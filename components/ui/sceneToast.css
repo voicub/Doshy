@@ -1,0 +1,22 @@
+/* The toast after a scene ran: bottom centre, above the dock. Colours and radii come from the HUD tokens in globals.css. */
+.scn-toast { position: absolute; z-index: 58; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: min(520px, calc(100% - 24px)); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 9px 10px 9px 14px; background: rgb(var(--panel-rgb) / 0.96); font-size: 12.5px; line-height: 1.4; pointer-events: auto; --l: 6px; animation: scn-rise 0.2s var(--ease); }
+@keyframes scn-rise { from { opacity: 0; transform: translate(-50%, 8px); } }
+.scn-toast.warn { border-color: rgb(var(--bad-rgb) / 0.5); }
+.scn-toast-text { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 2px; }
+.scn-toast-text b { font-weight: 500; }
+.scn-toast-text small { font: 400 10.5px/1.35 var(--mono); letter-spacing: 0.03em; color: var(--err-text); overflow-wrap: anywhere; }
+.scn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; box-shadow: 0 0 8px var(--accent); }
+.scn-toast[data-phase="running"] .scn-dot { animation: scn-pulse 0.9s ease-in-out infinite; }
+.scn-toast[data-phase="done"] .scn-dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.scn-toast[data-phase="failed"] .scn-dot, .scn-toast[data-phase="partial"] .scn-dot { background: var(--err); box-shadow: 0 0 8px var(--err); }
+@keyframes scn-pulse { 50% { opacity: 0.3; } }
+.scn-toast .btn { height: 30px; }
+.scn-x { width: 28px; height: 28px; flex: none; }
+html:not([data-vp="regular"]) :is(.scn-toast .btn, .scn-x) { min-height: 44px; }
+html:not([data-vp="regular"]) .scn-x { min-width: 44px; }
+html:not([data-vp="regular"]) .scn-toast-text { min-width: 110px; }
+@media (pointer: coarse) { .scn-toast .btn, .scn-x { min-height: 44px; } .scn-x { min-width: 44px; } }
+html:not([data-vp="regular"]) .scn-toast { bottom: calc(var(--dock-h, 56px) + 8px + env(safe-area-inset-bottom, 0px)); }
+/* the sheet sits beside the scene on a small landscape screen: the toast keeps to the scene's side */
+html:not([data-vp="regular"])[data-orient="landscape"] .scn-toast { left: 40%; max-width: min(420px, 58%); }
+@media (prefers-reduced-motion: reduce) { .scn-toast, .scn-toast .scn-dot { animation: none; } }

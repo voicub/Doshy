@@ -1,0 +1,72 @@
+/* Scenes slide-over and its editor. Colours and radii come from the HUD tokens in globals.css; classes are `scn-*`. The toast is sceneToast.css. */
+.hud.scn { background: var(--panel); }
+.scn { z-index: 46; width: 380px; gap: 12px; }
+.scn-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 2px; }
+.scn-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.scn-field { display: flex; flex-direction: column; gap: 6px; }
+.scn-field input { padding: 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-35); font: 500 14px/1.2 var(--sans); color: var(--text); }
+.scn-field input:focus { border-color: var(--accent); outline: 0; }
+.scn-start { display: flex; flex-direction: column; gap: 6px; }
+
+/* the list of scenes: one big run button each */
+.scn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.scn-row { display: flex; align-items: stretch; gap: 6px; }
+.scn-run { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-25); color: var(--text); transition: border-color 0.15s, background 0.15s; }
+.scn-run:hover { border-color: var(--accent); background: var(--accent-soft); }
+.scn-run:active { background: rgb(var(--accent-rgb) / 0.22); }
+.scn-run > svg:last-child { flex: none; color: var(--accent); }
+.scn-ico { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--accent-line); border-radius: var(--r); color: var(--accent); background: var(--accent-soft); }
+.scn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.scn-text b { font-weight: 500; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scn-text small, .scn-tile small { font: 400 10.5px/1.3 var(--mono); letter-spacing: 0.03em; color: var(--muted); }
+.scn-edit { width: 40px; height: auto; border: 1px solid var(--accent-line); }
+.scn-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.scn-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-20); color: var(--text); }
+.scn-tile:hover { border-color: var(--accent); background: var(--accent-soft); }
+.scn-tile b { font-weight: 500; font-size: 12.5px; }
+.scn-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* the editor: rooms, devices, and the big controls of each */
+.scn-room { margin: 0 0 6px; padding-bottom: 5px; border-bottom: 1px solid var(--accent-line); }
+.scn-room .label { color: var(--accent); }
+.scn-devs { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.scn-dev { display: flex; flex-direction: column; gap: 8px; padding: 9px 10px; border: 1px solid rgb(var(--line-rgb) / 0.1); border-radius: var(--r); background: var(--shade-20); }
+.scn-dev[data-active] { border-color: var(--accent-line); background: rgb(var(--accent-rgb) / 0.05); }
+.scn-dev-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.scn-kind { align-self: center; color: var(--accent); display: grid; }
+.scn-name { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scn-now { font: 400 10px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
+.scn-choices { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; }
+.scn-choice { height: 36px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); transition: color 0.15s, background 0.15s, border-color 0.15s; }
+.scn-choice:hover { color: var(--text); border-color: var(--border-strong); }
+.scn-choice[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.scn-slider { display: grid; grid-template-columns: 74px 1fr 52px; align-items: center; gap: 10px; }
+.scn-rng { width: 100%; height: 8px; }
+.scn-rng::-webkit-slider-thumb { width: 18px; height: 26px; }
+.scn-val { text-align: right; font: 500 12px/1 var(--mono); color: var(--text); }
+.scn-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.scn-swatches .swatch { width: 28px; height: 28px; border-radius: var(--r); border: 1px solid rgb(var(--fg-rgb) / 0.2); }
+.scn-swatches .swatch[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scn-stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.scn-step { width: 48px; height: 44px; display: grid; place-items: center; border: 1px solid var(--accent-line); border-radius: var(--r); color: var(--text); }
+.scn-step:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.scn-step:disabled { opacity: 0.35; cursor: default; }
+.scn-temp { min-width: 84px; text-align: center; font: 500 26px/1 var(--mono); color: var(--text); }
+.scn-small { height: 32px; align-self: flex-start; }
+.scn-adv { border: 1px solid var(--accent-line); border-radius: var(--r); padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+.scn-adv summary { cursor: pointer; color: var(--accent); }
+.scn-confirm { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid rgb(var(--bad-rgb) / 0.35); border-radius: var(--r); background: var(--shade-35); font-size: 12px; }
+
+/* the buttons that finish the edit stay in reach while the device list scrolls */
+.scn-bar { position: sticky; bottom: -12px; z-index: 2; margin-bottom: -12px; padding: 8px 0 12px; background: rgb(var(--panel-rgb) / 0.98); border-top: 1px solid var(--accent-line); }
+/* a short screen: the sheet itself scrolls (the list would be squeezed to nothing by the name field and the buttons), so the body keeps its natural height */
+html:not([data-vp="regular"]) .scn-editor, html:not([data-vp="regular"]) .scn-editor .scn-body { flex: none; overflow: visible; }
+/* touch targets: 44 px on a phone and on the 7 inch screen */
+html:not([data-vp="regular"]) .scn :is(button, summary, select, input:not([type="range"])) { min-height: 44px; }
+html:not([data-vp="regular"]) .scn input[type="range"] { height: 44px; }
+html:not([data-vp="regular"]) .scn-choice { height: 44px; }
+html:not([data-vp="regular"]) .scn-swatches .swatch { width: 40px; height: 40px; }
+@media (pointer: coarse) {
+  .scn :is(button, summary) { min-height: 44px; }
+  .scn-choice { height: 44px; }
+}
