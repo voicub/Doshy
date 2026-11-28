@@ -1,0 +1,10 @@
+/* The "Home Assistant (MDI)" tab of the icon picker. Colours come from the HUD tokens; the grid and cells are iconPicker.css's. */
+.ip-tabs { display: flex; }
+.ip-mdi { display: flex; flex-direction: column; gap: 8px; }
+.ip-groups { display: flex; flex-wrap: wrap; gap: 4px; }
+.ip-groups .eb-chip { height: 28px; padding: 0 10px; text-transform: none; letter-spacing: 0.02em; font-size: 11px; }
+.ip-recent { max-height: none; }
+.ip-cell:disabled { opacity: 0.45; cursor: default; }
+.ip-cell:disabled:hover { color: var(--muted); border-color: var(--accent-line); background: transparent; }
+.ip-cell > span:last-child { overflow-wrap: anywhere; }
+@media (pointer: coarse) { .ip-groups .eb-chip { min-height: var(--touch); } }

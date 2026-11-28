@@ -1,0 +1,14 @@
+/* Air pressure spots: the telemetry cell, the compact strip item, the house card row, the device card section. Colours come from theme tokens only. */
+.t-pressure { gap: 7px; }
+.t-pressure svg { color: var(--accent); flex: none; }
+.cs-trend { font-style: normal; margin-left: 2px; color: var(--accent); }
+.lb-pressure { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid var(--accent-line); }
+.lb-pressure .lb-v { gap: 8px; }
+.pr-card { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--accent-line); }
+.pr-card p { margin: 0; font-size: 11px; }
+.pr-card .spark { max-width: 100%; }
+.pr-card .seg button { min-height: 28px; }
+.pr-set select, .pr-set input[type="number"] { min-height: 36px; padding: 0 8px; background: var(--panel); color: var(--text); border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); max-width: 100%; }
+@media (pointer: coarse) { .pr-set select, .pr-set input[type="number"], .pr-card .seg button { min-height: 44px; } }
+
+
