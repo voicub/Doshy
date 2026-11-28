@@ -10,8 +10,11 @@ import {
   CUT_FAR_M,
   CUT_NEAR_M,
   CUT_STRIDE,
+  bearingOf,
   cutFactor,
   cutKeep,
+  facingShare,
+  rectCentre,
   ringRectDistance,
   HOME_BLEND_M,
   HOME_FLAT_M,
@@ -470,5 +473,22 @@ describe("cut-away neighbours", () => {
     assert.equal(out.wallsCut[nearVerts * CUT_STRIDE], 1, "the far block is left alone");
     assert.ok(out.wallsCut.filter((_, i) => i % CUT_STRIDE === 0).slice(0, nearVerts).every((k) => k === out.wallsCut[0]), "one scale for the whole building: its roof stays flat");
     assert.ok(buildBuildings([near], () => 0).wallsCut.every((v, i) => i % CUT_STRIDE !== 0 || v === 1));
+  });
+  it("automatic Cut-away: a neighbour is lowered only while it stands between the camera and the plan", () => {
+    const toward = (az: number) => (az * Math.PI) / 180;
+    const east = bearingOf([0, 0], [20, 0]); // a block east of the plan: bearing 90 degrees
+    assert.ok(Math.abs(east - Math.PI / 2) < 1e-9);
+    assert.equal(facingShare(east, toward(90)), 1, "the camera looks from the east: the block is in front");
+    assert.equal(facingShare(east, toward(270)), 0, "the camera at the west: the block is behind the plan");
+    assert.equal(facingShare(east, toward(0)), 0, "the camera at the south: the block is off to the side");
+    assert.ok(facingShare(east, toward(30)) > 0 && facingShare(east, toward(30)) < 1, "60 degrees round from it: partly");
+    assert.ok(facingShare(east, toward(60)) > facingShare(east, toward(30)), "smooth and rising as the camera swings round to it");
+  });
+  it("every vertex also carries its building's bearing from the plan's centre", () => {
+    const block = plan({ id: "e", ring: rect(40, 3, 48, 9), height: 12 });
+    const out = buildBuildings([block], () => 0, foot);
+    const [cx, cy] = rectCentre(foot);
+    assert.ok(Math.abs(out.wallsCut[3] - bearingOf([cx, cy], [44, 6])) < 1e-6);
+    assert.ok(out.wallsCut.filter((_, i) => i % CUT_STRIDE === 3).every((b) => b === out.wallsCut[3]), "one bearing for the whole building");
   });
 });

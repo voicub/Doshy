@@ -2,11 +2,12 @@
 // alignment, turning the plan, and keeping `plan.site` valid. No DOM. The node test runner loads this file directly: .ts import extensions.
 import { planToSite, validLatLon, type LatLon } from "./geo.ts";
 import { commitPlan, type HistoryState } from "./history.ts";
+import type { SiteCity } from "./siteCityTypes.ts";
 import { SITE_RADIUS, siteOf, type Site, type SiteData, type SiteLayers, type XY } from "./siteTypes.ts";
 import type { Plan } from "./types.ts";
 
-/** A change to the site: any of its fields, and any of its layers. */
-export type SitePatch = Partial<Omit<Site, "layers">> & { layers?: Partial<SiteLayers> };
+/** A change to the site: any of its fields, any of its layers and any of the city model's settings (`city: { file: undefined }` forgets the imported file). */
+export type SitePatch = Partial<Omit<Site, "layers" | "city">> & { layers?: Partial<SiteLayers>; city?: Partial<SiteCity> };
 
 /** The four sizes of surroundings the panel offers (metres in every direction). Anything between 100 and 600 can be typed under Advanced. */
 export const RADIUS_STEPS = [
@@ -23,7 +24,8 @@ export const NUDGE_BIG_M = 5;
 /** The site with `patch` applied, validated and completed (see `siteOf`). */
 export function mergeSite(site: Site | undefined, patch: SitePatch): Site {
   const cur = siteOf(site);
-  return siteOf({ ...cur, ...patch, layers: { ...cur.layers, ...patch.layers } });
+  const city = patch.city ? { ...cur.city, ...patch.city } : cur.city;
+  return siteOf({ ...cur, ...patch, layers: { ...cur.layers, ...patch.layers }, city });
 }
 
 /** Store step: change the site as one undo step (or inside the open gesture). Changing nothing leaves no step, and a plan without a site stays without one. */
@@ -96,12 +98,12 @@ export function enablePatch(site: Pick<Site, "dx" | "dy">, bearing: number, plan
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** "59 buildings, 120 trees, 14 roads and paths": what the data holds, for the layers that are on. */
-export function siteSummary(data: SiteData, layers: SiteLayers): string {
+/** "59 buildings, 120 trees, 14 roads and paths": what the data holds, for the layers that are on. With the city model the buildings and roads are not OpenStreetMap's: its own status line counts those. */
+export function siteSummary(data: SiteData, layers: SiteLayers, fromCity = false): string {
   const parts = [
-    layers.buildings && plural(data.buildings.length, "building"),
+    layers.buildings && !fromCity && plural(data.buildings.length, "building"),
     layers.trees && plural(data.trees.length, "tree"),
-    layers.roads && plural(data.roads.length, "road or path", "roads and paths"),
+    layers.roads && !fromCity && plural(data.roads.length, "road or path", "roads and paths"),
     layers.water && plural(data.areas.filter((a) => a.kind === "water").length + data.roads.filter((r) => r.kind === "river").length, "water feature"),
     layers.terrain && data.terrain && "ground height",
   ].filter(Boolean);
@@ -111,9 +113,12 @@ export function siteSummary(data: SiteData, layers: SiteLayers): string {
 /** Credits shown whenever the surroundings are on: the data layer's own lines once it has answered, these until then (and the photo's when it names none). */
 export const SITE_CREDITS = ["\u00a9 OpenStreetMap contributors (ODbL)", "Elevation: Copernicus DEM via Open-Meteo"];
 const SATELLITE_CREDIT = "Satellite photo: Esri World Imagery, or the map service set up for this app";
+/** Nextzen's attribution requirement, verbatim, plus the tool that made the model (MIT, so its notice is in CREDITS.md). */
+export const CITY_CREDIT = "City model: \u00a9 OpenStreetMap contributors, Nextzen. Made with Vectiler";
 
-export function creditsOf(attribution: readonly string[] | undefined, satellite: boolean): string[] {
+export function creditsOf(attribution: readonly string[] | undefined, satellite: boolean, cityModel = false): string[] {
   const all = attribution?.length ? [...attribution] : SITE_CREDITS;
   const photo = all.some((c) => /imagery|satellite|esri|photo/i.test(c));
-  return satellite && !photo ? [...all, SATELLITE_CREDIT] : all;
+  const withPhoto = satellite && !photo ? [...all, SATELLITE_CREDIT] : all;
+  return cityModel ? [...withPhoto, CITY_CREDIT] : withPhoto;
 }

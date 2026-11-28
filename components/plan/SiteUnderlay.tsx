@@ -18,15 +18,15 @@ const HAIR = { vectorEffect: "non-scaling-stroke", strokeWidth: 1 } as const; //
 const Lines = memo(function Lines({ data, layers, hosts }: { data: SiteData; layers: SiteLayers; hosts: ReadonlySet<string> }) {
   return (
     <g fill="none" stroke={LINE}>
-      {layers.water && data.areas.filter((a) => a.kind === "water").map((a) => <path key={a.id} d={shape(a.ring, a.holes)} fillRule="evenodd" fill="rgba(90,215,255,0.1)" stroke="rgba(90,215,255,0.45)" {...HAIR} />)}
+      {layers.water && data.areas.filter((a) => a.kind === "water").map((a) => <path key={a.id} d={shape(a.ring, a.holes)} fillRule="evenodd" fill="rgb(var(--accent-rgb) / 0.1)" stroke="rgb(var(--accent-rgb) / 0.45)" {...HAIR} />)}
       {data.roads.filter((r) => (r.kind === "river" ? layers.water : layers.roads)).map((r) => (
         <g key={r.id}>
-          <path d={line(r.pts)} stroke={r.kind === "river" ? "rgba(90,215,255,0.1)" : "rgba(207,234,245,0.07)"} strokeWidth={Math.max(1, r.width)} strokeLinejoin="round" />
+          <path d={line(r.pts)} stroke={r.kind === "river" ? "rgb(var(--accent-rgb) / 0.1)" : "color-mix(in srgb, var(--plan-line) 7%, transparent)"} strokeWidth={Math.max(1, r.width)} strokeLinejoin="round" />
           <path d={line(r.pts)} strokeOpacity={0.3} strokeDasharray={r.kind === "footway" || r.kind === "track" ? "4 3" : undefined} {...HAIR} />
         </g>
       ))}
-      {layers.trees && data.trees.map((t, i) => <circle key={i} cx={t.x} cy={t.y} r={Math.max(0.5, t.crown / 2)} fill="rgba(79,227,161,0.08)" stroke="rgba(79,227,161,0.5)" {...HAIR} />)}
-      {layers.buildings && data.buildings.map((b) => <path key={b.id} d={shape(b.ring, b.holes)} fillRule="evenodd" fill={hosts.has(b.id) ? "none" : "rgba(207,234,245,0.07)"} strokeOpacity={hosts.has(b.id) ? 0.3 : 0.55} {...HAIR} />)}
+      {layers.trees && data.trees.map((t, i) => <circle key={i} cx={t.x} cy={t.y} r={Math.max(0.5, t.crown / 2)} fill="rgb(var(--ok-rgb) / 0.08)" stroke="rgb(var(--ok-rgb) / 0.5)" {...HAIR} />)}
+      {layers.buildings && data.buildings.map((b) => <path key={b.id} d={shape(b.ring, b.holes)} fillRule="evenodd" fill={hosts.has(b.id) ? "none" : "color-mix(in srgb, var(--plan-line) 7%, transparent)"} strokeOpacity={hosts.has(b.id) ? 0.3 : 0.55} {...HAIR} />)}
     </g>
   );
 });

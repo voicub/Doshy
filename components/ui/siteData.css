@@ -1,0 +1,7 @@
+/* Surroundings panel: the ground-detail and buildings-source blocks (SiteDataBlocks). Colours and radii come from the HUD tokens. */
+.sp-seg3 { grid-template-columns: repeat(3, 1fr); }
+.sp-seg3 button { text-align: center; line-height: 1.2; }
+.sp-chips3 { grid-template-columns: repeat(3, 1fr); }
+.sp-chips4 { grid-template-columns: repeat(4, 1fr); }
+.sp-chips3 .sp-chip, .sp-chips4 .sp-chip { justify-content: center; }
+.sp-sub { margin: 2px 0 -4px; font: 500 10.5px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }

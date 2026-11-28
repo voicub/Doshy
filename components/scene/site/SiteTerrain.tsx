@@ -2,13 +2,17 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { BufferAttribute, BufferGeometry, CanvasTexture, MeshStandardMaterial, SRGBColorSpace } from "three";
-import { seasonPalette } from "@/lib/season";
+import { yearPalette } from "@/lib/seasonYear";
 import { terrainGrid } from "@/lib/siteMesh";
+import { meshCell } from "@/lib/siteTerrainShape";
 import { groundTexture, type SitePhoto } from "@/lib/sitePhoto";
 import { mottleTexture, tileM, tiledTexture } from "@/lib/textures";
 import { useSky } from "@/lib/useSky";
 import { PAINT_PX, paintAreas } from "./groundPaint";
-import { useKnobs } from "@/lib/quality";
+import { useKnobs, useQuality } from "@/lib/quality";
+import { groundGain, groundSurface } from "@/lib/groundLook";
+import { macroTexture } from "../groundMacro";
+import { pbrTexture } from "../pbr";
 import { groundUniforms, patchSiteMaterial } from "./siteShader";
 import type { SiteWorld } from "./siteWorld";
 
@@ -16,23 +20,24 @@ const MAX_ANISOTROPY = 8;
 const LIFT = -0.002; // the garden's own ground plane sits here: the lawn near the plan lies exactly on it
 const MOTTLE_TILE_M = 20;
 
-/** Square ground mesh of 2 x radius about the site centre: ~50 cells across, never finer than 4 m. */
-const cellOf = (radius: number) => Math.min(12, Math.max(4, radius / 50));
-
 /**
  * The real ground, replacing the garden's lawn plane while the surroundings show: flat (the garden's height 0) near the plan, the real height
  * further out. Its colour is the site's areas painted in the season's colours, or the satellite photo draped on it; near the plan both give way
  * to the garden's own lawn (grass detail and mottling included), and the far edge fades into the sky colour.
  */
 export default function SiteTerrain({ w, photo }: { w: SiteWorld; photo: SitePhoto | undefined }) {
-  const { data, radius, center, toSite, ground } = w;
+  const { data, radius, center, toSite, ground, site } = w;
+  const dem = site.layers.terrain ? data.terrain : undefined;
   const gl = useThree((s) => s.gl);
   const anisotropy = Math.min(MAX_ANISOTROPY, gl.capabilities.getMaxAnisotropy());
-  const { season, mix } = useSky().season;
-  const pal = useMemo(() => seasonPalette(season, Math.round(mix * 50) / 50), [season, mix]); // the same steps as the garden's lawn
+  const { year } = useSky();
+  const pal = useMemo(() => yearPalette(year), [year.palette.season, year.palette.mix, year.snow]); // the same colours as the garden's lawn
+  const k = useKnobs();
+  const tier = useQuality((s) => s.tier);
+  const lawn = groundSurface("grass");
 
   const geometry = useMemo(() => {
-    const grid = terrainGrid(center, radius, cellOf(radius), ground, toSite);
+    const grid = terrainGrid(center, radius, meshCell(radius, dem, tier), ground, toSite);
     const count = grid.n * grid.n;
     const uv = new Float32Array(count * 2);
     const uv1 = new Float32Array(count * 2);
@@ -53,7 +58,7 @@ export default function SiteTerrain({ w, photo }: { w: SiteWorld; photo: SitePho
     g.setIndex(new BufferAttribute(grid.index, 1));
     g.computeBoundingSphere();
     return g;
-  }, [center, radius, ground, toSite, photo]);
+  }, [center, radius, ground, toSite, photo, dem, tier]);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   // the painted ground (site axes, north up), repainted when the season or the areas change
@@ -83,14 +88,20 @@ export default function SiteTerrain({ w, photo }: { w: SiteWorld; photo: SitePho
   }, [photo, anisotropy]);
   useEffect(() => () => photoTex?.dispose(), [photoTex]);
 
+  // Balanced and up: the procedural lawn (the same one the garden plane wears) is the detail and the world-space patches break its repeat; Eco and Light: the flat voxel grass
+  const textured = k.textures > 0 && !!lawn;
   const look = useMemo(() => {
-    const grass = tiledTexture("grass", tileM("grass"), tileM("grass")); // one tile: world metres / tile size are its coordinates
     const mottle = mottleTexture(MOTTLE_TILE_M, MOTTLE_TILE_M, MOTTLE_TILE_M);
-    return { grass, mottle, uniforms: groundUniforms(grass, 1 / tileM("grass"), mottle, 1 / MOTTLE_TILE_M) };
-  }, []);
+    if (textured && lawn) {
+      const detail = pbrTexture(lawn.kind, k.textureSize).map; // shared with every lawn: never disposed here
+      return { voxel: null, mottle, uniforms: groundUniforms(detail, 1 / lawn.tile, mottle, 1 / MOTTLE_TILE_M, macroTexture(), 1, groundGain("grass")) };
+    }
+    const grass = tiledTexture("grass", tileM("grass"), tileM("grass")); // one tile: world metres / tile size are its coordinates
+    return { voxel: grass, mottle, uniforms: groundUniforms(grass, 1 / tileM("grass"), mottle, 1 / MOTTLE_TILE_M, grass, 0) };
+  }, [textured, lawn, k.textureSize]);
   useEffect(
     () => () => {
-      look.grass.dispose();
+      look.voxel?.dispose();
       look.mottle.dispose();
     },
     [look],

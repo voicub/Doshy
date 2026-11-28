@@ -10,7 +10,7 @@ import type { Plan } from "./types.ts";
 const SHOW_HOST_BUILDING = false;
 const MIN_AREA_M2 = 2;
 /** Neighbours this close to (or inside) the plan's footprint are not drawn: their walls would cut through the flat or its garden. */
-const HOST_MARGIN_M = 1.5;
+export const HOST_MARGIN_M = 1.5;
 
 export type PlanBuilding = {
   id: string;

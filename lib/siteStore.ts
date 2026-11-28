@@ -6,6 +6,9 @@ import { detectPhotoTrees, loadSitePhoto, type SitePhoto } from "./sitePhoto";
 import { NO_HOME_MESSAGE, composeSiteData, fetchPlan, siteTarget, targetKey, type Have } from "./siteState";
 import { isSiteData, siteOf, type SiteData, type SiteTree } from "./siteTypes";
 import { useStore } from "./store";
+import { useQuality } from "./quality";
+import { composeExternal, type BuildingStatus, type TerrainStatus } from "./siteExternal";
+import { cancelExternal, externalOutcomes, startExternal } from "./siteExternalStore";
 
 type SiteStatus = "off" | "loading" | "ready" | "error";
 
@@ -16,6 +19,10 @@ type SiteState = {
   /** Only while the satellite layer is on. */
   photo?: SitePhoto;
   center?: { lat: number; lon: number };
+  /** Where the ground height came from, and how detailed (the panel says it in words). */
+  terrainInfo?: TerrainStatus;
+  /** Which building sources are in use and what they gave (counts of buildings with real heights). */
+  buildingInfo?: BuildingStatus;
   /** A plain sentence when status is "error". */
   error?: string;
   /** Ask again. `force` skips the server's 30-day cache and loads the photo again (the "refresh" button); without it, only what failed or is missing is fetched. */
@@ -58,6 +65,7 @@ function cancelAll() {
   dataJob?.ctrl.abort();
   photoJob?.ctrl.abort();
   dataJob = photoJob = undefined;
+  cancelExternal();
 }
 
 /** Hand the scene the merged data, but only when one of its inputs actually changed (the polling of Home Assistant must not re-render the 3D scene). */
@@ -68,11 +76,13 @@ function publish() {
   if (!target || !raw || raw.key !== targetKey(target)) return;
   const usePhoto = site.layers.satellite && photo?.key === raw.key ? photo : undefined;
   const failed = site.layers.satellite && have.photoFailedKey === raw.key;
-  const inputs = [raw.data, usePhoto, usePhoto?.trees, failed, site.layers.trees, site.layers.satellite];
+  const ext = externalOutcomes(site, target);
+  const inputs = [raw.data, usePhoto, usePhoto?.trees, failed, site.layers.trees, site.layers.satellite, ext.terrain, ext.overture, site.layers.terrain, site.layers.buildings, site.terrainFrom, site.terrainScale, site.terrainSmooth, site.buildingData, site.buildingsFrom];
   if (useSiteState.getState().status === "ready" && inputs.length === published.length && inputs.every((v, i) => v === published[i])) return;
   published = inputs;
   const summary = usePhoto ? { trees: usePhoto.trees ?? [], failed: usePhoto.photo.failed, credit: usePhoto.photo.credit } : null;
-  patch({ status: "ready", data: composeSiteData(raw.data, summary, failed, site.layers), photo: usePhoto?.photo, center: target.center, error: undefined });
+  const composed = composeExternal(composeSiteData(raw.data, summary, failed, site.layers), site, ext.terrain, ext.overture);
+  patch({ status: "ready", data: composed.data, terrainInfo: composed.terrain, buildingInfo: composed.buildings, photo: usePhoto?.photo, center: target.center, error: undefined });
 }
 
 async function fetchData(key: string, lat: number, lon: number, radius: number, fresh: boolean) {
@@ -151,7 +161,7 @@ async function run(force = false): Promise<void> {
     cancelAll();
     wantedKey = undefined;
     published = [];
-    if (useSiteState.getState().status !== "off") patch({ status: "off", data: undefined, photo: undefined, center: undefined, error: undefined });
+    if (useSiteState.getState().status !== "off") patch({ status: "off", data: undefined, photo: undefined, center: undefined, terrainInfo: undefined, buildingInfo: undefined, error: undefined });
     return;
   }
   const target = siteTarget(site, states);
@@ -172,6 +182,7 @@ async function run(force = false): Promise<void> {
   const key = want.key as string;
   wantedKey = key;
   const { lat, lon } = target.center;
+  startExternal(site, target, force, publish);
   const jobs: Promise<void>[] = [];
   if (want.data && dataJob?.key !== key) {
     clearTimeout(timer);
@@ -193,6 +204,13 @@ if (typeof window !== "undefined") {
     if (s.plan.site === lastSite && s.states === lastStates) return;
     lastSite = s.plan.site;
     lastStates = s.states;
+    void run();
+  });
+  // the governor (or the owner) changing the graphics tier changes how dense a ground grid is worth asking for
+  let lastTier = useQuality.getState().tier;
+  useQuality.subscribe((s) => {
+    if (s.tier === lastTier) return;
+    lastTier = s.tier;
     void run();
   });
   void run();

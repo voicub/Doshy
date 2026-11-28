@@ -1,18 +1,15 @@
 "use client";
-import { keepAlive } from "@/lib/framePacer";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
-import { BufferGeometry, Float32BufferAttribute, MathUtils, MeshDepthMaterial, MeshDistanceMaterial, MeshStandardMaterial, RGBADepthPacking } from "three";
+import { BufferGeometry, Float32BufferAttribute, MeshDepthMaterial, MeshDistanceMaterial, MeshStandardMaterial, RGBADepthPacking } from "three";
 import { polygonCentroid } from "@/lib/siteGeom";
 import { CUT_STRIDE, buildBuildings, type Buf, type PlanBuilding } from "@/lib/siteMesh";
-import { useStore } from "@/lib/store";
 import type { XY } from "@/lib/siteTypes";
 import { live } from "../skyLive";
-import { SITE_U, patchCutDepth, patchSiteMaterial } from "./siteShader";
+import { patchCutDepth, patchSiteMaterial } from "./siteShader";
+import { useCutEase } from "./useCutEase";
 import type { SiteWorld } from "./siteWorld";
 import { windowTextures } from "./windowTexture";
-
-const CUT_RATE = 5; // the neighbours sink and rise at the rate the home's roof lifts off (Roof.tsx FADE_RATE)
 
 /** Buildings this close to the plan cast sun shadows (the garden's shadow frustum is ~32 m wide); farther ones only receive them. */
 const SHADOW_M = 46;
@@ -70,16 +67,10 @@ export default function SiteBuildings({ w, buildings }: { w: SiteWorld; building
     [mats],
   );
 
-  useFrame((_, dt) => {
+  useCutEase(); // Cut-away lowers the neighbours near the home, like it lowers the home's own walls
+  useFrame(() => {
     const e = Math.max(0, 1 - live.daylight * 2.2) * 1.4; // windows light up as the day fades
     if (Math.abs(mats.walls.emissiveIntensity - e) > 0.005) mats.walls.emissiveIntensity = e;
-    const to = useStore.getState().cutaway ? 1 : 0; // Cut-away lowers the neighbours near the home, like it lowers the home's own walls
-    const k = SITE_U.uCut.value;
-    if (Math.abs(SITE_U.uCut.value - to) < 0.002) SITE_U.uCut.value = to;
-    else {
-      SITE_U.uCut.value = MathUtils.damp(k, to, CUT_RATE, Math.min(dt, 0.1));
-      keepAlive();
-    }
   });
 
   return (

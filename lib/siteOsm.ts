@@ -52,7 +52,7 @@ type Member = { type?: string; role?: string; geometry?: unknown };
 type Element = { type?: string; id?: number; lat?: number; lon?: number; tags?: Tags; geometry?: unknown; members?: unknown };
 
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
-const r2 = (v: number) => Math.round(v * 100) / 100;
+export const r2 = (v: number) => Math.round(v * 100) / 100;
 
 /** "12", "12.5 m", "12,5": metres, or undefined for anything else (feet, ranges, text). */
 export function parseMetres(v: string | undefined, max = 500): number | undefined {
@@ -134,38 +134,70 @@ const lineOf = (el: Element, center: LatLon): XY[] => dedupeRing(thin(points(el.
 
 // ---- buildings ----------------------------------------------------------------------------------------------------------------------
 
-const LEVEL = 3;
-const KIND_HEIGHT: Record<string, number> = {
+export const LEVEL = 3;
+export const KIND_HEIGHT: Record<string, number> = {
   house: 6, detached: 7, semidetached_house: 7, terrace: 7, bungalow: 4, residential: 9, apartments: 15, dormitory: 12, hotel: 14, office: 12, commercial: 8, retail: 6, supermarket: 6,
   industrial: 8, warehouse: 8, school: 10, kindergarten: 5, university: 12, hospital: 15, church: 12, cathedral: 20, chapel: 8, garage: 3, garages: 3, shed: 3, roof: 3, carport: 3, hut: 3, cabin: 4, service: 4, farm: 6,
 };
-const FLAT_KINDS = new Set(["apartments", "commercial", "industrial", "retail", "office", "warehouse", "supermarket", "hospital", "school", "university", "dormitory", "hotel", "garage", "garages", "shed", "roof", "carport", "service"]);
-const PITCHED_KINDS = new Set(["house", "detached", "semidetached_house", "terrace", "bungalow", "residential", "farm", "cabin", "church", "chapel", "cathedral"]);
+export const FLAT_KINDS = new Set(["apartments", "commercial", "industrial", "retail", "office", "warehouse", "supermarket", "hospital", "school", "university", "dormitory", "hotel", "garage", "garages", "shed", "roof", "carport", "service"]);
+export const PITCHED_KINDS = new Set(["house", "detached", "semidetached_house", "terrace", "bungalow", "residential", "farm", "cabin", "church", "chapel", "cathedral"]);
 const ROOF_TAGS: Record<string, RoofShape> = {
   flat: "flat", gabled: "gabled", gambrel: "gabled", saltbox: "gabled", hipped: "hipped", "half-hipped": "hipped", mansard: "hipped", pyramidal: "pyramidal", skillion: "skillion", lean_to: "skillion", dome: "dome", onion: "dome",
 };
+export type ShapeInput = {
+  kind: string;
+  ring: XY[];
+  /** footprint area, holes taken off */
+  area: number;
+  /** the source's own roof shape and eaves-to-ridge height, when it has them */
+  roof?: RoofShape;
+  roofHeight?: number;
+  /** `height` (to the ridge) and the level count, when the source has them */
+  total?: number;
+  levels?: number;
+  /** metres the building is lifted off the ground */
+  lift?: number;
+};
+
+/**
+ * The wall height, roof and lift of a building from whatever its source says, else a guess by kind (a house 6 m, an apartment block 15 m): shared by the
+ * OpenStreetMap parser and the Overture Maps one so both read heights the same way. `real` = the height is a mapped value, not a guess.
+ */
+export function buildingShape(i: ShapeInput): Pick<SiteBuilding, "height" | "minHeight" | "roof" | "roofHeight"> & { real: boolean } {
+  const small = i.area < 150;
+  const roof: RoofShape = i.roof ?? (FLAT_KINDS.has(i.kind) ? "flat" : PITCHED_KINDS.has(i.kind) || (i.kind === "yes" && small) ? "gabled" : "flat");
+  const [, short] = ringSpan(i.ring);
+  let roofHeight = roof === "flat" ? 0 : (i.roofHeight ?? Math.min(4, short * 0.25));
+  let height: number;
+  if (i.total !== undefined) {
+    roofHeight = Math.min(roofHeight, Math.max(0, i.total - 2.5));
+    height = i.total - roofHeight;
+  } else {
+    height = i.levels !== undefined ? i.levels * LEVEL : (KIND_HEIGHT[i.kind] ?? (small ? 7 : 12));
+  }
+  height = Math.max(2.5, height);
+  const lift = i.lift ?? 0;
+  return { height: r2(height), minHeight: r2(Math.min(lift, height - 1 > 0 ? height - 1 : 0)), roof, roofHeight: r2(roofHeight), real: i.total !== undefined || i.levels !== undefined };
+}
 
 function buildingOf(s: Shape, tags: Tags): SiteBuilding | undefined {
   const kind = /^[a-z_]{1,32}$/.test(tags.building ?? "") ? tags.building : "yes";
   const area = polygonArea(s.ring) - s.holes.reduce((a, h) => a + polygonArea(h), 0);
   if (area < 2) return undefined;
   const levels = parseMetres(tags["building:levels"], 200);
-  const small = area < 150;
-  const roof: RoofShape = ROOF_TAGS[tags["roof:shape"] ?? ""] ?? (FLAT_KINDS.has(kind) ? "flat" : PITCHED_KINDS.has(kind) || (kind === "yes" && small) ? "gabled" : "flat");
-  const [, short] = ringSpan(s.ring);
   const roofLevels = parseMetres(tags["roof:levels"], 20);
-  let roofHeight = roof === "flat" ? 0 : (parseMetres(tags["roof:height"], 60) ?? (roofLevels !== undefined ? roofLevels * LEVEL : Math.min(4, short * 0.25)));
-  const total = parseMetres(tags.height, 500);
-  let height: number;
-  if (total !== undefined) {
-    roofHeight = Math.min(roofHeight, Math.max(0, total - 2.5));
-    height = total - roofHeight;
-  } else {
-    height = levels !== undefined ? levels * LEVEL : (KIND_HEIGHT[kind] ?? (small ? 7 : 12));
-  }
-  height = Math.max(2.5, height);
-  const lift = parseMetres(tags.min_height, 500) ?? (parseMetres(tags["building:min_level"], 100) ?? 0) * LEVEL;
-  const b: SiteBuilding = { id: s.id, ring: s.ring, height: r2(height), minHeight: r2(Math.min(lift, height - 1 > 0 ? height - 1 : 0)), roof, roofHeight: r2(roofHeight), kind };
+  const { real, ...shape } = buildingShape({
+    kind,
+    ring: s.ring,
+    area,
+    roof: ROOF_TAGS[tags["roof:shape"] ?? ""],
+    roofHeight: parseMetres(tags["roof:height"], 60) ?? (roofLevels !== undefined ? roofLevels * LEVEL : undefined),
+    total: parseMetres(tags.height, 500),
+    levels,
+    lift: parseMetres(tags.min_height, 500) ?? (parseMetres(tags["building:min_level"], 100) ?? 0) * LEVEL,
+  });
+  const b: SiteBuilding = { id: s.id, ring: s.ring, ...shape, kind };
+  if (real) b.real = true;
   if (s.holes.length) b.holes = s.holes;
   const roofColor = cssColor(tags["roof:colour"]);
   const wallColor = cssColor(tags["building:colour"]);

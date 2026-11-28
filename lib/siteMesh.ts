@@ -8,7 +8,7 @@ export { HOME_BLEND_M, HOME_FLAT_M, demAt, groundFn, homeRect, insideAny, rectDi
 export { newBuf, triangulate, type Buf } from "./siteMeshBuf.ts";
 export { eaves, isHostBuilding, planBuilding, planFootprint, selectBuildings, type PlanBuilding } from "./siteMeshPlan.ts";
 export { orientedBox, roofOf } from "./siteMeshRoof.ts";
-export { CUT_FAR_M, CUT_NEAR_M, CUT_STRIDE, cutFactor, cutKeep, ringRectDistance } from "./siteMeshCut.ts";
+export { CUT_FAR_M, CUT_NEAR_M, CUT_STRIDE, FACE_FROM, FACE_TO, bearingOf, cutFactor, cutKeep, facingShare, rectCentre, ringRectDistance } from "./siteMeshCut.ts";
 export { WINDOW_CELLS, buildBuildings, buildingStyle } from "./siteMeshBuildings.ts";
 export { addRibbon, buildRoads, buildWater, carveWater } from "./siteMeshWorld.ts";
 export { areaTrees, pickSpecies, planTrees, scatterIn, thinTrees, type PlanTree } from "./siteMeshTrees.ts";

@@ -41,5 +41,22 @@ export function ringRectDistance(ring: readonly XY[], rect: Rect): number {
   return best;
 }
 
-/** Floats per vertex of a cut-away attribute: the height scale of the cut volume, the ground height, the walls' texture v at the ground. */
-export const CUT_STRIDE = 3;
+/**
+ * Floats per vertex of a cut-away attribute: the height scale of the cut volume, the ground height, the walls' texture v at the ground, and the building's bearing
+ * from the centre of the plan (radians, `bearingOf`, the camera azimuth's convention) for the automatic Cut-away.
+ */
+export const CUT_STRIDE = 4;
+
+/**
+ * Automatic Cut-away (Cut-away off): a neighbour is lowered only while it stands between the camera and the plan. `facingShare` is how much of its cut it takes:
+ * 0 for one at the side or behind the plan, 1 for one on the camera's side, smooth in between. The shader mirrors it (siteShader.ts, FACE_FROM / FACE_TO).
+ */
+export const FACE_FROM = 0.1;
+export const FACE_TO = 0.6;
+export const facingShare = (bearing: number, azimuth: number): number => smooth((Math.cos(bearing - azimuth) - FACE_FROM) / (FACE_TO - FACE_FROM));
+
+/** Bearing (radians round y from +z, like the camera azimuth) of `to` seen from `from`, both in plan metres. */
+export const bearingOf = (from: XY, to: XY): number => Math.atan2(to[0] - from[0], to[1] - from[1]);
+
+/** Centre of a rectangle. */
+export const rectCentre = (r: Rect): XY => [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2];

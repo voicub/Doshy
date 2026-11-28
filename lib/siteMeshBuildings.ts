@@ -4,7 +4,7 @@ import { polygonBounds, polygonCentroid, type Rect } from "./siteGeom.ts";
 import { hexOr, parseCssColor, type RGB } from "./siteMeshBase.ts";
 import { NO_UV, UP, newBuf, push, triangulate, type Buf } from "./siteMeshBuf.ts";
 import type { V3 } from "./mathUtil.ts";
-import { cutKeep, ringRectDistance } from "./siteMeshCut.ts";
+import { bearingOf, cutKeep, rectCentre, ringRectDistance } from "./siteMeshCut.ts";
 import type { GroundFn } from "./siteMeshGround.ts";
 import { eaves, type PlanBuilding } from "./siteMeshPlan.ts";
 import { defaultRise, edgeCuts, orientedBox, roofOf, splitTriangles } from "./siteMeshRoof.ts";
@@ -173,8 +173,9 @@ export function buildBuildings(list: readonly PlanBuilding[], ground: GroundFn, 
     for (let i = w0 + 1; i < walls.pos.length; i += 3) top = Math.max(top, walls.pos[i]);
     for (let i = r0 + 1; i < roofs.pos.length; i += 3) top = Math.max(top, roofs.pos[i]);
     const keep = footprint ? cutKeep(ringRectDistance(b.ring, footprint), top - base) : 1;
-    for (let i = w0; i < walls.pos.length; i += 3) wallsCut.push(keep, base, vBottom);
-    for (let i = r0; i < roofs.pos.length; i += 3) roofsCut.push(keep, base, vBottom);
+    const bearing = footprint ? bearingOf(rectCentre(footprint), polygonCentroid(b.ring)) : 0;
+    for (let i = w0; i < walls.pos.length; i += 3) wallsCut.push(keep, base, vBottom, bearing);
+    for (let i = r0; i < roofs.pos.length; i += 3) roofsCut.push(keep, base, vBottom, bearing);
   }
   return { walls, roofs, wallsCut, roofsCut };
 }

@@ -5,6 +5,7 @@ import { Color } from "three";
 import { insideAny, planBuilding, planTrees, areaTrees, selectBuildings, thinTrees, type PlanBuilding, type PlanTree } from "@/lib/siteMesh";
 import { live } from "../skyLive";
 import SiteBuildings from "./SiteBuildings";
+import SiteCity from "./SiteCity";
 import SiteFlat from "./SiteFlat";
 import SiteTerrain from "./SiteTerrain";
 import SiteTrees from "./SiteTrees";
@@ -12,7 +13,9 @@ import { NO_BLOCK, useSiteBlock } from "./siteBlock";
 import { SITE_U } from "./siteShader";
 import { useSiteWorld, type SiteWorld } from "./siteWorld";
 import { useSurroundings, type SurroundingsInput } from "./useSurroundings";
+import { useCityPrepared } from "./useCityPrepared";
 import { useKnobs } from "@/lib/quality";
+import { useCityState } from "@/lib/siteCityStore";
 
 const MAX_BUILDINGS = 1200;
 const MAX_TREES = 1500;
@@ -38,11 +41,15 @@ function Driver({ w }: { w: SiteWorld }) {
 }
 
 function World({ input }: { input: SurroundingsInput }) {
-  const { site, data, photo } = input;
+  const { site, data: osm, photo } = input;
+  const share = useKnobs().site; // the light tiers draw only the nearest neighbours and a few trees
+  // The city model REPLACES the OpenStreetMap buildings and roads once it is loaded (never both); until then, or when it failed, the OpenStreetMap ones stay. Its own ground
+  // height, when the owner asked for it and the model has one, replaces Open-Meteo's. Trees, water and land cover always come from OpenStreetMap.
+  const city = useCityPrepared(useCityState((s) => s.loaded), site, osm, share);
+  const data = useMemo(() => (city?.terrain ? { ...osm, terrain: city.terrain } : osm), [osm, city]);
   const w = useSiteWorld(site, data);
   const { layers } = site;
   const { toPlan, home, footprint, homeC, center, radius } = w;
-  const share = useKnobs().site; // the light tiers draw only the nearest neighbours and a few trees
 
   const all = useMemo(() => data.buildings.map((b) => planBuilding(b, toPlan)).filter((b): b is PlanBuilding => !!b), [data.buildings, toPlan]);
   const buildings = useMemo(
@@ -70,8 +77,8 @@ function World({ input }: { input: SurroundingsInput }) {
     <group>
       <Driver w={w} />
       <SiteTerrain w={w} photo={photo} />
-      {layers.buildings && <SiteBuildings w={w} buildings={buildings} />}
-      <SiteFlat w={w} roads={layers.roads} water={layers.water} />
+      {city ? <SiteCity w={w} city={city} buildings={layers.buildings} roads={layers.roads && !!site.city?.roads} /> : layers.buildings && <SiteBuildings w={w} buildings={buildings} />}
+      <SiteFlat w={w} roads={layers.roads && !city} water={layers.water} />
       {layers.trees && <SiteTrees trees={trees} ground={w.ground} homeC={homeC} footprint={footprint} />}
     </group>
   );

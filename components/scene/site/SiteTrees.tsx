@@ -1,11 +1,12 @@
 "use client";
 import { useMemo } from "react";
-import { cutKeep, hashStr, pickSpecies, rectDistance, rng, type GroundFn, type PlanTree } from "@/lib/siteMesh";
+import { bearingOf, cutKeep, facingShare, hashStr, pickSpecies, rectCentre, rectDistance, rng, type GroundFn, type PlanTree } from "@/lib/siteMesh";
 import type { Rect } from "@/lib/siteGeom";
 import type { XY } from "@/lib/siteTypes";
 import { useStore } from "@/lib/store";
 import { speciesDef, type Placement } from "@/lib/vegetation";
 import FoliageInstances from "../FoliageInstances";
+import { useAzimuthBucket } from "../facingState";
 import { clamp } from "@/lib/mathUtil";
 
 /** Trees closer than this to the plan are drawn in full detail and cast shadows; the rest use the cheaper geometry and cast none (they are beyond the sun's shadow frustum). */
@@ -31,22 +32,28 @@ function placement(t: PlanTree, ground: GroundFn, at: XY, keep: number): { near:
   };
 }
 
+const AZIMUTH_STEP = 10; // degrees: with Cut-away off the trees are re-placed once per this much of a turn
+
 /**
  * The surroundings' trees as instanced organic vegetation: shared foliage shader, so season, snow, leaf fall and wind come for free. Two or three dozen draw calls at most.
- * With Cut-away on, trees near the plan are lowered by the same distance curve as the neighbouring buildings (lib/siteMesh.ts cutKeep); they change at once (instances are static), not eased.
+ * With Cut-away on, trees near the plan are lowered by the same distance curve as the neighbouring buildings (lib/siteMesh.ts cutKeep); with it off only the ones that stand
+ * between the camera and the plan are (facingShare, the buildings' rule), re-placed every AZIMUTH_STEP degrees of turn. They change at once (instances are static), not eased.
  */
 export default function SiteTrees({ trees, ground, homeC, footprint }: { trees: PlanTree[]; ground: GroundFn; homeC: XY; footprint: Rect | null }) {
   const cutaway = useStore((s) => s.cutaway);
+  const azimuth = useAzimuthBucket(AZIMUTH_STEP);
   const { near, far } = useMemo(() => {
     const near: Placement[] = [];
     const far: Placement[] = [];
+    const centre = footprint && rectCentre(footprint);
     for (const t of trees) {
-      const keep = cutaway && footprint ? cutKeep(rectDistance(t.x, t.z, footprint), t.height) : 1;
-      const q = placement(t, ground, homeC, keep);
+      const full = footprint ? cutKeep(rectDistance(t.x, t.z, footprint), t.height) : 1;
+      const share = azimuth !== null && centre ? facingShare(bearingOf(centre, [t.x, t.z]), (azimuth * Math.PI) / 180) : 1;
+      const q = placement(t, ground, homeC, 1 - (1 - full) * share);
       (q.near ? near : far).push(q.p);
     }
     return { near, far };
-  }, [trees, ground, homeC, footprint, cutaway]);
+  }, [trees, ground, homeC, footprint, cutaway, azimuth]);
   return (
     <group>
       <FoliageInstances plants={near} />

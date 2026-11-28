@@ -15,6 +15,8 @@ Open it in **Plan** mode: the globe button in the dock, or `CMD K` / `CTRL K` an
 
 Every change in the panel is one undo step (the Undo button or `CMD Z`).
 
+**Buildings and roads from**: OpenStreetMap (the default) or **City model (Vectiler)**, see [The city model](#the-city-model-vectiler) below. With OpenStreetMap, **Buildings from** (OpenStreetMap / Overture Maps / Both, default Both) and **Ground detail** (Auto / Standard / High, hills 1x to 3x, smoothing) are described in [site-data.md](site-data.md).
+
 ### Lining it up
 
 The coordinates put the map in the right place to a few metres; the flat you drew rarely sits exactly on its real spot. Fix it in either of two ways:
@@ -41,11 +43,13 @@ Code: `lib/siteUi.ts` (coordinate parsing, nudge and drag maths, the undoable `s
 Only through this app's own server, never straight from the browser (except the photo, see below):
 
 - **Map data** (buildings, trees, roads, water): the rounded coordinates and the distance go to OpenStreetMap's Overpass service.
-- **Ground height**: rounded coordinates of a grid of points go to Open-Meteo (Copernicus DEM).
+- **Ground height**: rounded coordinates of a grid of points go to Open-Meteo (Copernicus DEM); with the detailed ground (the default) the numbers of 1 to 9 map tiles go to AWS Terrain Tiles, and with Overture buildings (the default) byte ranges of the current release's building tiles are requested from Overture Maps. Both can be switched off for the whole server with `DOSHY_EXTERNAL_DATA=0`: see [site-data.md](site-data.md).
 - **Satellite photo** (only when that layer is on): the photo tiles for the area are fetched from the tile provider by this app's server and kept on disk. Nothing else is sent.
 - Home Assistant data, the plan, your furniture and your entity names never leave your machine through this feature.
 
 Nothing is requested while the switch is off.
+
+With the city model: the rounded coordinates of your home (which map tiles cover it) go to Nextzen's vector-tile and terrain services, through this app's server and the Vectiler tool, using your own Nextzen key. An imported `.obj` is kept in this app's database and sent nowhere.
 
 ## The map data: OpenStreetMap and ground height
 
@@ -71,12 +75,44 @@ Code: `app/api/site/data/route.ts` (the route), `lib/siteServer.ts` (query check
 |---|---|---|
 | `SITE_TILE_URL` | Satellite tile template with `{z}` `{y}` `{x}` | Esri World Imagery (`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`) |
 | `SITE_TILE_MAX_ZOOM` | Deepest zoom level the provider has for your area | 17 |
+| `NEXTZEN_API_KEY` | Free key from developers.nextzen.org, for the city model | none |
+| `VECTILER_PATH` | Full path of the `vectiler` tool; otherwise `vectiler` on `PATH` (the Docker image has it) | `vectiler` |
 
 Check the terms of whichever provider you point `SITE_TILE_URL` at: the default is fine for personal use; a public deployment needs its own agreement.
 
 ## Credits
 
-(c) OpenStreetMap contributors (ODbL). Elevation: Copernicus DEM via Open-Meteo. Satellite photo: the tile provider (Esri World Imagery by default). The panel shows them while the surroundings are on.
+(c) OpenStreetMap contributors (ODbL). Elevation: Copernicus DEM via Open-Meteo, or, with the detailed ground, "Terrain: AWS Terrain Tiles by Mapzen (USGS 3DEP and SRTM, Copernicus EU-DEM, national surveys; see CREDITS.md)". With Overture buildings: "Buildings: Overture Maps Foundation (c) OpenStreetMap contributors, Esri Community Maps, Microsoft, Google and others; see CREDITS.md". Satellite photo: the tile provider (Esri World Imagery by default). With the city model: "(c) OpenStreetMap contributors, Nextzen. Made with Vectiler" (Nextzen's required attribution). The panel shows them while the surroundings are on.
+
+## The city model (Vectiler)
+
+An alternative source for the neighbouring **buildings and roads**: [Vectiler](https://github.com/karimnaaji/vectiler) (MIT) turns Nextzen/Tilezen vector tiles (OpenStreetMap data, often with real building heights) into a Wavefront OBJ. It is a native command line tool, so it runs on the server and the browser draws the OBJ it makes. Choosing it **replaces** the OpenStreetMap buildings and roads (never both); trees, water, land cover and the ground still come from OpenStreetMap (or from the model, see below). While it loads, or if it fails, the OpenStreetMap ones stay and the panel says why. Off by default; nothing changes for existing plans.
+
+**Set up (Docker, Portainer, Home Assistant add-on).** The image contains the `vectiler` tool (built from the pinned commit `f9bd89e`, tag 0.1.0 plus six fixes, in the Dockerfile's `vectiler` stage). Get a free key at [developers.nextzen.org](https://developers.nextzen.org/) and set `NEXTZEN_API_KEY` (compose: an environment line; add-on: the **Nextzen API key** option). Restart. The key stays on the server: it is never sent to the browser, and it is removed from every error text (Vectiler itself only accepts it as a command-line argument and prints it, so the server never shows its output).
+
+**Set up (running from source, macOS or Linux).** Five commands, once (macOS needs `brew install cmake`; Linux `cmake g++ libcurl4-openssl-dev git`):
+
+```sh
+git clone https://github.com/karimnaaji/vectiler && cd vectiler
+git checkout f9bd89e9446a91c26aa26d135646327d9b715e13
+git submodule update --init 3rdparty/glm 3rdparty/rapidjson 3rdparty/earcut.hpp
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-include cassert -include algorithm -include cstdint"
+cmake --build build
+```
+
+Then in `.env.local`: `VECTILER_PATH=/path/to/vectiler/build/vectiler.out` and `NEXTZEN_API_KEY=...` (or put the binary on `PATH` as `vectiler`). The extra `-include` flags are for newer compilers than the 2017 code was written for.
+
+**Using it.** Surroundings panel, **Buildings and roads from**: City model. **Choose the area size**: 3 x 3 tiles (about 1.3 km) or 5 x 5 (about 2.2 km) of zoom-16 map tiles around your home; the first load downloads them (1 to 2 requests per tile) and builds the model, which can take a minute, after which it is cached on the server for 30 days. **Include roads**, and **Ground shape from the city model** (uses the model's own ground height instead of Open-Meteo's; the buildings follow it). The "What to show" chips still hide buildings or roads. Everything is stored in `plan.site` (`buildingsFrom: "city"`, `city: { tiles, terrain, roads, file? }`, all optional, old plans load unchanged) and is one undo step.
+
+**Import a city model (.obj).** For a file made elsewhere (Vectiler's command line, or halfmaps.io). The file is checked, gzip-packed and kept as a resource of kind `city` (Data and backups lists it; 25 MB packed at most), and used instead of asking Nextzen. Give the zoom you used (`--tilez`, 16 by default) and, if you know it, the top-left tile (the first of `--tilex` / `--tiley`): then it is placed exactly. Without the tile, the middle of the model is put on your home and you line it up with the arrows or **Drag the map** like any other map. Export with `--splitMeshes 1 --terrain 1 --roadsHeight 0 --buildingsHeight 6 --normals 0` (what the server uses) so buildings and roads can be told apart: without `--terrain` Vectiler also writes land-use and water polygons, which would show as roads. Remove the file with **Ask Nextzen instead** (it stays under Data until you delete it there).
+
+**How the OBJ is placed (read from Vectiler's source: `projection.cpp`, `geojson.cpp`, `vectiler.cpp`).** x east, y north, z up. One tile is 2 units wide; the OBJ's (0, 0) is the centre of the first (north-west) tile of the range, tile (x, y) is shifted by `((x - x0) * 2, -(y - y0) * 2)`. A unit is `HALF_CIRCUMFERENCE / 2^z` Web-Mercator metres. Heights are real metres divided by that same number, but horizontal Web-Mercator metres are `1 / cos(latitude)` longer than real ones, so a raw OBJ looks squat (at 48 degrees north by a third): `lib/siteCityFrame.ts` converts, horizontally with the site's own metres-per-degree (`lib/geo.ts`) and vertically in true metres, so the model lines up with the OpenStreetMap data and follows the site's `dx`, `dy` and `bearing` like it. Terrain meshes are `sub x sub` quads per tile over [-1, 1]; `lib/siteCityTerrain.ts` turns them into the ground grid.
+
+**What is drawn.** Per object of the file: a mesh with vertical walls is a building, a flat one is a road, a 2 x 2 unit grid is terrain (not drawn, only used for the ground shape). Each building is lifted onto the ground where it stands, its triangles are turned to face outward (Vectiler's winding is not trusted), and the building that holds your plan's home point or touches its footprint (plus 1.5 m) is left out: your own flat is drawn from the plan, once. Buildings within 15 to 45 m of the plan sink with Cut-away like the OpenStreetMap ones. Clay colours (walls and roofs, a few percent of variation per building), no textures; snow, rain, edge fade and daylight as the other layers. Merged into two meshes (near, far) plus one for roads. Per quality tier, the nearest buildings are kept up to a budget of triangles (300 000 at Balanced and above, 40 % at Light, 15 % at Eco); beyond 90 m buildings under 20 m2 are skipped; the city casts sun shadows only from Balanced up, and only within 46 m of the plan. Eco and Light are not slowed down: nothing is loaded unless the city model is chosen.
+
+**The route** `GET /api/site/city?lat=&lon=&tiles=3|5&terrain=0|1&roads=0|1[&fresh=1]` (`app/api/site/city/route.ts`, `lib/siteCity.ts`, `lib/siteCityServer.ts`): numbers only reach the command line (`execFile`, no shell, a minimal environment so no other secret reaches the child), a 120 s timeout, 80 MB output cap, one run at a time server-wide, concurrent callers share one run, at most 6 runs a minute, temporary folder always removed, answers cached under `data/site-cache/city/` (gzip, 30 days, 300 MB, oldest first). It answers the gzip OBJ with `x-city-meta` (where it sits). Errors are plain sentences: tool missing, no key, key not accepted, no network, too slow, no data. The arguments are `--splitMeshes 1 --buildings 1 --roads 0|1 --roadsHeight 0 --buildingsHeight 6 --terrain 1 --terrainSubdivision 32|1 --normals 0` and the tile range; `--terrain 1` is always on because it is what makes Vectiler skip every layer but buildings and roads, `--normals 0` because the browser computes its own. Client: `lib/siteCityStore.ts` (load, parse in time slices so the view keeps moving), `lib/siteCityObj.ts`, `lib/siteCityBuild.ts`, `lib/siteCityPlace.ts`, `components/scene/site/SiteCity.tsx`, `components/ui/SiteCityBlock.tsx`. Tests: `lib/siteCity*.test.ts` (an OBJ in Vectiler's layout is written by `lib/siteCityFixture.ts`).
+
+**Limits, honestly.** Verified: the pure code, the route against a fake `vectiler` script, the import path and the drawing in a browser (Balanced and Eco, alignment, host building, ground height). **Not verified: a real Nextzen run.** The mapping of Nextzen's error replies ("key not accepted") is inferred from Vectiler's source (it exits 0 and prints `Failed to download ...` or a GeoJSON error even when the service said no), and the winding, heights and naming of real tiles are taken from the source, not from a real export. Buildings with `min_height` (overhangs, bridges) are put on the ground, building heights are what Nextzen has (many have none and get 6 m), and road ribbons are draped by their corner points only. In Plan mode the faint neighbour outlines used for lining up still come from OpenStreetMap.
 
 ## The satellite photo and the trees found in it
 
@@ -96,13 +132,13 @@ Neighbours are drawn around the plan. Every building that touches what the plan 
 
 ### Cut-away: the neighbours near the flat sink
 
-From the default isometric camera a block 8 to 40 m away can stand between the lens and the flat and hide its roof, living area and balcony. So the Cut-away setting (the toolbar button, `X`) lowers the neighbours the way it lowers the flat's own walls: a building whose nearest point is within `CUT_NEAR_M` (15 m) of the plan's footprint (`planFootprint`, so garden areas count) is cut down to the cut-wall height (`WALL_CUT_H`, 0.9 m), growing smoothly back to its real height at `CUT_FAR_M` (45 m) and beyond (`cutFactor`, a smoothstep of the distance; `cutKeep` turns it into the share of the height kept, never raising a building that is already low). With Cut-away off nothing is lowered. Tall blocks further than 45 m are drawn as before.
+From the default isometric camera a block 8 to 40 m away can stand between the lens and the flat and hide its roof, living area and balcony. So the Cut-away setting (the toolbar button, `X`) lowers the neighbours the way it lowers the flat's own walls: a building whose nearest point is within `CUT_NEAR_M` (15 m) of the plan's footprint (`planFootprint`, so garden areas count) is cut down to the cut-wall height (`WALL_CUT_H`, 0.9 m), growing smoothly back to its real height at `CUT_FAR_M` (45 m) and beyond (`cutFactor`, a smoothstep of the distance; `cutKeep` turns it into the share of the height kept, never raising a building that is already low). Tall blocks further than 45 m are drawn as before. With Cut-away **All** every such neighbour is lowered; with **Auto** (the old Off) only the ones that stand between the camera and the plan are, so the skyline behind the flat stays (see [cut-away.md](cut-away.md)).
 
 - One value per building (its nearest point), never per vertex, so a lowered block is a clean low volume and a roof stays a roof, only lower: every height above the ground is scaled by the same factor, gables and parapets included. The window rows shrink with the wall (the texture's v is scaled about the ground), and the normals follow so a lowered roof is lit like a low one.
-- It is a vertex attribute (`aCut` = scale, ground height, window origin; `buildBuildings` fills it, `CUT_STRIDE` floats per vertex) and one shared uniform `uCut` (`SITE_U`, 0 = real, 1 = lowered) in the buildings' shader (`components/scene/site/siteShader.ts`): no extra draw calls, no geometry rebuild when Cut-away is toggled. `SiteBuildings` eases `uCut` at the rate the flat's roof lifts off (`Roof.tsx`).
+- It is a vertex attribute (`aCut` = scale, ground height, window origin, bearing from the plan's centre; `buildBuildings` fills it, `CUT_STRIDE` floats per vertex) and two shared uniforms in the buildings' shader (`components/scene/site/siteShader.ts`): `uAuto` (0 = All, 1 = Auto, eased by `useCutEase` at the rate the flat's roof lifts off) and `uAz` (the camera's azimuth, written every frame). The share of the cut a building takes is 1 with All and, with Auto, `facingShare(bearing, azimuth)`: a smoothstep of how much the building lies in the camera's direction (0 behind or beside the plan, 1 in front), the same formula in the shader and in `lib/siteMeshCut.ts`. No extra draw calls, no geometry rebuild when Cut-away is toggled or the camera turns.
 - The sun's and the lamps' shadow maps use the same lowering (`patchCutDepth`, as `customDepthMaterial` / `customDistanceMaterial`), so a lowered block casts the shadow of what is drawn, not of the tall block.
-- Trees from the map or the photo get the same curve (`SiteTrees`): a tree beside the flat is a low shrub while Cut-away is on, one that grows 45 m away is untouched. Trees change at once (they are static instances), buildings ease. The flat's own garden trees and plants are never touched.
-- Tests: `cut-away neighbours` in `lib/siteMesh.test.ts` (the curve is 0 at the plan, monotonic, 1 from 45 m; distances to an outline; the attribute).
+- Trees from the map or the photo get the same curve (`SiteTrees`): a tree beside the flat is a low shrub while Cut-away is All, one that grows 45 m away is untouched; with Auto the same facing share applies and the trees are re-placed once per 10 degrees of turn (static instances). Trees change at once, buildings ease. The flat's own garden trees and plants are never touched.
+- Tests: `cut-away neighbours` in `lib/siteMesh.test.ts` (the curve is 0 at the plan, monotonic, 1 from 45 m; distances to an outline; the attribute and its bearing; the facing share).
 - Code: `lib/siteMesh.ts` is the one entry module (components import from it); the geometry lives beside it in `siteMeshGround.ts` (height, terrain grid), `siteMeshPlan.ts` (which neighbours are drawn, the plan footprint), `siteMeshRoof.ts`, `siteMeshCut.ts` (the cut-away curve), `siteMeshBuildings.ts`, `siteMeshWorld.ts` (roads, water, ribbons), `siteMeshTrees.ts`, with `siteMeshBuf.ts` (triangle buffers, triangulation) and `siteMeshBase.ts` (colours) underneath.
 
 ### Rendering notes
