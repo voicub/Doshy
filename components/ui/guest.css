@@ -1,0 +1,54 @@
+/* The guest page (/view/<token>): PIN prompt, "link does not work" card and the HUD over the shared 3D home (GuestViewer, GuestScene, GuestPin), and the link manager
+   in the Share dialog (GuestLinks). Classes are `guest-*`: class names are global. */
+
+.guest-shell { position: fixed; inset: 0; display: grid; place-items: center; padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); overflow-y: auto; }
+.guest-card { display: flex; flex-direction: column; gap: 12px; width: min(380px, 100%); padding: 20px 18px; background: rgb(var(--panel-rgb) / 0.97); }
+.guest-title { margin: 0; font: 500 17px/1.25 var(--sans); letter-spacing: -0.01em; }
+.guest-note { margin: 0; font: 400 12px/1.5 var(--mono); letter-spacing: 0.03em; color: var(--muted); }
+.guest-msg { min-height: 1.4em; margin: 0; color: var(--err-text); }
+.guest-wait { margin: 0; font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.guest-card .field input { min-height: 40px; font-size: 16px; letter-spacing: 0.3em; }
+.guest-card .btn { align-self: flex-start; }
+
+/* the home */
+.guest-bar { position: absolute; top: var(--top); left: calc(20px + env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 40px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); padding: 8px 12px; --l: 6px; }
+.guest-brand { flex: none; font: 600 11px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+.guest-name { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 14px/1.2 var(--sans); }
+.guest-tag { flex: none; padding: 3px 6px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 9.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.guest-live { color: var(--ok); border-color: currentColor; }
+
+.guest-rooms { position: absolute; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; gap: 4px; max-width: calc(100vw - 24px); padding: 4px; overflow-x: auto; scrollbar-width: none; --l: 6px; }
+.guest-rooms::-webkit-scrollbar { display: none; }
+.guest-room { flex: none; height: 30px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--r); font: 500 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; color: var(--muted); transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.guest-room:hover { color: var(--text); border-color: var(--accent-line); }
+.guest-room[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.guest-room:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.guest-app .levelview { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
+
+@media (max-width: 900px) {
+  .guest-bar { left: calc(8px + env(safe-area-inset-left, 0px)); gap: 8px; padding: 6px 10px; }
+  .guest-app .levels { top: calc(var(--top) + 44px); left: calc(8px + env(safe-area-inset-left, 0px)); }
+}
+@media (pointer: coarse) {
+  .guest-room { min-height: var(--touch); }
+}
+@media (prefers-reduced-motion: reduce) { .guest-room { transition: none; } }
+
+/* the link manager (Share > Share a read-only link) */
+.guest-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.guest-link { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgb(var(--fg-rgb) / 0.015); }
+.guest-link[data-expired="true"] { opacity: 0.6; }
+.guest-link-head { display: flex; align-items: center; gap: 8px; }
+.guest-link-head b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 13px/1.2 var(--sans); }
+.guest-link small { font: 400 11px/1.4 var(--mono); letter-spacing: 0.03em; color: var(--muted); }
+.guest-fresh { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--accent); border-radius: var(--r); background: var(--accent-soft); }
+.guest-fresh input { width: 100%; min-width: 0; padding: 8px 9px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-35); font: 400 11.5px/1.2 var(--mono); color: var(--text); }
+.guest-warn { margin: 0; padding: 8px 10px; border: 1px solid rgb(var(--bad-rgb) / 0.45); border-radius: var(--r); font: 400 11px/1.5 var(--mono); letter-spacing: 0.02em; color: var(--err-text); }
+.guest-form { display: flex; flex-direction: column; gap: 10px; }
+.guest-check { display: flex; align-items: flex-start; gap: 8px; font: 400 12px/1.4 var(--sans); }
+.guest-check input { margin-top: 2px; }
+.guest-check small { display: block; }
+.guest-form select { background: var(--shade-35); border: 1px solid var(--accent-line); border-radius: var(--r); padding: 8px 9px; font: 400 12px/1.2 var(--mono); color: var(--text); }
+@media (pointer: coarse), (max-width: 900px) {
+  .guest-form select, .guest-form input { min-height: 44px; }
+}
