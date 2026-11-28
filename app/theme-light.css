@@ -1,0 +1,6 @@
+/* Light themes (data-scheme="light", i.e. Daylight). Everything here exists because the HUD was drawn for a dark 3D scene.
+   Text that floats straight on the scene (the brand, the level label, the room rail) has no panel behind it. On a dark scene that is fine; on a light theme it can land on the dark building or
+   its shadows, so it gets a soft halo in the panel colour. Dark themes are untouched: these rules do not match them. */
+html[data-scheme="light"] :is(.brand, .levels, .rail) {
+  text-shadow: 0 0 2px rgb(var(--panel-rgb) / 0.95), 0 0 7px rgb(var(--panel-rgb) / 0.9), 0 0 14px rgb(var(--panel-rgb) / 0.75);
+}

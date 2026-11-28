@@ -1,0 +1,183 @@
+/*
+ * HUD theme tokens. EVERY colour in the HUD comes from a variable below, so a theme is one block of values and nothing else.
+ * Docs: docs/themes.md. The contrast of every pair listed there is checked per theme by lib/themeContrast.test.ts (it reads this file).
+ *
+ * Which theme is active is the `data-theme` attribute on <html> (written before first paint by the inline script in app/layout.tsx, see lib/theme.ts):
+ * "neon" (also what you get with no attribute), "blueprint", "daylight", "amber", "graphite", "contrast".
+ * `data-scheme="dark|light"` says whether the theme is a light one; `data-status="redgreen|blueyellow"` swaps the status colours for colour-blind-safe ones.
+ * The blocks match any element, not only <html>: a swatch or preview tile with its own data-theme shows that theme whatever the page is using (components/ui/ThemePicker).
+ *
+ * HOW TO USE THEM IN NEW CSS (never write a colour literal):
+ *   surfaces   var(--bg) page · var(--bg-elev) raised · var(--panel-2) card on a panel · var(--sunken) well · var(--panel-solid) opaque panel
+ *              rgb(var(--panel-rgb) / .94) translucent panel (any alpha) · var(--panel) = the usual 94 % · var(--glass) = 55 %
+ *   lines      var(--border) hairline · var(--border-strong) hover/active edge · rgb(var(--line-rgb) / .3) any other alpha
+ *   text       var(--text) · var(--text-2) · var(--text-3) · var(--text-dim) (= --muted) · var(--text-faint) (placeholders, disabled: 3:1 only)
+ *   accent     var(--accent) · rgb(var(--accent-rgb) / .2) tints and glows · var(--accent-soft) selected fill · var(--accent-ink) text ON an accent fill
+ *   status     var(--ok|warn|bad|info) fills, icons, strokes · var(--ok-text|warn-text|bad-text|info-text) text · var(--on-warn|on-bad) text ON a warn/bad fill
+ *              rgb(var(--ok-rgb|warn-rgb|bad-rgb|info-rgb) / .2) tints
+ *   overlays   var(--scrim) page dimmer behind modals · var(--shade-35) (20,25,30,35,40,45,50,55,60,80,90) recess and shadow shades that stay subtle on light themes
+ *              rgb(var(--fg-rgb) / .1) light-on-dark (dark-on-light) highlight
+ *   focus      var(--focus) colour and var(--focus-w) width of the keyboard focus ring
+ *   scene      var(--scene-backdrop) · var(--studio-centre|mid|line): read once per theme change by lib/useThemeColors.ts; the Studio ground follows them
+ * Colours stay literal only where they are physical: lamp light, weather, plan photos, the 3D materials, heat-map palettes (already colour-blind safe), car paint.
+ * Old names kept as aliases so existing rules do not change: --muted, --accent-line, --err, --err-text, --bg-2.
+ * A theme MUST define every token in its block (the test fails otherwise): nothing is inherited from Neon.
+ */
+
+/* ---------- Neon (default; today's look, byte for byte) ---------- */
+:root, [data-theme="neon"] {
+  color-scheme: dark;
+  --bg: #05070a; --bg-elev: #0b0f14; --panel-2: #0a1218; --sunken: #070b0f; --panel-solid: #080c10; --void: #020406;
+  --panel-rgb: 6 9 12; --panel-k: 1; --scrim-rgb: 2 4 6; --shade-rgb: 0 0 0; --shade-k: 1; --fg-rgb: 255 255 255;
+  --accent: #5ad7ff; --accent-rgb: 90 215 255; --accent-hi: #27e0ff; --accent-hi-rgb: 39 224 255; --accent-ink: #031017;
+  --line-rgb: var(--accent-rgb); --line-a: 0.18; --line-strong-a: 0.45;
+  --text: #e8f1f7; --text-rgb: 232 241 247; --text-2: #c4d3dc; --text-3: #9fb4c0; --text-dim: #8aa0ad; --dim-rgb: 138 160 173; --text-faint: #5f7480;
+  --ok: #4fe3a1; --ok-rgb: 79 227 161; --ok-text: #4fe3a1;
+  --warn: #ffb020; --warn-rgb: 255 176 32; --warn-text: #ffb066; --on-warn: #1a1200;
+  --bad: #ff6a3d; --bad-rgb: 255 106 61; --bad-text: #ff9a78; --on-bad: #1a0903; --bad-solid: #b3261e;
+  --info: #9fd4ff; --info-rgb: 159 212 255; --info-text: #9fd4ff;
+  --on-solid: #fff; --hi: #fff; --focus: #5ad7ff; --focus-w: 1px;
+  --scene-backdrop: #030406; --studio-centre: #46515f; --studio-mid: #1f2630; --studio-line: #a9cde0;
+  --plan-paper: #0a2647; --plan-line: #cfeaf5; --plan-rule: #9fd4ff;
+  --halo-a: 0.6; /* how dark the soft shadow around the building is on the Studio floor (a light floor needs far less) */
+}
+
+/* ---------- Blueprint: deep blue paper, white lines ---------- */
+[data-theme="blueprint"] {
+  color-scheme: dark;
+  --bg: #0a2748; --bg-elev: #0d3157; --panel-2: #0e3560; --sunken: #08203b; --panel-solid: #0c2f55; --void: #061a31;
+  --panel-rgb: 10 40 74; --panel-k: 1; --scrim-rgb: 4 16 32; --shade-rgb: 2 12 26; --shade-k: 1; --fg-rgb: 255 255 255;
+  --accent: #8fd0ff; --accent-rgb: 143 208 255; --accent-hi: #b9e2ff; --accent-hi-rgb: 185 226 255; --accent-ink: #06223f;
+  --line-rgb: 255 255 255; --line-a: 0.2; --line-strong-a: 0.55;
+  --text: #eef5ff; --text-rgb: 238 245 255; --text-2: #d3e3f7; --text-3: #b3cbe8; --text-dim: #a2bddd; --dim-rgb: 162 189 221; --text-faint: #7f9fc6;
+  --ok: #6fe3b0; --ok-rgb: 111 227 176; --ok-text: #6fe3b0;
+  --warn: #ffcf66; --warn-rgb: 255 207 102; --warn-text: #ffd98a; --on-warn: #1d1500;
+  --bad: #ff8f73; --bad-rgb: 255 143 115; --bad-text: #ffa58c; --on-bad: #2a0c04; --bad-solid: #b3261e;
+  --info: #b9dcff; --info-rgb: 185 220 255; --info-text: #b9dcff;
+  --on-solid: #fff; --hi: #fff; --focus: #ffffff; --focus-w: 1px;
+  --scene-backdrop: #08213c; --studio-centre: #3a6a9c; --studio-mid: #14406c; --studio-line: #dcebff;
+  --plan-paper: #0a2647; --plan-line: #cfeaf5; --plan-rule: #9fd4ff;
+  --halo-a: 0.6;
+}
+
+/* ---------- Daylight: warm white panels, dark text, blue accent ---------- */
+[data-theme="daylight"] {
+  color-scheme: light;
+  --bg: #f1ede6; --bg-elev: #e9e4db; --panel-2: #f5f1ea; --sunken: #e6e1d7; --panel-solid: #fbf9f5; --void: #dcd6ca;
+  --panel-rgb: 255 253 249; --panel-k: 1.7; --scrim-rgb: 24 33 43; --shade-rgb: 24 33 43; --shade-k: 0.18; --fg-rgb: 24 33 43;
+  --accent: #0a58b8; --accent-rgb: 10 88 184; --accent-hi: #0a50a8; --accent-hi-rgb: 10 80 168; --accent-ink: #ffffff;
+  --line-rgb: 24 33 43; --line-a: 0.2; --line-strong-a: 0.62;
+  --text: #18212b; --text-rgb: 24 33 43; --text-2: #2f3b48; --text-3: #46525f; --text-dim: #4f5b69; --dim-rgb: 79 91 105; --text-faint: #6b7683;
+  --ok: #0a7a4b; --ok-rgb: 10 122 75; --ok-text: #0a6e43;
+  --warn: #8a5a00; --warn-rgb: 138 90 0; --warn-text: #7a4f00; --on-warn: #ffffff;
+  --bad: #b42318; --bad-rgb: 180 35 24; --bad-text: #b42318; --on-bad: #ffffff; --bad-solid: #b42318;
+  --info: #0a58b8; --info-rgb: 10 88 184; --info-text: #0a58b8;
+  --on-solid: #fff; --hi: #0b1420; --focus: #0a58b8; --focus-w: 2px;
+  --scene-backdrop: #e6e2da; --studio-centre: #fbf8f2; --studio-mid: #d8d3c8; --studio-line: #7b8490;
+  --plan-paper: #f8f5ee; --plan-line: #1d3a5c; --plan-rule: #5f82ad;
+  --halo-a: 0.2;
+}
+
+/* ---------- Amber: dark warm terminal ---------- */
+[data-theme="amber"] {
+  color-scheme: dark;
+  --bg: #0b0803; --bg-elev: #130d05; --panel-2: #181006; --sunken: #0f0a03; --panel-solid: #110c04; --void: #060401;
+  --panel-rgb: 18 12 4; --panel-k: 1; --scrim-rgb: 6 4 1; --shade-rgb: 0 0 0; --shade-k: 1; --fg-rgb: 255 226 160;
+  --accent: #ffb000; --accent-rgb: 255 176 0; --accent-hi: #ffc933; --accent-hi-rgb: 255 201 51; --accent-ink: #1a1000;
+  --line-rgb: var(--accent-rgb); --line-a: 0.2; --line-strong-a: 0.52;
+  --text: #ffe3ae; --text-rgb: 255 227 174; --text-2: #f0cd8a; --text-3: #d9b36c; --text-dim: #c9a060; --dim-rgb: 201 160 96; --text-faint: #8c6c38;
+  --ok: #9be15d; --ok-rgb: 155 225 93; --ok-text: #9be15d;
+  --warn: #ffd24a; --warn-rgb: 255 210 74; --warn-text: #ffd24a; --on-warn: #1a1200;
+  --bad: #ff7a4d; --bad-rgb: 255 122 77; --bad-text: #ff9a78; --on-bad: #1a0903; --bad-solid: #b3261e;
+  --info: #ffd98a; --info-rgb: 255 217 138; --info-text: #ffd98a;
+  --on-solid: #fff; --hi: #fff3d6; --focus: #ffb000; --focus-w: 1px;
+  --scene-backdrop: #080602; --studio-centre: #5a4220; --studio-mid: #2a1d0c; --studio-line: #ffc766;
+  --plan-paper: #140d04; --plan-line: #ffd98a; --plan-rule: #c9a060;
+  --halo-a: 0.6;
+}
+
+/* ---------- Graphite: neutral, low-saturation dark ---------- */
+[data-theme="graphite"] {
+  color-scheme: dark;
+  --bg: #0e0f11; --bg-elev: #141619; --panel-2: #1a1c20; --sunken: #111215; --panel-solid: #16181b; --void: #08090a;
+  --panel-rgb: 20 21 24; --panel-k: 1; --scrim-rgb: 6 7 8; --shade-rgb: 0 0 0; --shade-k: 1; --fg-rgb: 255 255 255;
+  --accent: #a9b9d0; --accent-rgb: 169 185 208; --accent-hi: #c3d0e2; --accent-hi-rgb: 195 208 226; --accent-ink: #0e1116;
+  --line-rgb: 200 206 216; --line-a: 0.16; --line-strong-a: 0.42;
+  --text: #eceef1; --text-rgb: 236 238 241; --text-2: #cfd3d9; --text-3: #b0b5be; --text-dim: #9aa0aa; --dim-rgb: 154 160 170; --text-faint: #6f7580;
+  --ok: #7ad9a8; --ok-rgb: 122 217 168; --ok-text: #7ad9a8;
+  --warn: #e8b653; --warn-rgb: 232 182 83; --warn-text: #e8b653; --on-warn: #1a1200;
+  --bad: #ee7d68; --bad-rgb: 238 125 104; --bad-text: #f09a88; --on-bad: #1a0903; --bad-solid: #b3261e;
+  --info: #9ec0e8; --info-rgb: 158 192 232; --info-text: #9ec0e8;
+  --on-solid: #fff; --hi: #fff; --focus: #c3d0e2; --focus-w: 1px;
+  --scene-backdrop: #08090a; --studio-centre: #4a4d54; --studio-mid: #24262a; --studio-line: #c8ccd4;
+  --plan-paper: #17191c; --plan-line: #dfe3ea; --plan-rule: #9aa0aa;
+  --halo-a: 0.6;
+}
+
+/* ---------- High contrast: black, white and yellow; thick borders and focus rings ---------- */
+[data-theme="contrast"] {
+  color-scheme: dark;
+  --bg: #000000; --bg-elev: #0a0a0a; --panel-2: #0f0f0f; --sunken: #050505; --panel-solid: #000000; --void: #000000;
+  --panel-rgb: 0 0 0; --panel-k: 1.8; --scrim-rgb: 0 0 0; --shade-rgb: 0 0 0; --shade-k: 1; --fg-rgb: 255 255 255;
+  --accent: #ffe600; --accent-rgb: 255 230 0; --accent-hi: #fff04d; --accent-hi-rgb: 255 240 77; --accent-ink: #000000;
+  --line-rgb: 255 255 255; --line-a: 0.7; --line-strong-a: 1;
+  --text: #ffffff; --text-rgb: 255 255 255; --text-2: #f2f2f2; --text-3: #e0e0e0; --text-dim: #d4d4d4; --dim-rgb: 212 212 212; --text-faint: #a8a8a8;
+  --ok: #00ff8c; --ok-rgb: 0 255 140; --ok-text: #00ff8c;
+  --warn: #ffd400; --warn-rgb: 255 212 0; --warn-text: #ffd400; --on-warn: #000000;
+  --bad: #ff6b5e; --bad-rgb: 255 107 94; --bad-text: #ff8a80; --on-bad: #000000; --bad-solid: #d62d20;
+  --info: #7fd0ff; --info-rgb: 127 208 255; --info-text: #7fd0ff;
+  --on-solid: #fff; --hi: #fff; --focus: #ffe600; --focus-w: 3px;
+  --scene-backdrop: #000000; --studio-centre: #3a3a3a; --studio-mid: #141414; --studio-line: #ffffff;
+  --plan-paper: #000000; --plan-line: #ffffff; --plan-rule: #ffe600;
+  --halo-a: 0.6;
+}
+
+/* ---------- Colour-blind-safe status colours (independent of the theme; text-safe on every theme of the same scheme) ---------- */
+/* Red-green safe (protanopia, deuteranopia): blue / yellow / pink. Blue-yellow safe (tritanopia): green / pale peach / red. Checked in lib/themeContrast.test.ts. */
+[data-status="redgreen"] {
+  --ok: #4aa3ff; --ok-rgb: 74 163 255; --ok-text: #4aa3ff;
+  --warn: #ffcf33; --warn-rgb: 255 207 51; --warn-text: #ffcf33; --on-warn: #1a1200;
+  --bad: #ff6fa8; --bad-rgb: 255 111 168; --bad-text: #ff6fa8; --on-bad: #1a0610;
+}
+[data-status="blueyellow"] {
+  --ok: #2fe08e; --ok-rgb: 47 224 142; --ok-text: #2fe08e;
+  --warn: #ffe39a; --warn-rgb: 255 227 154; --warn-text: #ffe39a; --on-warn: #1a1200;
+  --bad: #ff7070; --bad-rgb: 255 112 112; --bad-text: #ff7070; --on-bad: #1a0505;
+}
+[data-scheme="light"][data-status="redgreen"] {
+  --ok: #0b57c9; --ok-rgb: 11 87 201; --ok-text: #0b57c9;
+  --warn: #8a5a00; --warn-rgb: 138 90 0; --warn-text: #8a5a00; --on-warn: #ffffff;
+  --bad: #a8135c; --bad-rgb: 168 19 92; --bad-text: #a8135c; --on-bad: #ffffff;
+}
+[data-scheme="light"][data-status="blueyellow"] {
+  --ok: #087238; --ok-rgb: 8 114 56; --ok-text: #087238;
+  --warn: #7a4a00; --warn-rgb: 122 74 0; --warn-text: #7a4a00; --on-warn: #ffffff;
+  --bad: #c0141c; --bad-rgb: 192 20 28; --bad-text: #c0141c; --on-bad: #ffffff;
+}
+
+/* ---------- Derived tokens (same for every theme; they re-evaluate when the attribute above changes) ---------- */
+:root, [data-theme] {
+  /* translucent panels: --panel-k makes them more opaque on light themes, where see-through glass over a dark 3D scene leaves the text unreadable */
+  --panel: rgb(var(--panel-rgb) / calc(0.94 * var(--panel-k)));
+  --glass: rgb(var(--panel-rgb) / calc(0.55 * var(--panel-k)));
+  --border: rgb(var(--line-rgb) / var(--line-a));
+  --border-strong: rgb(var(--line-rgb) / var(--line-strong-a));
+  --accent-soft: rgb(var(--accent-rgb) / 0.08);
+  --scrim: rgb(var(--scrim-rgb) / 0.72);
+  --shade-20: rgb(var(--shade-rgb) / calc(0.2 * var(--shade-k)));
+  --shade-25: rgb(var(--shade-rgb) / calc(0.25 * var(--shade-k)));
+  --shade-30: rgb(var(--shade-rgb) / calc(0.3 * var(--shade-k)));
+  --shade-35: rgb(var(--shade-rgb) / calc(0.35 * var(--shade-k)));
+  --shade-40: rgb(var(--shade-rgb) / calc(0.4 * var(--shade-k)));
+  --shade-45: rgb(var(--shade-rgb) / calc(0.45 * var(--shade-k)));
+  --shade-50: rgb(var(--shade-rgb) / calc(0.5 * var(--shade-k)));
+  --shade-55: rgb(var(--shade-rgb) / calc(0.55 * var(--shade-k)));
+  --shade-60: rgb(var(--shade-rgb) / calc(0.6 * var(--shade-k)));
+  --shade-80: rgb(var(--shade-rgb) / calc(0.8 * var(--shade-k)));
+  --shade-90: rgb(var(--shade-rgb) / calc(0.9 * var(--shade-k)));
+  /* old names (see the top of this file) */
+  --bg-2: var(--bg-elev); --muted: var(--text-dim); --accent-line: var(--border); --err: var(--bad); --err-text: var(--bad-text);
+}
+
+/* High contrast: borders and rings you can see from across the room (2px instead of the hairline). */
+html[data-theme="contrast"] :is(.hud, .btn, .chip, .card, .search, .field input, .field select, .seg, .kbd, .tile) { border-width: 2px; }

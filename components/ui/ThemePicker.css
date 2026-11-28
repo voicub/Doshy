@@ -1,0 +1,55 @@
+/* Display settings > Appearance (components/ui/ThemePicker.tsx). Chrome uses the page's tokens; the little drawings (.tp-mock, .tp-sw) carry their own data-theme, so inside them the same tokens are THAT theme's. */
+.tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; width: 100%; }
+.tp-tile { display: flex; flex-direction: column; align-items: stretch; gap: 5px; padding: 6px; text-align: left; border: 1px solid var(--border); border-radius: var(--r); background: rgb(var(--fg-rgb) / 0.02); transition: border-color 0.15s, background 0.15s; }
+.tp-tile:hover { border-color: var(--border-strong); background: var(--accent-soft); }
+.tp-tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.tp-name { font: 500 10.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+.tp-tile[aria-pressed="true"] .tp-name { color: var(--accent); }
+.tp-note { font-size: 11px; line-height: 1.35; color: var(--text-dim); }
+
+.tp-mock { position: relative; display: block; height: 56px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); }
+.tp-bar { position: absolute; inset: 0 0 auto 0; height: 9px; background: var(--panel-solid); border-bottom: 1px solid var(--border); }
+.tp-bar::after { content: ""; position: absolute; left: 4px; top: 3px; width: 14px; height: 3px; background: var(--accent); }
+.tp-card { position: absolute; left: 5px; top: 15px; bottom: 5px; width: 46%; display: flex; flex-direction: column; gap: 3px; padding: 4px; background: var(--panel); border: 1px solid var(--border-strong); }
+.tp-card b { display: block; height: 3px; width: 82%; background: var(--text); }
+.tp-card b:nth-child(2) { width: 56%; background: var(--text-dim); }
+.tp-card b:nth-child(3) { width: 68%; background: var(--text-faint); }
+.tp-btn { position: absolute; right: 6px; top: 15px; width: 34%; height: 11px; background: var(--accent); }
+.tp-dots { position: absolute; right: 6px; bottom: 6px; display: flex; gap: 3px; }
+.tp-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.tp-dots i:nth-child(2) { background: var(--warn); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.tp-dots i:nth-child(3) { background: var(--bad); border-radius: 0; }
+/* Auto: a light and a dark drawing cut along the diagonal */
+.tp-pair { position: relative; display: block; height: 56px; }
+.tp-pair .tp-mock { position: absolute; inset: 0; height: auto; }
+.tp-pair .tp-mock + .tp-mock { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+.tp-status, .tp-accents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tp-opt { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r); font: 500 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.tp-opt:hover { color: var(--text); border-color: var(--border-strong); }
+.tp-opt[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.tp-sw { display: inline-flex; align-items: center; gap: 4px; background: none; }
+.tp-sw i { width: 10px; height: 10px; background: var(--ok); border-radius: 50%; }
+.tp-sw i.warn { background: var(--warn); border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.tp-sw i.bad { background: var(--bad); border-radius: 0; }
+
+.tp-dot { width: 28px; height: 28px; border-radius: var(--r); border: 1px solid var(--border-strong); box-shadow: inset 0 0 0 1px rgb(var(--fg-rgb) / 0.22); }
+.tp-dot:hover:not(:disabled) { transform: scale(1.08); }
+.tp-dot[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+.tp-dot:disabled { opacity: 0.35; cursor: not-allowed; }
+.tp-hue { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 320px; font: 500 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.tp-hue input { flex: 1; min-width: 0; height: 22px; appearance: none; -webkit-appearance: none; border: 1px solid var(--border-strong); border-radius: var(--r); background: linear-gradient(90deg, hsl(0 85% 55%), hsl(60 85% 50%), hsl(120 80% 45%), hsl(180 85% 50%), hsl(240 85% 60%), hsl(300 85% 55%), hsl(359 85% 55%)); /* the spectrum is physical colour, not a theme colour */ }
+.tp-hue input::-webkit-slider-thumb { -webkit-appearance: none; width: 8px; height: 22px; background: var(--text); border: 1px solid var(--bg); border-radius: 1px; }
+.tp-hue input::-moz-range-thumb { width: 8px; height: 22px; background: var(--text); border: 1px solid var(--bg); border-radius: 1px; }
+.tp-err { color: var(--bad-text); }
+
+html:is([data-vp="tiny"], [data-vp="small"])[data-orient="landscape"] .tp-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+html:is([data-vp="tiny"], [data-vp="small"]) .tp-note { display: none; }
+html:is([data-vp="tiny"], [data-vp="small"]) .tp-mock, html:is([data-vp="tiny"], [data-vp="small"]) .tp-pair { height: 40px; }
+@media (pointer: coarse) {
+  .tp-opt { min-height: 44px; }
+  .tp-dot { width: 44px; height: 44px; }
+  .tp-hue input { height: 44px; }
+  .tp-hue input::-webkit-slider-thumb { height: 44px; }
+  .tp-hue input::-moz-range-thumb { height: 44px; }
+}
