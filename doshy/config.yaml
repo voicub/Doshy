@@ -1,7 +1,7 @@
 # Home Assistant add-on definition. `version` is written by scripts/sync-version.mjs from package.json: do not edit it by hand.
 # The Supervisor pulls ghcr.io/voicub/doshy:<version> (built by .github/workflows/build.yml).
 name: Doshy
-version: "0.2.0"
+version: "0.2.1"
 slug: doshy
 description: Isometric 3D dashboard and home design tool for Home Assistant
 url: https://github.com/voicub/Doshy
