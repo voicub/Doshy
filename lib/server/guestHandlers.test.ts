@@ -131,7 +131,7 @@ test("a link with a PIN shows nothing until the PIN is entered; the right PIN se
   assert.equal((await guestPlanReply(get(token, "plan", cookie), token, e)).status, 200);
   assert.equal((await guestResourceReply(get(token, "resource/m_chair", cookie), token, "m_chair", e)).status, 200);
   assert.deepEqual(await asJson(await guestSessionStatus(get(token, "session", cookie), token, e)), { pin: true, unlocked: true });
-  const elsewhere = await guestPlanReply(get(token, "plan", { cookie: `${SESSION_COOKIE}=${cookieOf(ok).split("=")[1].replace(/.$/, "A")}` }), token, e);
+  const elsewhere = await guestPlanReply(get(token, "plan", { cookie: `${SESSION_COOKIE}=${cookieOf(ok).split("=")[1].replace(/.$/, (c) => (c === "A" ? "B" : "A"))}` }), token, e); // the last character always changes
   assert.equal(elsewhere.status, 401, "a changed cookie is not a session");
   t.cleanup();
 });
