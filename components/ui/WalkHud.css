@@ -1,0 +1,80 @@
+/* The walkthrough (docs/walkthrough.md). Colours come from the theme tokens (app/theme-tokens.css): nothing here is a colour literal. */
+
+/* While a walk is on, the dashboard's own HUD is out of the way: only the walk HUD, the device cards, alerts and toasts stay. */
+html[data-walk] .chrome > :not(.walk-hud):not(.devcard):not(.camcard):not(.alert-banner):not(.scn-toast):not(.banner) { display: none !important; }
+html[data-walk] .dc-layer, html[data-walk] .scene-html { display: none !important; } /* floating labels belong to the isometric view */
+html[data-walk] .stage canvas { touch-action: none; }
+
+.chrome > .walk-hud { position: absolute; inset: 0; pointer-events: none; }
+.walk-hud > *, .walk-bar > * { pointer-events: auto; }
+
+/* ---- top bar: Exit, the room you are in, floors, mini-map, settings, help ---- */
+.walk-hud > .walk-bar { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); width: max-content; max-width: calc(100% - 190px - env(safe-area-inset-left, 0px)); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px; }
+.walk-exit, .walk-btn, .walk-chip { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; border: 1px solid var(--border); border-radius: var(--r); color: var(--text-2); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.walk-exit { padding: 0 12px; border-color: var(--border-strong); background: var(--accent-soft); color: var(--accent); }
+.walk-btn { width: 36px; }
+.walk-chip { padding: 0 10px; }
+.walk-btn:hover, .walk-chip:hover, .walk-exit:hover { border-color: var(--border-strong); color: var(--text); }
+.walk-btn[aria-pressed="true"], .walk-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.walk-exit:focus-visible, .walk-btn:focus-visible, .walk-chip:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
+.walk-room { padding: 0 8px; font: 500 12px/1.2 var(--mono); letter-spacing: 0.06em; color: var(--text); max-width: 26ch; overflow-wrap: anywhere; }
+.walk-levels { display: flex; gap: 4px; }
+
+.walk-hud > .walk-set { position: absolute; top: calc(64px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); display: grid; gap: 10px; padding: 12px 14px; width: min(300px, calc(100% - 20px)); font: 500 11px/1.3 var(--mono); letter-spacing: 0.06em; color: var(--text-2); }
+.walk-set label { display: grid; gap: 6px; }
+.walk-set input[type="range"] { width: 100%; accent-color: var(--accent); }
+.walk-check { grid-auto-flow: column; justify-content: start; align-items: center; gap: 8px !important; }
+
+/* ---- mini-map ---- */
+.walk-hud > .walk-map { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); width: 160px; height: 120px; pointer-events: none; padding: 0; }
+.wm-room { fill: rgb(var(--accent-rgb) / 0.12); }
+.wm-wall { stroke: var(--text-2); stroke-width: 2px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.wm-stair { fill: none; stroke: var(--accent); stroke-width: 1px; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+.wm-you { fill: var(--accent); stroke: var(--bg); stroke-width: 1px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* ---- the crosshair, what it is on, and the hint ---- */
+.walk-reticle { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgb(var(--fg-rgb) / 0.9); box-shadow: 0 0 0 1px var(--shade-50); pointer-events: none; }
+.walk-hud > .walk-aim { position: absolute; left: 50%; top: calc(50% + 26px); transform: translateX(-50%); display: grid; gap: 3px; padding: 8px 12px; max-width: min(360px, calc(100% - 24px)); text-align: center; font: 500 11px/1.3 var(--mono); letter-spacing: 0.06em; color: var(--text-2); pointer-events: none; }
+.walk-aim strong { font-weight: 600; color: var(--text); }
+.walk-aim-tap { display: none; }
+.walk-hud > .walk-hint { position: absolute; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 8px 14px; font: 500 11px/1.3 var(--mono); letter-spacing: 0.06em; color: var(--text-2); text-align: center; pointer-events: none; }
+
+/* ---- touch: the stick (the rest of the picture looks around) ---- */
+.walk-stick { display: none; position: absolute; left: calc(22px + env(safe-area-inset-left, 0px)); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); width: 132px; height: 132px; border: 2px solid rgb(var(--line-rgb) / 0.5); border-radius: 50%; background: rgb(var(--panel-rgb) / calc(0.4 * var(--panel-k))); touch-action: none; }
+.walk-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border: 2px solid var(--accent); border-radius: 50%; background: rgb(var(--accent-rgb) / 0.3); pointer-events: none; }
+html[data-coarse="1"] .walk-stick { display: block; }
+html[data-coarse="1"] .walk-reticle, html[data-coarse="1"] .walk-hint, html[data-coarse="1"] .walk-aim-key { display: none; }
+html[data-coarse="1"] .walk-aim-tap { display: inline; }
+
+/* ---- How to walk ---- */
+.walk-hud > .walk-help { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(540px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px; background: var(--panel-solid); }
+.walk-help-title { margin: 0 0 10px; font: 600 12px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.walk-help table { width: 100%; border-collapse: collapse; font-size: 12.5px; line-height: 1.4; }
+.walk-help th { width: 28%; padding: 6px 10px 6px 0; text-align: left; vertical-align: top; font: 600 10.5px/1.5 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); white-space: nowrap; }
+.walk-help td { padding: 6px 0; color: var(--text-2); }
+.walk-help tr + tr { border-top: 1px solid var(--border); }
+.walk-help-ok { margin-top: 12px; height: 44px; padding: 0 22px; }
+
+/* a walk that could not start */
+.walk-note { position: absolute; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); padding: 10px 16px; max-width: calc(100% - 24px); font: 500 12px/1.4 var(--mono); color: var(--text); }
+
+/* ---- compact screens and touch: 44 px targets, the stick and the look area clear of the buttons ---- */
+html[data-coarse="1"] :is(.walk-exit, .walk-btn, .walk-chip), html:not([data-vp="regular"]) :is(.walk-exit, .walk-btn, .walk-chip) { height: 44px; }
+html[data-coarse="1"] .walk-btn, html:not([data-vp="regular"]) .walk-btn { width: 44px; }
+html[data-vp="tiny"] .walk-hud > .walk-bar { max-width: calc(100% - 140px - env(safe-area-inset-left, 0px)); top: calc(6px + env(safe-area-inset-top, 0px)); left: calc(6px + env(safe-area-inset-left, 0px)); }
+html[data-vp="tiny"] .walk-room { font-size: 11px; max-width: 16ch; }
+html[data-vp="tiny"] .walk-hud > .walk-map { width: 120px; height: 90px; top: calc(6px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px)); }
+html[data-vp="tiny"] .walk-stick { width: 108px; height: 108px; left: calc(14px + env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+html[data-vp="tiny"] .walk-knob { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+html[data-vp="tiny"] .walk-help table { font-size: 11.5px; }
+html[data-vp="tiny"] .walk-help th { width: 24%; }
+
+/* ---- the "Walk in this room" button beside each room in the rail (same shape as Enter and Devices; on compact screens it shows for the focused room, like them) ---- */
+.rail-walk { flex: none; display: grid; place-items: center; width: 28px; border: 1px solid transparent; border-radius: var(--r); color: var(--text-dim); transition: color 0.15s, background 0.15s, border-color 0.15s; }
+.rail-walk:hover { color: var(--accent); background: rgb(var(--panel-rgb) / calc(0.5 * var(--panel-k))); border-color: var(--border-strong); }
+.rail-walk:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: -2px; }
+@media (pointer: coarse) { .rail-walk { width: 44px; } }
+html:not([data-vp="regular"]) .rail-walk { display: none; }
+html:not([data-vp="regular"]) .rail-item.active ~ .rail-walk { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 calc(50% - 1px); width: auto; min-height: 44px; border: 1px solid var(--border); background: rgb(var(--panel-rgb) / 0.9); color: var(--text); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+html:not([data-vp="regular"]) .rail-walk::after { content: "Walk"; }
+html:not([data-vp="regular"]) .rail-walk svg { width: 16px; height: 16px; color: var(--accent); }
