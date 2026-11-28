@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createDashboard, parseCreateBody, softDeleteDashboard } from "./dashboards.ts";
 import { HttpError } from "./errors.ts";
 import { MAX_KEYS_PER_WRITE, MAX_VALUE_BYTES, getSettings, setSettings } from "./settings.ts";
 import { tempDb } from "./testDb.ts";
@@ -51,5 +52,19 @@ test("the body must be an object with between 1 and 64 keys and every value defi
   assert.throws(() => setSettings(t.db, { a: undefined }), refused(400));
   const many = Object.fromEntries(Array.from({ length: MAX_KEYS_PER_WRITE + 1 }, (_, i) => [`k${i}`, i]));
   assert.throws(() => setSettings(t.db, many), refused(400));
+  t.cleanup();
+});
+
+test("a plan's settings are kept under housey-plan.<id>, only for a plan that exists, and the old bare key is refused", () => {
+  const t = tempDb();
+  const b = createDashboard(t.db, parseCreateBody({ name: "Beta" })).id;
+  assert.equal(setSettings(t.db, { "housey-plan.1": { v: 1 }, [`housey-plan.${b}`]: { v: 2 } }), 2);
+  assert.throws(() => setSettings(t.db, { "housey-plan": { v: 1 } }), refused(400), "what a tab opened before multi-plan would send");
+  for (const key of ["housey-plan.", "housey-plan.x", "housey-plan.1.2", "housey-plan.01x", "housey-plan.007", "housey-plan.-1"]) assert.throws(() => setSettings(t.db, { [key]: 1 }), refused(400), key);
+  assert.throws(() => setSettings(t.db, { "housey-plan.99": 1 }), refused(404), "no row for a plan that never existed");
+  softDeleteDashboard(t.db, b, 1000);
+  assert.throws(() => setSettings(t.db, { [`housey-plan.${b}`]: { v: 3 }, other: 1 }), refused(404), "nor for a deleted one, and the rest of that write is not applied");
+  assert.equal(getSettings(t.db).other, undefined);
+  assert.equal(setSettings(t.db, { "housey-planner": 1, "housey-plan-x": 2 }), 2, "other keys that merely start alike are ordinary");
   t.cleanup();
 });

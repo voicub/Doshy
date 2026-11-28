@@ -86,6 +86,32 @@ export function decidePoll(i: { serverRev: number; localRev: number | null; dirt
   return i.dirty ? "conflict" : "apply";
 }
 
+/** `?plan=<id>` from a URL's query string (a kiosk pinned to one plan): a positive whole number, else null. */
+export function parsePlanParam(search: string): number | null {
+  const v = new URLSearchParams(search).get("plan");
+  return v !== null && /^[1-9]\d{0,8}$/.test(v) ? Number(v) : null;
+}
+
+/** The query string with `plan=<id>` set, when the URL already pins a plan (a kiosk); null when it does not, so switching never adds a parameter the owner did not choose. */
+export function withPlanParam(search: string, id: number): string | null {
+  const q = new URLSearchParams(search);
+  if (!q.has("plan")) return null;
+  q.set("plan", String(id));
+  return `?${q.toString()}`;
+}
+
+/**
+ * Which plan this device opens at start: the URL's `?plan=`, else the one it chose last (`saved`), else the server's home plan. A choice that no longer
+ * exists (deleted elsewhere, a restored backup), or that has no drawing yet and is not the plan whose copy this device holds (`localId`), is skipped;
+ * `fellBack` says a plan that was asked for was not used (the screen says so). `plans` are the plans that exist, with their working revision (0 = none yet).
+ */
+export function pickPlan(i: { param: number | null; saved: number | null; defaultId: number; plans: readonly { id: number; rev: number }[]; localId: number | null }): { id: number; fellBack: boolean } {
+  const usable = (id: number) => i.plans.some((p) => p.id === id && (p.rev > 0 || id === i.localId));
+  const asked = i.param ?? i.saved;
+  const id = [i.param, i.saved, i.defaultId].find((c): c is number => c !== null && usable(c)) ?? i.plans[0]?.id ?? i.defaultId;
+  return { id, fellBack: asked !== null && id !== asked };
+}
+
 type HasKind = { kind: string };
 
 /**

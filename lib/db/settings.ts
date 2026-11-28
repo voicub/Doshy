@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { PLAN_SETTINGS_KEY, requireDashboard } from "./dashboards.ts";
 import { HttpError } from "./errors.ts";
 import { all, run, tx } from "./sql.ts";
 
@@ -29,12 +30,24 @@ function checkSettings(entries: unknown): [string, string][] {
   });
 }
 
+/**
+ * A plan's own settings live under `housey-plan.<id>` and only for a plan that exists: the bare legacy `housey-plan` (what a tab opened before
+ * multi-plan still sends) and keys for a missing or deleted plan are refused, so nothing orphaned or in the old shape can pile up.
+ */
+function checkPlanKey(db: DatabaseSync, key: string): void {
+  if (key !== "housey-plan" && !key.startsWith("housey-plan.")) return;
+  const id = PLAN_SETTINGS_KEY.exec(key)?.[1];
+  if (id === undefined) throw new HttpError(400, "bad_key", "A plan's settings are kept as housey-plan.<plan id>.");
+  requireDashboard(db, Number(id));
+}
+
 /** Set many keys in one transaction. A key whose value did not change is not rewritten (no WAL churn from repeated identical saves). */
 export function setSettings(db: DatabaseSync, entries: unknown, now = Date.now()): number {
   const pairs = checkSettings(entries);
   return tx(db, () => {
     let changed = 0;
     for (const [key, json] of pairs) {
+      checkPlanKey(db, key);
       const r = run(
         db,
         "INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at WHERE value IS NOT excluded.value",

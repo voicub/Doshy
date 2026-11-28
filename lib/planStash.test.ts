@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { INDEX_KEY, LEGACY_KEY, SLOTS, countsOf, listStash, markSeen, mirrorLegacy, planCounts, readStash, stashPlan, unseenStash, type Store } from "./planStash.ts";
+import { INDEX_KEY, LEGACY_KEY, SLOTS, belongsTo, countsOf, listStash, markSeen, mirrorLegacy, planCounts, readStash, stashPlan, unseenStash, type Store } from "./planStash.ts";
 
 /** A fake localStorage; `limit` makes it throw like a full one. */
 function fakeStore(limit = Infinity): Store & { map: Map<string, string> } {
@@ -32,6 +32,27 @@ test("a stashed plan is kept byte for byte with its time, reason and counts", ()
   assert.deepEqual({ at: e.at, reason: e.reason, items: e.items, walls: e.walls }, { at: 1000, reason: "before loading", items: 101, walls: 2 });
   assert.equal(readStash(s, e.slot), text);
   assert.equal(listStash(s)[0].slot, e.slot);
+});
+
+test("a kept plan remembers which plan it was a copy of; older ones belong to the home plan", () => {
+  const s = fakeStore();
+  const withId = stashPlan(s, persisted("a"), "r", 1000, 3)!;
+  const without = stashPlan(s, persisted("b"), "r", 2000)!;
+  assert.equal(listStash(s).find((e) => e.slot === withId.slot)?.planId, 3, "the tag survives the index round trip");
+  assert.equal(belongsTo(withId, 3, 1), true);
+  assert.equal(belongsTo(withId, 1, 1), false);
+  assert.equal(belongsTo(without, 1, 1), true, "no tag: the home plan");
+  assert.equal(belongsTo(without, 2, 1), false);
+  assert.equal(belongsTo(without, 2, 2), true, "whichever plan is the home plan now");
+});
+
+test("the banner only offers kept copies of the plan on screen", () => {
+  const s = fakeStore();
+  stashPlan(s, persisted("other-plan"), "r", 1000, 2);
+  assert.equal(unseenStash(s, persisted("now"), (e) => belongsTo(e, 1, 1)), null);
+  const mine = stashPlan(s, persisted("my-plan"), "r", 2000, 1)!;
+  assert.equal(unseenStash(s, persisted("now"), (e) => belongsTo(e, 1, 1))?.slot, mine.slot);
+  assert.equal(unseenStash(s, persisted("now"))?.slot, mine.slot, "without a filter the newest is offered, as before");
 });
 
 test("only the newest 10 are kept, the newest first, and each lives in its own housey-plan-before-load-N key", () => {

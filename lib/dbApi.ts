@@ -1,9 +1,11 @@
 import { REQUEST_TIMEOUT_MS, TRANSFER_TIMEOUT_MS, timedOut, within } from "./requestTimeout.ts";
+import { isStaleAnswer } from "./swRules.ts";
+import type { Dashboard, DashboardList } from "./db/dashboards";
 import type { DbInfo } from "./db/info";
 import type { Version } from "./db/plans";
 import type { ResourceInfo } from "./db/resources";
 
-export type { DbInfo, ResourceInfo, Version };
+export type { Dashboard, DashboardList, DbInfo, ResourceInfo, Version };
 
 /** Typed calls to /api/db/*. Everything the browser says to the database goes through here. */
 
@@ -40,6 +42,8 @@ async function request(path: string, init: RequestInit = {}, timeoutMs = REQUEST
   } catch {
     throw new NetError("The server cannot be reached."); // also a request nobody answered in time: the retry and offline banner are the same
   }
+  // The offline worker (public/sw.js) answered from its cache because the network failed: that copy may be older than this device's own saved revision, so it counts as "server unreachable" (docs/offline.md).
+  if (isStaleAnswer(res.headers)) throw new NetError("The server cannot be reached.");
   if (res.ok || res.status === 304) return res;
   const body: ErrorBody = await res.json().catch(() => ({}));
   const message = typeof body.error === "string" ? body.error : `The server answered ${res.status}.`;
@@ -65,16 +69,50 @@ export const fetchSettings = async (): Promise<ServerSettings> => (await asJson<
 export const saveSettings = (settings: Record<string, unknown>, keepalive?: boolean) => request("/api/db/settings", sendJson("PUT", { settings }, keepalive)).then(() => undefined);
 
 export type PlanReply = ServerPlan | { rev: number; plan: null } | { rev: number; unchanged: true };
-/** The working plan. With `since`, an unchanged plan comes back as `{ rev, unchanged: true }` (nothing else is sent). */
-export const fetchPlan = (since?: number) => asJson<PlanReply>(since === undefined ? "/api/db/plan" : `/api/db/plan?since=${since}`);
-export const savePlan = (body: { plan: unknown; baseRev: number; format: number; overwrite?: boolean }, keepalive?: boolean) =>
-  asJson<{ rev: number; updatedAt: number; changed: boolean }>("/api/db/plan", sendJson("PUT", body, keepalive));
+const planUrl = (id: number) => `/api/db/dashboards/${id}`;
+/** Plan `id`'s working plan. With `since`, an unchanged plan comes back as `{ rev, unchanged: true }` (nothing else is sent). A plan that does not exist (any more) is an `ApiError` 404. */
+export const fetchPlan = (id: number, since?: number) => asJson<PlanReply>(since === undefined ? `${planUrl(id)}/plan` : `${planUrl(id)}/plan?since=${since}`);
+export const savePlan = (id: number, body: { plan: unknown; baseRev: number; format: number; overwrite?: boolean }, keepalive?: boolean) =>
+  asJson<{ rev: number; updatedAt: number; changed: boolean }>(`${planUrl(id)}/plan`, sendJson("PUT", body, keepalive));
 
-export const fetchVersions = async () => (await asJson<{ versions: Version[] }>("/api/db/plan/versions")).versions;
-/** "Save version now". An empty label becomes "Saved version". With `plan`, that plan (not the working one) is kept as the version: how a plan this device is about to lose is also kept on the server. */
-export const saveVersion = async (label = "", plan?: { plan: unknown; format: number }) => (await asJson<{ version: Version }>("/api/db/plan/versions", sendJson("POST", { label, ...(plan ? { plan: plan.plan, format: plan.format } : {}) }))).version;
-/** Make a saved version the working plan. The reply is the new working plan: pass it to `adoptServerPlan` (lib/dbClient) so this screen shows it. */
-export const restoreVersion = (id: number) => asJson<ServerPlan>("/api/db/plan/restore", sendJson("POST", { id }));
+export const fetchVersions = async (id: number) => (await asJson<{ versions: Version[] }>(`${planUrl(id)}/versions`)).versions;
+/** "Save version now" for plan `id`. An empty label becomes "Saved version". With `plan`, that plan (not the working one) is kept as the version: how a plan this device is about to lose is also kept on the server. */
+export const saveVersion = async (id: number, label = "", plan?: { plan: unknown; format: number }) =>
+  (await asJson<{ version: Version }>(`${planUrl(id)}/versions`, sendJson("POST", { label, ...(plan ? { plan: plan.plan, format: plan.format } : {}) }))).version;
+/** Make a saved version of plan `id` its working plan. The reply is the new working plan: pass it to `adoptServerPlan` (lib/dbClient) so this screen shows it. */
+export const restoreVersion = (id: number, versionId: number) => asJson<ServerPlan>(`${planUrl(id)}/restore`, sendJson("POST", { id: versionId }));
+
+/** Every plan with the numbers the switcher shows, and the ETag to hand back to `fetchDashboardsIfChanged`. */
+export type DashboardsAnswer = { list: DashboardList; etag: string | null };
+async function readDashboards(res: Response): Promise<DashboardsAnswer> {
+  try {
+    return { list: await res.json(), etag: res.headers.get("etag") };
+  } catch (e) {
+    throw timedOut(e) ? new NetError("The server stopped answering.") : e;
+  }
+}
+export const fetchDashboards = async () => readDashboards(await request("/api/db/dashboards"));
+/** The list again, or null when `etag` (from the last answer) still matches (a 304: nothing was sent). */
+export async function fetchDashboardsIfChanged(etag: string | null): Promise<DashboardsAnswer | null> {
+  const res = await request("/api/db/dashboards", etag ? { headers: { "if-none-match": etag } } : {});
+  return res.status === 304 ? null : readDashboards(res);
+}
+
+/** What a new plan starts from: `plan` + `format` (blank, template, imported file), or `fromId` (a copy of another plan's working plan; its versions are not copied). */
+export type NewPlanBody = { name?: string; icon?: string; color?: string; description?: string; plan?: unknown; format?: number; fromId?: number; /** a connection id (lib/db/connections.ts); null or absent = the main home */ haConnection?: string | null };
+export type PlanIdentityPatch = { name?: string; icon?: string; color?: string; description?: string; haConnection?: string | null };
+const dashboardReply = async (path: string, init: RequestInit) => (await asJson<{ dashboard: Dashboard }>(path, init)).dashboard;
+export const createDashboard = (body: NewPlanBody) => dashboardReply("/api/db/dashboards", sendJson("POST", body));
+export const patchDashboard = (id: number, patch: PlanIdentityPatch) => dashboardReply(planUrl(id), sendJson("PATCH", patch));
+/** Soft delete: the plan can be brought back with `undeleteDashboard` for a week. 409 for the home plan and the last plan. */
+export const deleteDashboard = (id: number) => request(planUrl(id), { method: "DELETE" }).then(() => undefined);
+export const undeleteDashboard = (id: number) => dashboardReply(`${planUrl(id)}/undelete`, { method: "POST" });
+export const setDefaultDashboard = (id: number) => request("/api/db/dashboards/default", sendJson("PUT", { id })).then(() => undefined);
+export const setDashboardOrder = (ids: number[]) => request("/api/db/dashboards/order", sendJson("PUT", { ids })).then(() => undefined);
+/** Keep a WebP thumbnail (at most 64 KB) for plan `id`. Returns the new `thumbRev`. */
+export const putThumb = (id: number, webp: Blob) => asJson<{ thumbRev: number }>(`${planUrl(id)}/thumb`, { method: "PUT", headers: { "content-type": "image/webp" }, body: webp }).then((x) => x.thumbRev);
+/** The thumbnail's URL; `thumbRev` (from the list) pins it so the browser keeps it for good. */
+export const thumbUrl = (id: number, thumbRev: number) => `${planUrl(id)}/thumb?v=${thumbRev}`;
 
 export type ResourceList = { resources: (ResourceInfo & { json?: unknown })[]; totals: { count: number; bytes: number; limit: number } };
 export const fetchResources = (kind?: string, inline = false) => asJson<ResourceList>(`/api/db/resources?${new URLSearchParams({ ...(kind ? { kind } : {}), ...(inline ? { inline: "1" } : {}) })}`);

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import { KEEP_BEFORE_IMPORT, KEEP_DAILY, backupBeforeImport, checkBackupFile, dailyBackup, lastBackupAt, snapshotTo } from "./backup.ts";
+import { KEEP_BEFORE_IMPORT, KEEP_BEFORE_MIGRATE, KEEP_DAILY, backupBeforeImport, backupBeforeMigrate, checkBackupFile, dailyBackup, lastBackupAt, snapshotTo } from "./backup.ts";
 import { closeDb, getDb, replaceDatabase } from "./connection.ts";
 import { HttpError } from "./errors.ts";
 import { MIGRATIONS } from "./migrations.ts";
 import { setSettings } from "./settings.ts";
-import { tempDb } from "./testDb.ts";
+import { tempDb, v3Fixture } from "./testDb.ts";
 
 const bad = (e: unknown) => e instanceof HttpError && e.status === 400;
 const day = (n: number) => new Date(Date.UTC(2026, 0, 1 + n, 12));
@@ -46,6 +46,18 @@ test("safety copies made before an import are limited too", () => {
   const dir = join(t.dir, "backups");
   for (let i = 0; i < KEEP_BEFORE_IMPORT + 3; i++) backupBeforeImport(t.db, dir, 1000 + i);
   assert.equal(readdirSync(dir).length, KEEP_BEFORE_IMPORT);
+  t.cleanup();
+});
+
+test("pre-migration copies are limited to the newest few (ordered by time, not by name), and are not mistaken for the other kinds", () => {
+  const t = tempDb();
+  const dir = join(t.dir, "backups");
+  backupBeforeImport(t.db, dir, 5);
+  dailyBackup(t.db, dir, day(0));
+  for (const at of [900, 1000, 20_000, 300_000, 4_000_000]) backupBeforeMigrate(t.db, dir, 4, at);
+  assert.deepEqual(readdirSync(dir).filter((n) => n.startsWith("housey-before-v")).sort(), ["housey-before-v4-20000.db", "housey-before-v4-300000.db", "housey-before-v4-4000000.db"]);
+  assert.equal(KEEP_BEFORE_MIGRATE, 3);
+  assert.equal(readdirSync(dir).length, 3 + 2, "the daily backup and the import safety copy are untouched");
   t.cleanup();
 });
 
@@ -103,4 +115,29 @@ test("restoring a backup swaps the data in, keeps a safety copy of what was ther
   assert.equal(old.prepare("SELECT value FROM settings WHERE key = 'which'").get()?.value, '"current"');
   old.close();
   assert.ok(!existsSync(backup), "the upload was moved into place");
+});
+
+test("restoring an old backup (before several plans existed) gives one plan 'Home' with the old plan, versions and settings", (ctx) => {
+  const t = tempDb();
+  t.db.close();
+  process.env.HOUSEY_DB_PATH = t.file;
+  const old = v3Fixture(414, 5);
+  ctx.after(() => {
+    closeDb();
+    delete process.env.HOUSEY_DB_PATH;
+    t.cleanup();
+    old.cleanup();
+  });
+  getDb();
+  const upload = join(t.dir, "incoming.tmp");
+  copyFileSync(old.file, upload);
+  assert.equal(checkBackupFile(upload), 3);
+  replaceDatabase(upload);
+  const now = getDb();
+  assert.equal(now.prepare("SELECT name FROM dashboards").get()?.name, "Home");
+  assert.equal(now.prepare("SELECT version FROM plans WHERE dashboard_id = 1 AND active = 1").get()?.version, 414);
+  assert.equal(now.prepare("SELECT COUNT(*) AS n FROM plans WHERE dashboard_id = 1 AND active = 0").get()?.n, 5);
+  assert.ok(now.prepare("SELECT 1 FROM settings WHERE key = 'housey-plan.1'").get(), "the plan's own settings row travelled with it");
+  assert.ok(!now.prepare("SELECT 1 FROM settings WHERE key = 'housey-plan'").get());
+  assert.ok(readdirSync(join(t.dir, "backups")).some((n) => n.startsWith("housey-before-import-")), "what was there before is kept");
 });

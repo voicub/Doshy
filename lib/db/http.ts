@@ -28,10 +28,11 @@ export function checkSameOrigin(req: Request): void {
 
 type Bucket = { start: number; n: number };
 const buckets: Record<string, Bucket> = {};
-const LIMITS: Record<string, { max: number; windowMs: number }> = { write: { max: 300, windowMs: 60_000 }, heavy: { max: 3, windowMs: 60_000 } };
+// `connect`: adding, changing or testing a Home Assistant address (docs/multi-home.md): each one makes this server open a connection to an address a person typed.
+const LIMITS: Record<string, { max: number; windowMs: number }> = { write: { max: 300, windowMs: 60_000 }, heavy: { max: 3, windowMs: 60_000 }, connect: { max: 10, windowMs: 60_000 } };
 
-/** Fixed-window counter per class of request (`write`: any change, `heavy`: backup import). Light on purpose: a stuck client loop, not a user. */
-export function rateLimit(kind: "write" | "heavy", now = Date.now()): void {
+/** Fixed-window counter per class of request (`write`: any change, `heavy`: backup import, `connect`: a Home Assistant address). Light on purpose: a stuck client loop, not a user. */
+export function rateLimit(kind: "write" | "heavy" | "connect", now = Date.now()): void {
   const { max, windowMs } = LIMITS[kind];
   const b = (buckets[kind] ??= { start: now, n: 0 });
   if (now - b.start >= windowMs) {
@@ -77,26 +78,29 @@ export const reply = (data: unknown, status = 200): Response =>
 /** A JSON reply made of already-serialised pieces (the plan text is embedded as is: no parse and re-stringify of megabytes). */
 export const replyRaw = (text: string, status = 200): Response => new Response(text, { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
-type RouteOptions = { /** changes data: counted by the rate limit */ write?: boolean; /** much heavier than a normal write */ heavy?: boolean };
+type RouteOptions = { /** changes data: counted by the rate limit */ write?: boolean; /** much heavier than a normal write */ heavy?: boolean; /** opens a connection to a typed address (also counted as a write) */ connect?: boolean };
+
+/** The database this request works on: the shared one, or in development the throwaway one named by `X-Housey-Test: <token>` (see getTestDb). 400 for a bad test header, 503 when it cannot be opened. */
+export function dbFor(req: Request): DatabaseSync {
+  try {
+    const test = process.env.NODE_ENV === "production" ? null : req.headers.get("x-housey-test");
+    if (test !== null && !isTestToken(test)) throw new HttpError(400, "bad_request", "That test header is not valid.");
+    return test !== null ? getTestDb(test) : getDb();
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
+    console.error("housey db: cannot open the database", e);
+    throw new HttpError(503, "unavailable", "The database is not available right now.");
+  }
+}
 
 /** Wrap a route: same-origin check, rate limit, the shared connection, and errors turned into plain replies that never leak internals. */
 export async function api(req: Request, opts: RouteOptions, fn: (db: DatabaseSync) => Promise<Response> | Response): Promise<Response> {
   try {
     checkSameOrigin(req);
     if (opts.heavy) rateLimit("heavy");
-    else if (opts.write) rateLimit("write");
-    let db: DatabaseSync;
-    try {
-      // development only: `X-Housey-Test: <token>` routes to a throwaway database (see getTestDb)
-      const test = process.env.NODE_ENV === "production" ? null : req.headers.get("x-housey-test");
-      if (test !== null && !isTestToken(test)) throw new HttpError(400, "bad_request", "That test header is not valid.");
-      db = test !== null ? getTestDb(test) : getDb();
-    } catch (e) {
-      if (e instanceof HttpError) throw e;
-      console.error("housey db: cannot open the database", e);
-      throw new HttpError(503, "unavailable", "The database is not available right now.");
-    }
-    return await fn(db);
+    else if (opts.write || opts.connect) rateLimit("write");
+    if (opts.connect) rateLimit("connect");
+    return await fn(dbFor(req));
   } catch (e) {
     if (e instanceof HttpError) return reply({ error: e.message, code: e.code }, e.status);
     console.error("housey db:", e);

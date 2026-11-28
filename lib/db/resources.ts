@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
+import { MAX_FLOOR_PHOTO_BYTES } from "../floorPhoto.ts";
+import { isRadiance, PH_LIMITS } from "../polyhaven.ts";
+import { readMaterial } from "../polyhavenMaterial.ts";
+import { sniffImage } from "../siteTiles.ts";
 import { HttpError } from "./errors.ts";
 import { all, one, run, tx, type Row } from "./sql.ts";
 import { cleanText } from "./text.ts";
@@ -9,12 +13,20 @@ export const MAX_RESOURCE_BYTES = 25 * 1024 * 1024;
 /** Soft ceiling on everything stored (distinct file contents): past it, new files are refused with a clear message. */
 export const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
 export const MAX_META_BYTES = 8 * 1024;
+export { MAX_FLOOR_PHOTO_BYTES }; // one number for the server and for what a plan file may carry
 
 /** What each kind of resource may be (the stored type is also what the file is served back as). */
 const MIMES: Record<string, readonly string[]> = {
   model: ["model/gltf-binary", "model/gltf+json", "application/octet-stream"],
   piece: ["application/json"],
   image: ["image/png", "image/jpeg", "image/webp", "image/gif"],
+  // a Vectiler city model (Wavefront OBJ, gzip-compressed by the browser: a 3 x 3 tile export is tens of MB of text)
+  city: ["application/octet-stream"],
+  // a seamless floor texture made from the owner's photo (lib/floorPhoto.ts): PNG, or WebP where the browser can encode it
+  "floor-photo": ["image/png", "image/webp"],
+  // Poly Haven (docs/polyhaven.md): a Radiance .hdr lighting picture, and a PBR texture as one file (colour, roughness, normal JPEGs behind a header: lib/polyhavenMaterial.ts)
+  hdri: ["application/octet-stream"],
+  material: ["application/octet-stream"],
 };
 const isKind = (kind: string) => Object.hasOwn(MIMES, kind);
 
@@ -51,6 +63,18 @@ export function putResource(db: DatabaseSync, r: NewResource, now = Date.now(), 
   const size = r.data.byteLength;
   if (size === 0) throw new HttpError(400, "empty", "The file is empty.");
   if (size > MAX_RESOURCE_BYTES) throw new HttpError(413, "too_big", `That file is too large to keep (${MAX_RESOURCE_BYTES / 1024 / 1024} MB at most).`);
+  if (r.kind === "floor-photo") {
+    if (size > MAX_FLOOR_PHOTO_BYTES) throw new HttpError(413, "too_big", `That floor picture is too large to keep (${MAX_FLOOR_PHOTO_BYTES / 1024 / 1024} MB at most).`);
+    if (sniffImage(r.data) !== mime) throw new HttpError(415, "bad_type", "That file is not the picture it says it is."); // by its first bytes, never by what the sender claims
+  }
+  if (r.kind === "hdri") {
+    if (size > PH_LIMITS.hdriBytes) throw new HttpError(413, "too_big", `That lighting picture is too large to keep (${PH_LIMITS.hdriBytes / 1024 / 1024} MB at most).`);
+    if (!isRadiance(r.data)) throw new HttpError(415, "bad_type", "That file is not a Radiance (.hdr) lighting picture.");
+  }
+  if (r.kind === "material") {
+    if (size > PH_LIMITS.materialBytes) throw new HttpError(413, "too_big", `That texture is too large to keep (${PH_LIMITS.materialBytes / 1024 / 1024} MB at most).`);
+    if (!readMaterial(r.data)) throw new HttpError(415, "bad_type", "That file is not a texture this app can read.");
+  }
   const meta = JSON.stringify(r.meta ?? {});
   if (meta[0] !== "{" || Buffer.byteLength(meta) > MAX_META_BYTES) throw new HttpError(400, "bad_meta", "The details sent with the file are not valid.");
   const name = cleanText(r.name, 120, r.id);

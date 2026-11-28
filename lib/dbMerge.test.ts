@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { asPersisted, decidePlan, decidePoll, diffPieces, mergePieces, parsePersisted, putField, retryDelay, takeField } from "./dbMerge.ts";
+import { asPersisted, decidePlan, decidePoll, diffPieces, mergePieces, parsePersisted, parsePlanParam, pickPlan, putField, retryDelay, takeField, withPlanParam } from "./dbMerge.ts";
 
 const stored = (state: object, version = 3) => JSON.stringify({ state, version });
 
@@ -114,4 +114,42 @@ test("pieces: the diff sends what changed and deletes what is gone", () => {
 test("retry waits grow 1 s, 2 s, 4 s and stop at 30 s", () => {
   assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 40].map(retryDelay), [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000]);
   assert.equal(retryDelay(-3), 1000);
+});
+
+const plans = (...ids: number[]) => ids.map((id) => ({ id, rev: id * 10 }));
+
+test("which plan opens: the URL's ?plan= first, then this device's last choice, then the home plan", () => {
+  const base = { defaultId: 1, plans: plans(1, 2, 3), localId: 1 };
+  assert.deepEqual(pickPlan({ ...base, param: 3, saved: 2 }), { id: 3, fellBack: false });
+  assert.deepEqual(pickPlan({ ...base, param: null, saved: 2 }), { id: 2, fellBack: false });
+  assert.deepEqual(pickPlan({ ...base, param: null, saved: null }), { id: 1, fellBack: false });
+});
+
+test("a plan that no longer exists is skipped: the next choice is used, and the screen is told", () => {
+  const base = { defaultId: 1, plans: plans(1, 2), localId: 1 };
+  assert.deepEqual(pickPlan({ ...base, param: 9, saved: 2 }), { id: 2, fellBack: true }, "a bad URL falls back to the device's own choice");
+  assert.deepEqual(pickPlan({ ...base, param: null, saved: 9 }), { id: 1, fellBack: true });
+  assert.deepEqual(pickPlan({ ...base, param: 9, saved: 8 }), { id: 1, fellBack: true });
+});
+
+test("a plan with no drawing yet is only opened by the device that holds its copy", () => {
+  const empty = [{ id: 1, rev: 5 }, { id: 2, rev: 0 }];
+  assert.equal(pickPlan({ param: 2, saved: null, defaultId: 1, plans: empty, localId: 1 }).id, 1, "another device falls back");
+  assert.equal(pickPlan({ param: 2, saved: null, defaultId: 1, plans: empty, localId: 2 }).id, 2, "the one that holds the copy keeps it (it uploads it)");
+  assert.equal(pickPlan({ param: null, saved: null, defaultId: 2, plans: [{ id: 2, rev: 0 }, { id: 1, rev: 3 }], localId: 2 }).id, 2, "a fresh database's first plan is empty and that is fine");
+});
+
+test("if even the home plan is gone the first plan that exists is shown", () => {
+  assert.equal(pickPlan({ param: null, saved: null, defaultId: 7, plans: plans(2, 3), localId: null }).id, 2);
+});
+
+test("?plan= is a positive whole number or nothing", () => {
+  assert.equal(parsePlanParam("?plan=12&kiosk=1"), 12);
+  for (const bad of ["", "?plan=", "?plan=0", "?plan=-1", "?plan=1.5", "?plan=abc", "?plan=1e3", "?plan=12345678901", "?kiosk=1"]) assert.equal(parsePlanParam(bad), null, bad);
+});
+
+test("switching rewrites ?plan= only where the URL already pins a plan, keeping the other parameters", () => {
+  assert.equal(withPlanParam("?kiosk=1&plan=2", 5), "?kiosk=1&plan=5");
+  assert.equal(withPlanParam("?kiosk=1", 5), null);
+  assert.equal(withPlanParam("", 5), null);
 });

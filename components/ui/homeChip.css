@@ -1,0 +1,24 @@
+/* The name of the home next to the Home Assistant status (Brand, CompactStrip). A name can be 40 characters: it is cut, never allowed to push the chip into its neighbours. */
+.ha-home,
+.cs-ha-home {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-ha-home {
+  font: 500 12px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.cs-ha.offline .cs-ha-home {
+  color: var(--bad-text);
+}
+/* The strip is tight on a 7 inch screen: the plan chip already says where you are, so an online home's name goes (the dot's label and tooltip keep it) and only an offline one stays, because that one needs saying. */
+@container cs (max-width: 600px) {
+  .cs-ha.online .cs-ha-home,
+  .cs-ha.loading .cs-ha-home {
+    display: none;
+  }
+}

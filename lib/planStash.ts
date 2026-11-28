@@ -13,10 +13,13 @@ export const SLOTS = 10;
 export type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type PlanCounts = { items: number; walls: number; rooms: number };
-/** `slot` is 1..10, or "legacy" for the older single slot (no time known). */
-export type StashEntry = PlanCounts & { slot: number | "legacy"; at: number | null; reason: string; bytes: number };
+/** `slot` is 1..10, or "legacy" for the older single slot (no time known). `planId` is the plan the copy was of; entries without one (made before multi-plan) belong to the home plan. */
+export type StashEntry = PlanCounts & { slot: number | "legacy"; at: number | null; reason: string; bytes: number; planId?: number };
 
 const slotKey = (slot: number | "legacy") => (slot === "legacy" ? LEGACY_KEY : `${LEGACY_KEY}-${slot}`);
+
+/** Does this kept copy belong to plan `planId`? Copies made before several plans existed belong to the home plan (`defaultId`). */
+export const belongsTo = (e: StashEntry, planId: number, defaultId: number): boolean => (e.planId ?? defaultId) === planId;
 
 const len = (v: unknown) => (Array.isArray(v) ? v.length : 0);
 
@@ -70,7 +73,7 @@ export const readStash = (store: Store, slot: number | "legacy"): string | null 
  * or the very same text is already the newest entry) or could not be stored. When storage is full the oldest entries are dropped to make room:
  * the newest is the one that matters.
  */
-export function stashPlan(store: Store, text: string, reason: string, now: number | null = Date.now()): StashEntry | null {
+export function stashPlan(store: Store, text: string, reason: string, now: number | null = Date.now(), planId: number | null = null): StashEntry | null {
   const counts = countsOf(text);
   if (!counts) return null;
   let index = readIndex(store);
@@ -81,7 +84,7 @@ export function stashPlan(store: Store, text: string, reason: string, now: numbe
     const kept = index.filter((e) => e.slot !== slot);
     try {
       store.setItem(slotKey(slot), text);
-      const entry: StashEntry = { slot, at: now, reason, bytes: text.length, ...counts };
+      const entry: StashEntry = { slot, at: now, reason, bytes: text.length, ...counts, ...(planId === null ? {} : { planId }) };
       writeIndex(store, [entry, ...kept]);
       return entry;
     } catch {
@@ -131,7 +134,7 @@ export function markSeen(store: Store, e: StashEntry): void {
  * The newest stash entry the user has not dealt with whose plan differs from the plan on screen (`activeText`, the persisted value now in use),
  * or null. This is what the "We kept your previous plan" banner offers.
  */
-export function unseenStash(store: Store, activeText: string | null): StashEntry | null {
+export function unseenStash(store: Store, activeText: string | null, wanted: (e: StashEntry) => boolean = () => true): StashEntry | null {
   const seen = seenSet(store);
   const planOf = (text: string | null): string | null => {
     try {
@@ -143,7 +146,7 @@ export function unseenStash(store: Store, activeText: string | null): StashEntry
   };
   const active = planOf(activeText);
   for (const e of listStash(store)) {
-    if (seen.has(idOf(e))) continue;
+    if (seen.has(idOf(e)) || !wanted(e)) continue;
     const text = readStash(store, e.slot);
     if (text !== null && planOf(text) !== active) return e;
   }

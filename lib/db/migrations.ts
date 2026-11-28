@@ -75,6 +75,77 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX events_start ON events (start_ms);
     `),
+  // 4: several plans ("dashboards"). Today's single plan becomes dashboard 1 'Home' (its working row, versions and settings row move with it, byte for byte: only
+  // the owner column and the settings key change). `dashboard_id` stays nullable because SQLite cannot add a NOT NULL reference column; the code treats NULL as corrupt.
+  (db) =>
+    db.exec(`
+      CREATE TABLE dashboards (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL DEFAULT '',
+        color TEXT NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        thumb BLOB,
+        thumb_rev INTEGER NOT NULL DEFAULT 0,
+        sort INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        deleted_at INTEGER
+      );
+      CREATE UNIQUE INDEX dashboards_name ON dashboards (lower(name)) WHERE deleted_at IS NULL;
+      -- dated from the plan it takes over (the manager shows "updated"), or from now when the database has none
+      INSERT INTO dashboards (id, name, icon, created_at, updated_at)
+        SELECT 1, 'Home', 'house', COALESCE(MIN(created_at), strftime('%s', 'now') * 1000), COALESCE(MIN(created_at), strftime('%s', 'now') * 1000) FROM plans;
+
+      ALTER TABLE plans ADD COLUMN dashboard_id INTEGER REFERENCES dashboards (id);
+      UPDATE plans SET dashboard_id = 1;
+      DROP INDEX plans_one_working;
+      CREATE UNIQUE INDEX plans_one_working ON plans (dashboard_id) WHERE active = 1;
+      CREATE INDEX plans_versions ON plans (dashboard_id, active, manual, id);
+
+      INSERT INTO meta (key, value) VALUES ('default_dashboard', '1');
+      UPDATE settings SET key = 'housey-plan.1' WHERE key = 'housey-plan';
+    `),
+  // 5: read-only guest links ("Share a read-only link", docs/sharing.md). Only a SHA-256 of the link's token is stored (the link itself is shown once, when it is made) and the
+  // PIN only as a salted scrypt hash. `expires_at` null = never; `live` and `location` are the owner's two opt-ins (read-only live states, real home location). Revoking a link
+  // deletes its row; deleting a plan for good takes its links with it.
+  (db) =>
+    db.exec(`
+      CREATE TABLE guest_links (
+        id TEXT PRIMARY KEY,
+        dashboard_id INTEGER NOT NULL REFERENCES dashboards (id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        pin_hash TEXT,
+        pin_salt TEXT,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        last_used_at INTEGER,
+        label TEXT NOT NULL DEFAULT '',
+        live INTEGER NOT NULL DEFAULT 0,
+        location INTEGER NOT NULL DEFAULT 0,
+        CHECK ((pin_hash IS NULL) = (pin_salt IS NULL))
+      );
+      CREATE INDEX guest_links_plan ON guest_links (dashboard_id, created_at);
+    `),
+  // 6: several Home Assistants ("homes", docs/multi-home.md). Each extra home is one row; the one from the server's environment is never stored ('main'). The token is
+  // kept only as AES-256-GCM ciphertext (`token_enc`) and its key is NOT in this file, so a copy of the database holds no usable token; `token_hint` is its last 4 characters
+  // for the screen. A plan names the home it shows in `dashboards.ha_connection` (NULL = the main home); deleting a home sends its plans back to the main home by itself.
+  (db) =>
+    db.exec(`
+      CREATE TABLE ha_connections (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        base_url TEXT NOT NULL,
+        token_enc TEXT NOT NULL,
+        token_hint TEXT NOT NULL DEFAULT '',
+        created_at INTEGER NOT NULL,
+        last_ok_at INTEGER,
+        last_error TEXT,
+        sort INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE UNIQUE INDEX ha_connections_name ON ha_connections (lower(name));
+      ALTER TABLE dashboards ADD COLUMN ha_connection TEXT REFERENCES ha_connections (id) ON DELETE SET NULL;
+    `),
 ];
 
 /** Tables a Doshy database must have (used to recognise a backup file). */

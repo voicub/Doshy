@@ -88,6 +88,14 @@ test("ids, kinds, types, empty files and details are validated; nothing is writt
   t.cleanup();
 });
 
+test("a city model is kept as opaque bytes and refused as readable text", () => {
+  const t = tempDb();
+  const city = { id: "c1", kind: "city", mime: "application/octet-stream", data: new Uint8Array([0x1f, 0x8b, 8]) };
+  assert.equal(putResource(t.db, city).kind, "city");
+  assert.throws(() => putResource(t.db, { ...city, id: "c2", mime: "text/html" }), refused(415, "bad_type"));
+  t.cleanup();
+});
+
 test("names are plain text: markup and control characters become spaces, length is bounded", () => {
   const t = tempDb();
   assert.equal(putResource(t.db, model("n1", glb(1), "<script>alert(1)</script>\u0007Sofa")).name, "script alert(1) /script Sofa");
@@ -117,5 +125,22 @@ test("the details of a file can be read without its contents", () => {
   assert.deepEqual(getResourceInfo(t.db, "m_x"), { ...getResource(t.db, "m_x")!.info });
   assert.equal(getResourceInfo(t.db, "m_x")!.hash, info.hash);
   assert.equal(getResourceInfo(t.db, "nope"), null);
+  t.cleanup();
+});
+
+test("Poly Haven lighting pictures and textures are kept only when they really are one", () => {
+  const t = tempDb();
+  const hdr = new Uint8Array([...new TextEncoder().encode("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 4 +X 8\n"), ...new Uint8Array(80)]);
+  assert.equal(putResource(t.db, { id: "hdri-a", kind: "hdri", mime: "application/octet-stream", data: hdr }).kind, "hdri");
+  assert.throws(() => putResource(t.db, { id: "hdri-b", kind: "hdri", mime: "application/octet-stream", data: new Uint8Array(200) }), refused(415, "bad_type"));
+  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+  const head = new TextEncoder().encode(JSON.stringify({ v: 1, asset: "x", name: "X", authors: [], maps: { diff: { off: 0, len: jpeg.length } } }));
+  const file = new Uint8Array(8 + head.length + jpeg.length);
+  file.set(new TextEncoder().encode("DMAT"));
+  new DataView(file.buffer).setUint32(4, head.length, true);
+  file.set(head, 8);
+  file.set(jpeg, 8 + head.length);
+  assert.equal(putResource(t.db, { id: "mat-a", kind: "material", mime: "application/octet-stream", data: file }).kind, "material");
+  assert.throws(() => putResource(t.db, { id: "mat-b", kind: "material", mime: "application/octet-stream", data: jpeg }), refused(415, "bad_type"));
   t.cleanup();
 });

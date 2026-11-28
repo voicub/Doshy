@@ -3,8 +3,9 @@ import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "node:os";
 import { clearTimeout, setInterval, setTimeout } from "node:timers";
-import { backupBeforeImport, dailyBackup } from "./backup.ts";
-import { MIGRATIONS, migrate } from "./migrations.ts";
+import { backupBeforeImport, backupBeforeMigrate, dailyBackup } from "./backup.ts";
+import { purgeDashboards } from "./dashboards.ts";
+import { MIGRATIONS, migrate, userVersion } from "./migrations.ts";
 
 const SQLITE_CORRUPT = 11;
 const SQLITE_NOTADB = 26;
@@ -29,11 +30,21 @@ function configure(db: DatabaseSync) {
   if (db.prepare("PRAGMA quick_check(1)").get()?.quick_check !== "ok") throw new CorruptError("integrity check failed");
 }
 
+/**
+ * Migrate a database that already holds data: first keep a copy of it as it is ("housey-before-v<N>-<time>.db" in the backups folder), because a
+ * migration rewrites the owner's data in place. No copy is made for a new file. If the copy cannot be made nothing is migrated.
+ */
+function upgrade(db: DatabaseSync, file: string): number {
+  const v = userVersion(db);
+  if (v > 0 && v < MIGRATIONS.length) backupBeforeMigrate(db, backupDir(file), MIGRATIONS.length);
+  return migrate(db);
+}
+
 function init(file: string): DatabaseSync {
   const db = new DatabaseSync(file);
   try {
     configure(db);
-    migrate(db);
+    upgrade(db, file);
     return db;
   } catch (e) {
     db.close();
@@ -78,6 +89,7 @@ function startBackups(slot: Slot) {
     if (day === doneDay || Date.now() - slot.lastUse < IDLE_MS) return; // done today, or busy: look again in a minute
     try {
       dailyBackup(slot.db, dir);
+      purgeDashboards(slot.db); // plans deleted more than a week ago (after the backup above, which still holds them)
       doneDay = day;
     } catch (e) {
       console.error("housey: daily backup failed", e);
@@ -101,16 +113,18 @@ export function getDb(): DatabaseSync {
   if (!slot) {
     slot = { file, db: openDb(file), lastUse: 0, timers: [], schema: MIGRATIONS.length };
     g.__houseyDb = slot;
-    startBackups(slot);
+    if (process.env.DOSHY_GUEST_ONLY !== "1") startBackups(slot); // a guest-only copy shares the file with the owner's Doshy, which makes the backups
   }
-  // A connection opened before a hot reload (or by an older build) may predate the newest migrations: bring it up to date once.
-  if (slot.schema !== MIGRATIONS.length) slot.schema = migrate(slot.db);
+  // A connection opened before a hot reload (or by an older build) may predate the newest migrations: bring it up to date once, with the same safety copy.
+  if (slot.schema !== MIGRATIONS.length) slot.schema = upgrade(slot.db, slot.file);
   slot.lastUse = Date.now();
   return slot.db;
 }
 
 const TEST_TOKEN = /^[a-z0-9]{8,32}$/;
 const MAX_TEST_DBS = 4;
+/** File name start of a throwaway test database in the temp folder (lib/server/secretBox.ts keeps its key apart from the real one). */
+export const TEST_DB_PREFIX = "housey-test-";
 export const isTestToken = (t: string) => TEST_TOKEN.test(t);
 
 /**
@@ -128,9 +142,10 @@ export function getTestDb(token: string): DatabaseSync {
         tests.delete(oldest);
       }
     }
-    db = openDb(join(tmpdir(), `housey-test-${token}.db`));
+    db = openDb(join(tmpdir(), `${TEST_DB_PREFIX}${token}.db`));
     tests.set(token, db);
   }
+  if (userVersion(db) !== MIGRATIONS.length) migrate(db); // a throwaway database opened before a hot reload that added a migration
   return db;
 }
 
