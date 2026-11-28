@@ -1,11 +1,11 @@
 import { api, contentType, readBody, reply } from "@/lib/db/http";
-import { listResources, MAX_META_BYTES, MAX_RESOURCE_BYTES, putResource, resourceTotals } from "@/lib/db/resources";
+import { listResources, MAX_FLOOR_PHOTO_BYTES, MAX_META_BYTES, MAX_RESOURCE_BYTES, putResource, resourceTotals } from "@/lib/db/resources";
 import { badRequest } from "@/lib/db/validate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Resources without their contents, newest first: `{ resources, totals }`. `?kind=model|piece|image` filters; `?kind=piece&inline=1` adds each piece's parsed JSON as `json`. */
+/** Resources without their contents, newest first: `{ resources, totals }`. `?kind=model|piece|image|city|floor-photo` filters; `?kind=piece&inline=1` adds each piece's parsed JSON as `json`. */
 export function GET(req: Request) {
   return api(req, {}, (db) => {
     const q = new URL(req.url).searchParams;
@@ -32,7 +32,7 @@ export function POST(req: Request) {
       throw badRequest("The details sent with the file are not valid.");
     }
     const mime = contentType(req, ["model/gltf-binary", "model/gltf+json", "application/octet-stream", "application/json", "image/png", "image/jpeg", "image/webp", "image/gif"]);
-    const data = await readBody(req, MAX_RESOURCE_BYTES);
+    const data = await readBody(req, kind === "floor-photo" ? MAX_FLOOR_PHOTO_BYTES : MAX_RESOURCE_BYTES); // a floor texture is small: stop reading a bigger body early
     return reply({ resource: putResource(db, { id, kind, name: q.get("name"), mime, meta, data }) }, 201);
   });
 }

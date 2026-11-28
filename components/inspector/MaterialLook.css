@@ -1,0 +1,13 @@
+/* "Material from Poly Haven..." in the inspectors (components/inspector/MaterialLook.tsx): the button, then for a surface wearing a texture its name, size and actions.
+   Classes are `mtl-*`. Colours come from the HUD tokens (app/theme-tokens.css); radii from --r. */
+.mtl-row { display: flex; flex-direction: column; gap: 8px; }
+.mtl-name { display: flex; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.mtl-chip { flex: none; display: inline-block; width: 22px; height: 22px; border-radius: var(--r); border: 1px solid var(--border-strong); }
+.mtl-scale { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mtl-scale input { width: 80px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--r); background: var(--sunken); font: 400 13px/1.2 var(--mono); color: var(--text); }
+.mtl-scale input:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: 1px; }
+.mtl-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mtl-row a { color: var(--accent); }
+
+html:not([data-vp="regular"]) .mtl-row :is(button, input) { min-height: 44px; }
+@media (pointer: coarse) { .mtl-row :is(button, input) { min-height: 44px; } }

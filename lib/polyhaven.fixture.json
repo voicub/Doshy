@@ -1,0 +1,473 @@
+{
+ "listing": {
+  "hdris": {
+   "sunset_jhbcentral": {
+    "evs_cap": 12,
+    "type": 0,
+    "whitebalance": 5319,
+    "tags": [
+     "city",
+     "roof",
+     "skyline",
+     "building",
+     "architecture",
+     "industrial",
+     "pink",
+     "twilight"
+    ],
+    "name": "Joburg Central Sunset",
+    "categories": [
+     "outdoor",
+     "sunrise-sunset",
+     "urban",
+     "low contrast",
+     "partly cloudy"
+    ],
+    "date_taken": 1621531620,
+    "authors": {
+     "Greg Zaal": "Processing",
+     "Dimitrios Savva": "Photography"
+    },
+    "date_published": 1633305600,
+    "prepaid": true,
+    "max_resolution": [
+     24576,
+     12288
+    ],
+    "files_hash": "e2e14a204ee06104209396caa9e7b40322dbb3d4",
+    "category_id": "8133f881-e55d-5c6c-a360-99dbf7204ee5",
+    "category": "Streets & Town/Rooftops & Balconies/City Rooftops",
+    "attributes": {
+     "time_of_day": "dusk",
+     "weather": "partly_cloudy",
+     "light_type": "natural",
+     "contrast": "low",
+     "environment": "outdoor",
+     "sky_view": "open"
+    },
+    "img_version": "8ff53777",
+    "download_count": 277476,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/sunset_jhbcentral.png?width=256&height=256&format=webp&v=8ff53777"
+   },
+   "blocky_photo_studio": {
+    "evs_cap": 22,
+    "type": 0,
+    "whitebalance": 4950,
+    "tags": [
+     "studio",
+     "stair",
+     "ramp",
+     "stand",
+     "modern",
+     "concrete"
+    ],
+    "name": "Blocky Photo Studio",
+    "categories": [
+     "urban",
+     "indoor",
+     "studio",
+     "artificial light",
+     "natural light",
+     "low contrast"
+    ],
+    "date_taken": 1671463020,
+    "authors": {
+     "Sergej Majboroda": "All"
+    },
+    "date_published": 1673740800,
+    "max_resolution": [
+     16384,
+     8192
+    ],
+    "files_hash": "692b04d1184b22c8ca4d7e409232be24f8febc87",
+    "category_id": "3aec9d2e-21ed-5f1f-88c0-c45a9c6ee7b9",
+    "category": "Studio/Photo Studios/Natural-Light Studios",
+    "attributes": {
+     "light_type": "mixed",
+     "contrast": "low",
+     "environment": "indoor",
+     "weather": "overcast"
+    },
+    "img_version": "87b5ed0d",
+    "download_count": 117679,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/blocky_photo_studio.png?width=256&height=256&format=webp&v=87b5ed0d"
+   }
+  },
+  "textures": {
+   "brick_wall_001": {
+    "type": 1,
+    "tags": [
+     "red",
+     "rough",
+     "industrial",
+     "plain",
+     "baked"
+    ],
+    "date_published": 1615640913,
+    "name": "Brick Wall 001",
+    "categories": [
+     "brick",
+     "man made",
+     "outdoor",
+     "indoor",
+     "clean",
+     "wall"
+    ],
+    "authors": {
+     "Rob Tuytel": "Processing",
+     "Dimitrios Savva": "Photography"
+    },
+    "dimensions": [
+     3000,
+     3000
+    ],
+    "max_resolution": [
+     8192,
+     8192
+    ],
+    "files_hash": "fd60577b22b011e4f5ae6ac5b2ffddd8dacf9b3d",
+    "category_id": "9ef0955b-87fa-5826-aa87-98b047ad9143",
+    "category": "Brick & Block/Clay Brick/Running-Bond",
+    "attributes": {
+     "surface_use": "wall",
+     "condition": [
+      "weathered",
+      "worn",
+      "damaged"
+     ],
+     "origin": "man_made",
+     "setting": "either"
+    },
+    "img_version": "99965586",
+    "download_count": 116338,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/brick_wall_001.png?width=256&height=256&format=webp&v=99965586"
+   },
+   "rock_boulder_dry": {
+    "type": 1,
+    "tags": [
+     "weathered",
+     "chipped",
+     "rocks",
+     "boulder",
+     "stone",
+     "flat",
+     "damaged",
+     "eroded",
+     "cracked",
+     "rough",
+     "uneven"
+    ],
+    "name": "Rock Boulder Dry",
+    "categories": [
+     "rock",
+     "outdoor",
+     "natural",
+     "terrain"
+    ],
+    "authors": {
+     "Dimitrios Savva": "Photography",
+     "Rico Cilliers": "Processing"
+    },
+    "date_published": 1635811200,
+    "dimensions": [
+     1799.9999523162842,
+     1800.0001907348633
+    ],
+    "max_resolution": [
+     16384,
+     16384
+    ],
+    "files_hash": "d0ca2468d0a2b2453c93e504016641249b400e4d",
+    "category_id": "78e4c120-24c3-5f41-b48a-01617c52bc26",
+    "category": "Stone/Rock & Cliffs/Boulder Surfaces",
+    "attributes": {
+     "surface_use": "object",
+     "condition": [
+      "weathered",
+      "cracked",
+      "damaged"
+     ],
+     "origin": "natural",
+     "setting": "outdoor"
+    },
+    "img_version": "5a624d4f",
+    "download_count": 145178,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/rock_boulder_dry.png?width=256&height=256&format=webp&v=5a624d4f"
+   },
+   "concrete_floor_01": {
+    "type": 1,
+    "date_published": 1531734768,
+    "name": "Concrete Floor 01",
+    "categories": [
+     "concrete",
+     "clean",
+     "plaster-concrete",
+     "man made",
+     "outdoor"
+    ],
+    "authors": {
+     "Rob Tuytel": "All"
+    },
+    "dimensions": [
+     2000,
+     2000
+    ],
+    "max_resolution": [
+     8192,
+     8192
+    ],
+    "files_hash": "dd25145843a1f743897b3188e42822705db331e6",
+    "tags": [
+     "rough",
+     "park",
+     "concrete",
+     "cement",
+     "rough  ",
+     "stone embedded",
+     "gravel embedded",
+     "weathered",
+     "granular"
+    ],
+    "category_id": "70d3bf8f-46b0-5250-a419-61cbf068f448",
+    "category": "Concrete/Cast Walls & Floors/Exposed Aggregate",
+    "attributes": {
+     "surface_use": "floor",
+     "condition": [
+      "weathered",
+      "worn"
+     ],
+     "origin": "man_made",
+     "setting": "outdoor"
+    },
+    "img_version": "ac7567fd",
+    "download_count": 101717,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/concrete_floor_01.png?width=256&height=256&format=webp&v=ac7567fd"
+   }
+  },
+  "models": {
+   "ArmChair_01": {
+    "date_published": 1585605600,
+    "name": "Arm Chair 01",
+    "categories": [
+     "furniture",
+     "seating"
+    ],
+    "type": 2,
+    "tags": [
+     "gothic",
+     "vintage",
+     "chair",
+     "furniture",
+     "victorian",
+     "couch",
+     "wood",
+     "varnished",
+     "classic"
+    ],
+    "authors": {
+     "Kirill Sannikov": "All"
+    },
+    "max_resolution": [
+     4096,
+     4096
+    ],
+    "polycount": 5626,
+    "texel_density": 1972.3631956341671,
+    "dimensions": [
+     848.4309017658234,
+     765.7602727413177,
+     1065.087635157397
+    ],
+    "files_hash": "8a04a102d4a1e1a480bc4288384d4a2dfd649608",
+    "category_id": "11261ec6-df2b-5150-9904-684d2558070d",
+    "category": "Furniture/Seating/Chairs",
+    "attributes": {
+     "condition": [
+      "worn"
+     ],
+     "material": [
+      "wood",
+      "fabric"
+     ]
+    },
+    "img_version": "abbc4732",
+    "download_count": 33287,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/ArmChair_01.png?width=256&height=256&format=webp&v=abbc4732"
+   },
+   "BarberShopChair_01": {
+    "date_published": 1585605600,
+    "name": "Barber Shop Chair 01",
+    "categories": [
+     "furniture",
+     "seating"
+    ],
+    "type": 2,
+    "tags": [
+     "chair",
+     "vintage",
+     "wood",
+     "leather",
+     "fancy",
+     "upholstery",
+     "barber",
+     "salon"
+    ],
+    "authors": {
+     "Fernando Quinn": "All"
+    },
+    "max_resolution": [
+     8192,
+     8192
+    ],
+    "polycount": 4280,
+    "texel_density": 3344.6078905459185,
+    "dimensions": [
+     756.5155327320099,
+     1327.9063999652863,
+     1489.0052630568675
+    ],
+    "files_hash": "f111fa76f5ccc8748e6f665ad8eca21b8e2a4001",
+    "category_id": "11261ec6-df2b-5150-9904-684d2558070d",
+    "category": "Furniture/Seating/Chairs",
+    "attributes": {
+     "condition": [
+      "worn"
+     ],
+     "material": [
+      "leather",
+      "wood",
+      "brass"
+     ]
+    },
+    "img_version": "5ed6c0ec",
+    "download_count": 20682,
+    "thumbnail_url": "https://cdn.polyhaven.com/asset_img/thumbs/BarberShopChair_01.png?width=256&height=256&format=webp&v=5ed6c0ec"
+   }
+  }
+ },
+ "files": {
+  "hdri": {
+   "hdri": {
+    "1k": {
+     "hdr": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/sunset_jhbcentral_1k.hdr",
+      "size": 1573705,
+      "md5": "97335a81ba615beb6f6ae0da707ecd75"
+     }
+    },
+    "2k": {
+     "hdr": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/sunset_jhbcentral_2k.hdr",
+      "size": 6099369,
+      "md5": "0bce4fab7ab46f2db6846ee013cb54fc"
+     }
+    }
+   },
+   "tonemapped": {
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/sunset_jhbcentral.jpg",
+    "size": 31418988,
+    "md5": "4843bff2861e9c04185402da8ba0c97a"
+   }
+  },
+  "texture": {
+   "Diffuse": {
+    "1k": {
+     "jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_diff_1k.jpg",
+      "size": 859211,
+      "md5": "da794cd9be3db91e3160cf081109f322"
+     }
+    }
+   },
+   "Rough": {
+    "1k": {
+     "jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_rough_1k.jpg",
+      "size": 668127,
+      "md5": "0c8b15df3e31c15256da5f8e1b0d0759"
+     }
+    }
+   },
+   "nor_gl": {
+    "1k": {
+     "jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_nor_gl_1k.jpg",
+      "size": 802497,
+      "md5": "6f1c575ceed560ae253f65518cf748e2"
+     }
+    }
+   },
+   "AO": {
+    "1k": {
+     "jpg": {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_boulder_dry/rock_boulder_dry_ao_1k.jpg",
+      "size": 532861,
+      "md5": "2feb57a8cbb3ee0c5d82df9476c5718c"
+     }
+    }
+   }
+  },
+  "model": {
+   "gltf": {
+    "1k": {
+     "gltf": {
+      "include": {
+       "textures/Armchair_01_diff_1k.jpg": {
+        "size": 184246,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ArmChair_01/Armchair_01_diff_1k.jpg",
+        "md5": "9166f2c24f2114a5fa5513950ed9b9ae"
+       },
+       "ArmChair_01.bin": {
+        "size": 154012,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/ArmChair_01/ArmChair_01.bin",
+        "md5": "fbd842795fdec75d94f1335c28acfc0e"
+       },
+       "textures/Armchair_01_nor_gl_1k.jpg": {
+        "size": 289916,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ArmChair_01/Armchair_01_nor_gl_1k.jpg",
+        "md5": "8541821edd6dcb319b7f9841d849fbbe"
+       },
+       "textures/Armchair_01_arm_1k.jpg": {
+        "size": 138327,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ArmChair_01/Armchair_01_arm_1k.jpg",
+        "md5": "2ea528244dd6fc0deb2af1a555c0a312"
+       }
+      },
+      "size": 2643,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/ArmChair_01/ArmChair_01_1k.gltf",
+      "md5": "39d1e4b0ffdde688c98335c9621e3aae"
+     }
+    },
+    "2k": {
+     "gltf": {
+      "include": {
+       "textures/Armchair_01_nor_gl_2k.jpg": {
+        "size": 1482566,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/ArmChair_01/Armchair_01_nor_gl_2k.jpg",
+        "md5": "e725b5c76126045c9f6dde3c2499936f"
+       },
+       "ArmChair_01.bin": {
+        "size": 154012,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/ArmChair_01/ArmChair_01.bin",
+        "md5": "fbd842795fdec75d94f1335c28acfc0e"
+       },
+       "textures/Armchair_01_diff_2k.jpg": {
+        "size": 723200,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/ArmChair_01/Armchair_01_diff_2k.jpg",
+        "md5": "7b296bc92e165460d73b69a03dabb897"
+       },
+       "textures/Armchair_01_arm_2k.jpg": {
+        "size": 442886,
+        "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/ArmChair_01/Armchair_01_arm_2k.jpg",
+        "md5": "166992b1f88b26db365a0aa2a2a7c566"
+       }
+      },
+      "size": 2643,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/2k/ArmChair_01/ArmChair_01_2k.gltf",
+      "md5": "4826b376b63a2d3b27cd432470c14c9b"
+     }
+    }
+   }
+  }
+ }
+}

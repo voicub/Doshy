@@ -1,0 +1,34 @@
+/* The "Lighting" part of the Graphics panel (components/ui/HdriPicker.tsx): default or a real sky. Classes are `hp-*`; the radio boxes reuse `gp-*` from graphics.css.
+   Colours come from the HUD tokens (app/theme-tokens.css); radii from --r. */
+.hp .gp-opt input:disabled { cursor: not-allowed; }
+.hp .gp-opt input:disabled + .gp-box { opacity: 0.45; }
+.hp-now { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid var(--border); border-left: 2px solid var(--accent); border-radius: var(--r); background: var(--panel-2); }
+.hp-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.hp-thumb { flex: none; width: 96px; height: 48px; object-fit: cover; border-radius: var(--r); background: var(--sunken); }
+.hp-name { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hp-name b { font: 500 13px/1.25 var(--sans); overflow-wrap: anywhere; }
+.hp-name span { font: 400 11px/1.4 var(--mono); color: var(--text-dim); overflow-wrap: anywhere; }
+.hp-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.hp-bad { color: var(--bad-text); }
+.hp-tick { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font: 400 12px/1.4 var(--sans); color: var(--text); }
+.hp-tick input { flex: none; margin: 2px 0 0; accent-color: var(--accent); }
+.hp-tick input:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
+.hp-tick small { display: block; font: 400 11px/1.4 var(--sans); color: var(--text-dim); }
+.hp-more summary { cursor: pointer; font: 500 10.5px/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+.hp-more summary:hover { color: var(--text); }
+.hp-more summary:focus-visible { outline: var(--focus-w) solid var(--focus); outline-offset: 2px; }
+.hp-more[open] summary { margin-bottom: 8px; }
+.hp-slider { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font: 400 12px/1.4 var(--sans); }
+.hp-slider span { display: flex; justify-content: space-between; gap: 8px; }
+.hp-slider b { font: 500 11px/1.4 var(--mono); color: var(--text-dim); }
+.hp-credit { margin: 0; font: 400 10.5px/1.4 var(--mono); letter-spacing: 0.04em; color: var(--text-dim); }
+.hp-credit a { color: var(--accent); }
+
+html:not([data-vp="regular"]) .hp :is(button, summary, .hp-tick) { min-height: 44px; }
+html:not([data-vp="regular"]) .hp .hp-tick { align-items: center; }
+html:not([data-vp="regular"]) .hp .hp-tick input { width: 22px; height: 22px; margin: 0; }
+@media (pointer: coarse) {
+  .hp :is(button, summary, .hp-tick) { min-height: 44px; }
+  .hp .hp-tick { align-items: center; }
+  .hp .hp-tick input { width: 22px; height: 22px; margin: 0; }
+}
