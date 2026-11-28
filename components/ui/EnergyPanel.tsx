@@ -1,7 +1,11 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatPower, roleOf, sankeyOf, summarize, TONE_COLOR, type EnergyRole, type Sankey, type SankeyNode, type Summary } from "@/lib/flows";
+import { hasLiveSources } from "@/lib/energy";
 import { useStore } from "@/lib/store";
+import { useEnergySources } from "@/lib/useEnergy";
+import EnergyInsights from "./EnergyInsights";
+import EnergySourcesSection from "./EnergySources";
 import HudPanel from "./HudPanel";
 import MonoLabel from "./MonoLabel";
 import "./energy.css";
@@ -105,12 +109,14 @@ export default function EnergyPanel({ onClose }: { onClose: () => void }) {
   const k = useMemo(() => sankeyOf(s), [s]);
   const roles = useMemo(() => new Set(plan.items.map((i) => roleOf(i.kind)).filter((r): r is EnergyRole => !!r)), [plan.items]);
   const batteries = roles.has("battery");
+  const configured = hasLiveSources(useEnergySources());
+  const [startOpen] = useState(!configured); // the setup unfolds on a first visit; later the user's own fold state stays
   return (
     <HudPanel title="Energy" meta="Live" onClose={onClose} className="energy sheet">
-      {!s.live ? (
-        <p className="en-empty">No energy lines yet. In Home Assistant mode, choose Connect energy and link a power sensor between two items.</p>
-      ) : (
+      {configured && <EnergyInsights />}
+      {s.live ? (
         <div className="en-body">
+          {configured && <MonoLabel>Lines you connected in the plan</MonoLabel>}
           {k.total > 0 ? <SankeyView k={k} /> : <p className="en-empty">Everything is idle right now.</p>}
           <Totals s={s} roles={roles} />
           {batteries && s.soc !== undefined && (
@@ -120,7 +126,10 @@ export default function EnergyPanel({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
+      ) : (
+        !configured && <p className="en-empty">No energy lines yet. In Home Assistant mode, choose Connect energy and link a power sensor between two items.</p>
       )}
+      <EnergySourcesSection startOpen={startOpen} />
     </HudPanel>
   );
 }

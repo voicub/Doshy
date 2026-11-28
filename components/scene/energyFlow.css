@@ -1,0 +1,8 @@
+/* energy flow in the Live view: source tags around the building, the house tag and the battery ring on a car (labels of the 3D view; the watt labels reuse .flow-label) */
+.ef-src { display: inline-flex; align-items: center; gap: 6px; min-height: 22px; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--fc, var(--accent)) 60%, transparent); border-radius: var(--r); background: rgb(var(--panel-rgb) / calc(0.82 * var(--panel-k))); color: var(--fc, var(--accent)); font: 500 10.5px/1 var(--mono); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
+.ef-src b { font-weight: 600; color: var(--text); }
+.ef-src small { font: 400 10px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ef-ring { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; position: relative; color: var(--fc, var(--accent)); pointer-events: none; }
+.ef-ring svg { display: block; filter: drop-shadow(0 0 3px rgb(var(--panel-rgb) / 0.9)); }
+.ef-ring b { position: absolute; top: 0; left: 0; width: 40px; height: 40px; display: grid; place-items: center; font: 600 11px/1 var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.ef-ring small { padding: 2px 6px; border: 1px solid color-mix(in srgb, var(--fc, var(--accent)) 60%, transparent); border-radius: var(--r); background: rgb(var(--panel-rgb) / calc(0.82 * var(--panel-k))); font: 500 10px/1 var(--mono); letter-spacing: 0.05em; white-space: nowrap; }

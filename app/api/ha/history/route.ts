@@ -1,4 +1,4 @@
-import { haFailure, ha } from "@/lib/haServer";
+import { haFailure, haFor, resolveHa, type HaHome } from "@/lib/haServer";
 import { ttlCache } from "@/lib/server/ttlCache";
 import { parseHistory, type Series } from "@/lib/stats";
 
@@ -19,14 +19,14 @@ const cache = ttlCache<Payload>(CACHE_MS, CACHE_MAX);
 const bad = (error: string) => Response.json({ error }, { status: 400 });
 const intParam = (v: string | null, def: number) => (v === null ? def : /^\d+$/.test(v) ? Number(v) : NaN);
 
-async function load(entities: string[], attrs: string[], hours: number, points: number): Promise<Payload> {
+async function load(home: HaHome, entities: string[], attrs: string[], hours: number, points: number): Promise<Payload> {
   const to = Date.now();
   const from = to - hours * 3_600_000;
   const q = new URLSearchParams({ end_time: new Date(to).toISOString(), significant_changes_only: "0" });
   // filter_entity_id keeps its literal commas (ids are validated above); minimal_response/no_attributes are bare flags
   let url = `history/period/${new Date(from).toISOString()}?filter_entity_id=${entities.join(",")}&minimal_response&${q}`;
   if (!attrs.length) url += "&no_attributes";
-  const res = await ha(url, { signal: AbortSignal.timeout(HA_TIMEOUT_MS) });
+  const res = await haFor(home)(url, { signal: AbortSignal.timeout(HA_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Home Assistant HTTP ${res.status}`);
   return { from, to, series: parseHistory(await res.json(), from, to, points, attrs) };
 }
@@ -45,9 +45,10 @@ export async function GET(req: Request) {
   if (!(hours >= 1 && hours <= 168)) return bad("hours must be 1..168");
   if (!(points >= 20 && points <= 500)) return bad("points must be 20..500");
 
-  const key = `${[...entities].sort().join(",")}|${[...attrs].sort().join(",")}|${hours}|${points}`;
   try {
-    return Response.json(await cache.get(key, () => load(entities, attrs, hours, points)));
+    const home = resolveHa(req);
+    const key = `${home.id}|${[...entities].sort().join(",")}|${[...attrs].sort().join(",")}|${hours}|${points}`;
+    return Response.json(await cache.get(key, () => load(home, entities, attrs, hours, points)));
   } catch (e) {
     return haFailure(e);
   }

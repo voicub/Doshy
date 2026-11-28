@@ -1,0 +1,29 @@
+/* heat map controls: the Layer / Show stack, the Show row's notes and the colour legend (HeatPicker, HeatLegend) */
+.livestack { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+.heatpick .seg button[aria-disabled="true"] { opacity: 0.45; }
+.heat-note { margin: 0; max-width: 340px; padding: 6px 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--glass); font: 400 11px/1.45 var(--mono); letter-spacing: 0.03em; color: var(--text); text-align: center; }
+
+.heatlegend { display: flex; flex-direction: column; gap: 6px; width: min(420px, 92vw); padding: 8px 12px; background: var(--panel); --l: 6px; }
+.hl-scale { display: flex; align-items: center; gap: 8px; }
+.hl-scale .label { flex: none; margin-right: 4px; color: var(--accent); }
+.hl-bar { flex: 1; min-width: 60px; height: 10px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.hl-end { flex: none; font: 500 11px/1 var(--mono); letter-spacing: 0.04em; color: var(--text); font-variant-numeric: tabular-nums; }
+/* the mini player sits at the same spot as this stack: lift the stack above it while music plays */
+.app:has(.mini) .layer-slot { bottom: calc(82px + 58px + env(safe-area-inset-bottom, 0px)); }
+.hl-hint { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--accent-line); }
+.hl-text { margin: 0; font: 400 11px/1.45 var(--mono); letter-spacing: 0.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.hl-key { display: flex; align-items: flex-start; gap: 8px; margin: 0; font: 400 10.5px/1.45 var(--mono); letter-spacing: 0.03em; color: var(--muted); }
+.hl-hatch { flex: none; width: 14px; height: 14px; margin-top: 1px; border: 1px solid var(--accent-line); background: repeating-linear-gradient(135deg, rgb(var(--text-rgb) / 0.55) 0 2px, rgb(var(--text-rgb) / 0) 2px 5px); }
+.hl-more summary { display: flex; align-items: center; min-height: 24px; font: 500 10px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); cursor: pointer; }
+.hl-more[open] > .seg { margin-top: 6px; }
+.hl-seg { flex-wrap: wrap; gap: 4px; }
+.hl-seg button { height: 26px; padding: 0 8px; border: 1px solid var(--accent-line); }
+
+/* compact layouts: inside the menu the stack is plain content, 44px rows (the menu already scrolls) */
+.cm-embed .livestack { align-items: stretch; gap: 8px; }
+.cm-embed .heatlegend { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
+.cm-embed .heatlegend > * { width: 100%; }
+.cm-embed .heat-note { max-width: none; text-align: left; }
+html[data-vp="tiny"] .hl-more summary, html[data-vp="small"] .hl-more summary { min-height: 44px; }
+html[data-vp="tiny"] .hl-seg button, html[data-vp="small"] .hl-seg button { height: 44px; flex: 1 1 auto; }

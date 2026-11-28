@@ -1,5 +1,5 @@
 /* energy panel: live Sankey and totals (right-docked, compact) */
-.hud.energy { position: absolute; z-index: 46; right: 20px; top: calc(var(--top) + 52px); width: 352px; max-height: calc(100vh - var(--top) - 160px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; background: rgba(6, 9, 12, 0.94); }
+.hud.energy { position: absolute; z-index: 46; right: 20px; top: calc(var(--top) + 52px); width: 352px; max-height: calc(100vh - var(--top) - 160px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; background: var(--panel); }
 @media (prefers-reduced-motion: no-preference) { .hud.energy { animation: slide-in-r 0.3s var(--ease); } }
 .app.cinema .hud.energy { display: none; }
 .en-body { display: flex; flex-direction: column; gap: 14px; }
