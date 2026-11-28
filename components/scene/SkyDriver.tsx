@@ -6,11 +6,16 @@ import type { OrbitControls } from "three-stdlib";
 import type { SkyState } from "@/lib/sky";
 import { useStore } from "@/lib/store";
 import { useSky } from "@/lib/useSky";
+import { usePreviewSky } from "@/lib/daylightPreview";
 import { blendLook } from "./Look";
 import { useReducedMotion } from "./motion";
 import { keepAlive } from "@/lib/framePacer";
 import { live } from "./skyLive";
-import { gustAt } from "@/lib/wind";
+import { hdriLive } from "./hdriLive";
+import { hdriGain } from "@/lib/polyhavenEnv";
+import { gustAt, gustiness } from "@/lib/wind";
+import { moonGain } from "@/lib/moon";
+import { useKnobs } from "@/lib/quality";
 
 const { damp, clamp } = MathUtils;
 const RAD = Math.PI / 180;
@@ -21,7 +26,9 @@ const DRY_RATE = 0.12; // the ground dries slowly
 const SUN_MIN_EL = 6 * RAD; // lowest light elevation: keeps shadows finite at sunrise
 const MOON_EL = 38 * RAD;
 const LIGHTNING_PULSE_GAP: [number, number] = [0.07, 0.17];
-const LIGHTNING_WAIT: [number, number] = [6, 20];
+const LIGHTNING_WAIT: [number, number] = [15, 45];
+const FLASH_MIN = 0.12; // flash strength of a thin storm / the most a fierce one reaches: kept soft, a flicker and not a strobe
+const FLASH_MAX = 0.3;
 
 const FOG_NIGHT = new Color("#161d29");
 const FOG_DAY = new Color("#a3afb9");
@@ -29,6 +36,7 @@ const RAIN_NIGHT = new Color("#7f93b8");
 const RAIN_DAY = new Color("#d4deea");
 const GREY = new Color("#aeb6c2");
 const BOLT = new Color("#d6e2ff");
+const MOONLIGHT = new Color("#a9c4ff"); // the cool tint of a bright moon
 
 const rand = ([a, b]: [number, number]) => a + Math.random() * (b - a);
 
@@ -62,6 +70,7 @@ const rateOf = (snap: boolean, rate: number) => (snap ? 1000 : rate);
 /** Daylight and the light direction: the real sun, handing over to a moon on the opposite side as it sets. */
 function driveSun(s: SkyState, bearing: number, snap: boolean, dt: number) {
   live.daylight = damp(live.daylight, s.daylight, rateOf(snap, DAY_RATE), dt);
+  live.moon = damp(live.moon, s.moon.illumination, rateOf(snap, DAY_RATE), dt);
   const el = s.elevation * RAD;
   const az = (s.azimuth - bearing) * RAD; // compass -> plan frame
   sunVec(TMP.sun, az, Math.max(el, SUN_MIN_EL));
@@ -86,13 +95,13 @@ function driveWeather(s: SkyState, w: Weather, bearing: number, snap: boolean, d
   const to = ((s.weather.windFrom ?? 270) + 180 - bearing) * RAD;
   live.windX = damp(live.windX, Math.sin(to), k(0.5), dt);
   live.windZ = damp(live.windZ, -Math.cos(to), k(0.5), dt);
-  live.gust = damp(live.gust, gustAt(elapsed, live.wind), k(1.2), dt);
+  live.gust = damp(live.gust, gustAt(elapsed, live.wind) * gustiness(live.wind, s.weather.gust), k(1.2), dt);
   live.windPhase = (live.windPhase + dt * (0.8 + 0.5 * live.wind) * (1 + 0.5 * live.gust)) % (Math.PI * 2000);
 }
 
-/** Lightning: random 6-20 s apart (sooner when it is fierce), a short double-pulse each time. */
-function driveLightning(b: Bolt, w: Weather, dt: number, reduced: boolean) {
-  if (w.storm > 0.05 && live.cloud > 0.5) {
+/** Lightning (Balanced and up only): rare, 15-45 s apart (sooner when it is fierce), a soft double-pulse each time. */
+function driveLightning(b: Bolt, w: Weather, dt: number, reduced: boolean, enabled: boolean) {
+  if (enabled && w.storm > 0.05 && live.cloud > 0.5) {
     b.wait -= dt;
     if (b.wait <= 0 && b.pulses === 0) {
       b.pulses = 2 + Math.floor(Math.random() * 2);
@@ -102,7 +111,7 @@ function driveLightning(b: Bolt, w: Weather, dt: number, reduced: boolean) {
     if (b.pulses > 0) {
       b.gap -= dt;
       if (b.gap <= 0) {
-        live.flash = Math.max(live.flash, (0.35 + 0.65 * w.storm) * (reduced ? 0.25 : 1) * (b.pulses === 1 ? 0.6 : 1));
+        live.flash = Math.max(live.flash, (FLASH_MIN + (FLASH_MAX - FLASH_MIN) * w.storm) * (reduced ? 0.25 : 1) * (b.pulses === 1 ? 0.6 : 1));
         b.pulses--;
         b.gap = rand(LIGHTNING_PULSE_GAP);
       }
@@ -114,11 +123,11 @@ function driveLightning(b: Bolt, w: Weather, dt: number, reduced: boolean) {
   if (live.flash < 0.003) live.flash = 0;
 }
 
-/** The sky is still gliding toward its target (a preset switch, the real sun creeping, weather rolling in) or lightning flickers. */
-const isSettling = (s: SkyState, w: Weather) =>
+const isSettling = (s: SkyState, w: Weather, lightning: boolean) =>
   live.flash > 0 ||
-  (w.storm > 0.05 && live.cloud > 0.5) ||
+  (lightning && w.storm > 0.05 && live.cloud > 0.5) ||
   Math.abs(live.daylight - s.daylight) > 0.002 ||
+  Math.abs(live.moon - s.moon.illumination) > 0.002 ||
   Math.abs(live.cloud - w.cloud) + Math.abs(live.rain - w.rain) + Math.abs(live.snow - w.snow) + Math.abs(live.fog - w.fog) > 0.004 ||
   Math.abs(live.wind - s.weather.wind) > 0.05 ||
   live.sunDir.angleTo(TMP.dir) > 5e-4;
@@ -129,6 +138,12 @@ function gradeLook() {
   const c = live.cloud;
   const day = live.daylight;
   const wetness = Math.max(live.rain, live.snow * 0.7);
+  const night = 1 - day;
+  const moonK = moonGain(live.moon); // a full moon lights and tints the night, a new moon leaves it dim (never black)
+  L.sunI *= 1 + (moonK - 1) * night;
+  L.hemiI *= 1 + (moonK - 1) * 0.5 * night;
+  L.sunC.lerp(MOONLIGHT, live.moon * 0.45 * night);
+  L.hemiSky.lerp(MOONLIGHT, live.moon * 0.25 * night);
   L.sunI *= 1 - 0.75 * c;
   L.sunC.lerp(GREY, c * 0.55 * (0.4 + 0.6 * day));
   L.hemiI *= 1 + 0.35 * c * day;
@@ -169,9 +184,12 @@ function driveFog(fog: Fog, scene: Scene, base: Color, camera: Camera, target: V
  * Mount before anything that reads `live`.
  */
 export default function SkyDriver({ backdrop }: { backdrop: string }) {
-  const sky = useSky();
+  const sky = usePreviewSky(useSky()); // the day-lighting panel's sun while it is open (lib/daylightPreview.ts), else the real sky
   const target = useRef(sky);
   target.current = sky;
+  const weather = useMemo(() => weatherTargets(sky), [sky]); // once per sky change, not once per frame
+  const targets = useRef(weather);
+  targets.current = weather;
   const bearing = useRef(0);
   bearing.current = useStore((st) => st.plan.bearing ?? 0); // compass bearing of the plan's up direction
 
@@ -180,6 +198,7 @@ export default function SkyDriver({ backdrop }: { backdrop: string }) {
   const fog = useMemo(() => new Fog("#000000", 100, 400), []);
   const base = useMemo(() => new Color(backdrop), [backdrop]);
   const reduced = useReducedMotion();
+  const lightning = useKnobs().ambient; // flashes (and the frames they need) only from Balanced up: the light tiers keep the dim, grey storm without them
   const bolt = useRef<Bolt>({ wait: rand(LIGHTNING_WAIT), pulses: 0, gap: 0 });
   const first = useRef(true);
 
@@ -191,16 +210,16 @@ export default function SkyDriver({ backdrop }: { backdrop: string }) {
   useFrame(({ camera, clock }: { camera: Camera; clock: Clock }, rawDt) => {
     const dt = Math.min(rawDt, 0.1);
     const s = target.current;
-    const w = weatherTargets(s);
+    const w = targets.current;
     const snap = first.current; // first frame: start at the real sky, no fade-in from darkness
     first.current = false;
     driveSun(s, bearing.current, snap, dt);
     driveWeather(s, w, bearing.current, snap, dt, clock.elapsedTime);
-    driveLightning(bolt.current, w, dt, reduced);
-    if (isSettling(s, w)) keepAlive(false); // the sun's shadow map follows the sun on its own (Scene3D Lighting)
+    driveLightning(bolt.current, w, dt, reduced, lightning);
+    if (isSettling(s, w, lightning)) keepAlive(false); // the sun's shadow map follows the sun on its own (Scene3D Lighting)
     const L = gradeLook();
     driveFog(fog, scene, base, camera, controls?.target);
-    scene.environmentIntensity = L.env;
+    scene.environmentIntensity = hdriLive.on ? hdriGain(hdriLive.intensity, hdriLive.studio, live.daylight) : L.env; // a chosen real sky (HdriEnv) sets its own strength
   });
 
   return null;

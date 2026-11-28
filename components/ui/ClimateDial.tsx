@@ -76,6 +76,7 @@ export default function ClimateDial({ name, current, action, target, min, max, s
         onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); e.currentTarget.focus(); fromPointer(e); }}
         onPointerMove={(e) => e.buttons === 1 && fromPointer(e)}
       >
+        <path d={arc(0, SWEEP)} className="d-hit" />
         <path d={arc(0, SWEEP)} className="d-track" />
         {f(target) > 0 && <path d={arc(0, Math.max(0.5, f(target) * SWEEP))} className="d-fill" />}
         {Array.from({ length: 28 }, (_, i) => {

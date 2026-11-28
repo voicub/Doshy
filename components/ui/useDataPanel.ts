@@ -3,11 +3,18 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useCustom } from "@/lib/customStore";
 import { ApiError, NetError, deleteResource, fetchInfo, fetchResources, fetchVersions, importBackup, restoreVersion, saveVersion } from "@/lib/dbApi";
 import type { DbInfo, ResourceList, Version } from "@/lib/dbApi";
-import { adoptServerPlan, discardLocalAndReload, flushNow, restoreStash, stashEntries } from "@/lib/dbClient";
+import { activePlanId, adoptServerPlan, discardLocalAndReload, flushNow, restoreStash, stashEntries } from "@/lib/dbClient";
 import type { StashEntry } from "@/lib/planStash";
 import { deleteModel } from "@/lib/modelStore";
 
 const REFRESH_MS = 10_000;
+
+/** The plan on screen (versions belong to one plan). Null only while Doshy is still loading. */
+const planNow = () => {
+  const id = activePlanId();
+  if (id === null) throw new ApiError(409, "loading", "Doshy is still loading. Try again in a moment.");
+  return id;
+};
 
 export type DataSnapshot = { info: DbInfo; versions: Version[]; files: ResourceList };
 type Note = { ok: boolean; text: string };
@@ -25,7 +32,7 @@ function useServerData() {
   const load = useCallback(async () => {
     const mine = ++seq.current;
     try {
-      const [info, versions, files] = await Promise.all([fetchInfo(), fetchVersions(), fetchResources()]);
+      const [info, versions, files] = await Promise.all([fetchInfo(), fetchVersions(planNow()), fetchResources()]);
       if (mine !== seq.current) return;
       setData({ info, versions, files });
       setProblem(null);
@@ -71,7 +78,7 @@ export default function useDataPanel() {
     e.preventDefault();
     void act(async () => {
       await flushNow(); // the version must contain the latest edits
-      await saveVersion(name.trim());
+      await saveVersion(planNow(), name.trim());
       setName("");
       return "Version saved";
     });
@@ -80,7 +87,7 @@ export default function useDataPanel() {
   const restore = (id: number) =>
     act(async () => {
       await flushNow(); // so the plan being replaced is kept as a version with the latest edits
-      adoptServerPlan(await restoreVersion(id));
+      adoptServerPlan(await restoreVersion(planNow(), id));
       return "Restored";
     });
 

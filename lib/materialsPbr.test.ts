@@ -18,8 +18,10 @@ describe("material classes", () => {
     assert.equal(resolveMat({ c: "#fff", tex: "fabric" }, 2).sheen, MAT_CLASSES.fabric.sheen);
   });
 
-  it("has a tile size for every kind", () => {
+  it("has a tile size for every kind, and the ground, water and slab kinds are among them", () => {
     for (const k of PBR_KINDS) assert.ok(PBR_TILE_M[k] > 0, k);
+    assert.equal(Object.keys(PBR_TILE_M).length, PBR_KINDS.length);
+    for (const k of ["lawn", "gravel", "soil", "sand", "mulch", "asphalt", "water", "slabs"] as const) assert.ok(PBR_KINDS.includes(k), k);
   });
 });
 

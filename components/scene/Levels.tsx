@@ -19,6 +19,7 @@ import BuildingHallway from "./BuildingHallway";
 import Foundation, { CONCRETE, SLAB_OUTSET } from "./Foundation";
 import ItemMesh from "./ItemMesh";
 import ContactShadows from "./ContactShadows";
+import HeatMap from "./HeatMap";
 import LiveLayers from "./LiveLayers";
 import RoomFloor from "./RoomFloor";
 import Roof from "./Roof";
@@ -89,6 +90,7 @@ function LevelContent({ level, gauge, highest }: { level: Level; gauge: boolean;
       {sortedLevels(plan)[0].id === level.id && <BuildingHallway />}
       <Dust rooms={c.rooms} />
       <LiveLayers levelId={level.id} gauge={gauge} />
+      <HeatMap levelId={level.id} />
       {highest && <Roof />}
     </>
   );

@@ -11,11 +11,12 @@ import { paintAt } from "./paint2d";
 import { placeWithTool } from "./placeWithTool";
 import { planGrid } from "./planPoint";
 import { groundCtx, type PointerEnv } from "./pointerEnv";
-import { useGroundUi } from "./groundUi";
+import { linesPoint } from "./linesTool";
+import { withinTapSlop } from "@/lib/tapSlop";
 
 const MIN_ROOM_DRAW = 0.5; // smallest room a drag can draw (m)
 const MIN_VOID_DRAW = 0.4; // smallest stairs opening a drag can draw (m)
-const PAN_PICK_SLOP = 8; // px a finger may wander on a room's floor and still count as a tap
+const PAN_PICK_SLOP = 8; // px a mouse may wander on a room's floor and still count as a tap (a finger: lib/tapSlop.ts)
 
 /** The handlers of the plan canvas, and the grab helpers that handles inside it call. */
 export type PlanPointer = Grabs & {
@@ -51,8 +52,8 @@ export function usePlanPointer(env: PointerEnv): PlanPointer {
     g.begin();
   };
 
-  /** Wall, door, window, pillar and path points: a mouse press places them at once; a finger places them when it lifts (a second finger arriving first cancels them), where it lifts, so it can slide to adjust. */
-  const defers = (e: RPE) => e.pointerType === "touch" && (tool === "wall" || tool === "door" || tool === "window" || tool === "pillar" || (tool === "garden" && useGroundUi.getState().mode === "path"));
+  /** Wall, door, window, pillar and line points: a mouse press places them at once; a finger places them when it lifts (a second finger arriving first cancels them), where it lifts, so it can slide to adjust. */
+  const defers = (e: RPE) => e.pointerType === "touch" && (tool === "wall" || tool === "door" || tool === "window" || tool === "pillar" || tool === "lines");
 
   const down = (e: RPE) => {
     if (e.button !== 0) return;
@@ -75,14 +76,14 @@ export function usePlanPointer(env: PointerEnv): PlanPointer {
     if (p) {
       const k = p.v.w / (env.svg.current?.clientWidth || 1);
       const [dx, dy] = [e.clientX - p.x, e.clientY - p.y];
-      if (p.pick && Math.hypot(dx, dy) > PAN_PICK_SLOP) p.pick = undefined; // it was a drag: look around, do not select
+      if (p.pick && !withinTapSlop(dx, dy, e.pointerType, PAN_PICK_SLOP)) p.pick = undefined; // it was a drag (a finger gets more room than a mouse): look around, do not select
       env.autoFrame.current = false;
       env.setView({ ...p.v, cx: p.v.cx - dx * k, cy: p.v.cy - dy * k });
       return;
     }
     const drag = g.drag;
     const joined = drag?.kind === "wallEnd" ? endJoined(drag) : undefined;
-    g.setCur(tool === "wall" ? point.wallPoint(e) : tool === "pillar" ? point.pillarPoint(e) : joined ? point.wallPoint(e, joined) : point.toPlan(e));
+    g.setCur(tool === "wall" ? point.wallPoint(e) : tool === "lines" ? linesPoint(point, e) : tool === "pillar" ? point.pillarPoint(e) : joined ? point.wallPoint(e, joined) : point.toPlan(e));
     g.setPtr(point.ptrOf(e));
     if (tool === "paint" && g.editing.current) paintAt(point.rawPt(e), e, px); // dragging with the bucket keeps painting: the whole drag is one undo step
     if (groundMove(groundCtx(env, e))) return;

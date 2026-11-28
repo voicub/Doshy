@@ -10,6 +10,7 @@ import type { Family } from "@/lib/running";
 import EntityPickerFull from "./EntityPickerFull";
 import MonoLabel from "./MonoLabel";
 import WashLinkGroup from "./WashLinkGroup";
+import PressureLinkGroup from "./PressureLinkGroup";
 
 const MAX_OPTIONS = 40;
 const NO_AREAS: readonly string[] = [];
@@ -109,6 +110,7 @@ export default function EntityPicker(props: PickerProps) {
   return (
     <>
       {props.wash && <WashLinkGroup value={props.value} family={props.wash.family} onPick={props.onChange} />}
+      <PressureLinkGroup value={props.value} domains={props.domains} filter={props.filter} onPick={props.onChange} />
       {tiny ? <TinyPicker {...props} /> : <DesktopPicker {...props} />}
     </>
   );
@@ -215,7 +217,7 @@ function DesktopPicker({ label, value, onChange, domains, preferAreas, filter }:
       />
       {open && <OptionList id={listId} uid={uid} label={label} shown={shown} total={total} active={active} loading={loading} onActive={setActive} onPick={pick} />}
       {haError && <small className="field-note warn">Home Assistant unreachable. Entity list unavailable.</small>}
-      {!haError && !loading && value && <small className={`field-note ${current ? "ok" : "warn"}`}>{current ? `${current.state}` : "Entity not found"}</small>}
+      {!haError && !loading && value && <small className={`field-note ${current ? "ok" : "warn"}`}>{current ? stateText(current) : "Entity not found"}</small>}
     </div>
   );
 }

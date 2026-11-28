@@ -5,10 +5,12 @@ import type { View } from "@/lib/planView";
 import type { Pt } from "@/lib/types";
 import { lvPlan } from "./levelPlan";
 import { gsnap, planGrid, type Ptr } from "./planPoint";
+import { traceSnapPoint } from "./traceSnap";
 
 const LIMIT = 100; // the pointer is clamped to +-100 m, far outside any flat
 const ENDPOINT_SNAP = 0.2; // a wall end being drawn or dragged snaps to an existing wall end this close
 const FINGER_REACH_PX = 18; // a finger cannot hit a wall end exactly: it reaches this many px
+const TRACE_SNAP_PX = 12; // and to a wall suggestion this many screen px away (or 0.2 m, whichever reaches farther)
 
 export type PlanPoint = {
   capture: (e: RPE) => void;
@@ -52,6 +54,8 @@ export function usePlanPoint({ svg, viewRef, px, touch }: Args): PlanPoint {
           }
         }
       if (best) return best;
+      const traced = traceSnapPoint(r, Math.max(ENDPOINT_SNAP, TRACE_SNAP_PX * px), skip); // ... then onto the wall suggestions of a floor plan image, if any are showing
+      if (traced) return traced;
     }
     return toPlan(e);
   };

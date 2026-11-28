@@ -2,7 +2,9 @@
 import { ConfettiIcon, EggIcon, FlagIcon, FlowerTulipIcon, GhostIcon, GiftIcon, HeartIcon, LeafIcon, SnowflakeIcon, SparkleIcon, SunIcon, TreeEvergreenIcon, type Icon } from "@phosphor-icons/react";
 import { HOLIDAY_IDS, HOLIDAY_LABEL, SEASONS, type EasterRite, type HolidayId, type Season } from "@/lib/season";
 import { useSkySettings } from "@/lib/sky";
+import { useSeasonPreview } from "@/lib/seasonPreview";
 import { useSky } from "@/lib/useSky";
+import SeasonPreview from "./SeasonPreview";
 import usePopupMenu from "./usePopupMenu";
 
 const SEASON_ICON: Record<Season, Icon> = { spring: FlowerTulipIcon, summer: SunIcon, autumn: LeafIcon, winter: SnowflakeIcon };
@@ -17,6 +19,7 @@ const label = (h: HolidayId) => HOLIDAY_LABEL[h];
 export default function SeasonControls() {
   const sky = useSky();
   const { seasonMode, holidayMode, easterRite, setSeasonMode, setHolidayMode, setEasterRite } = useSkySettings();
+  const previewing = useSeasonPreview((s) => s.day !== null);
   const { open, setOpen, root, btn: first, onMenuKey } = usePopupMenu('[role="menuitemradio"][aria-checked="true"]');
 
   const season = sky.season.season;
@@ -25,7 +28,7 @@ export default function SeasonControls() {
   const HolidayGlyph = holiday ? HOLIDAY_ICON[holiday] : null;
   const showHoliday = holiday !== null || holidayMode !== "auto";
   const next = sky.season.mix > 0.5 ? ` toward ${sky.season.next}` : "";
-  const seasonTip = `Season: ${season}${next}${seasonMode === "auto" ? " (follows the calendar)" : " (forced)"}`;
+  const seasonTip = `Season: ${season}${next}${previewing ? " (previewing a date)" : seasonMode === "auto" ? " (follows the real date)" : " (forced)"}`;
   const holidayTip = holiday ? `Holiday: ${label(holiday)}${holidayMode === "auto" ? " (follows the calendar)" : " (forced)"}` : "Holiday decoration off";
 
   return (
@@ -33,7 +36,7 @@ export default function SeasonControls() {
       <button ref={first} className="t-btn t-wx" aria-haspopup="menu" aria-expanded={open} aria-label={seasonTip} title={seasonTip} onClick={() => setOpen((o) => !o)}>
         <SeasonGlyph size={15} weight="regular" />
         <span className="t-cond t-name">{season}</span>
-        {seasonMode !== "auto" && <i className="t-forced" aria-hidden />}
+        {(seasonMode !== "auto" || previewing) && <i className="t-forced" aria-hidden />}
       </button>
       {showHoliday && (
         <button className="t-btn t-wx t-holiday" aria-haspopup="menu" aria-expanded={open} aria-label={holidayTip} title={holidayTip} onClick={() => setOpen((o) => !o)}>
@@ -48,9 +51,11 @@ export default function SeasonControls() {
           {(["auto", ...SEASONS] as const).map((s) => (
             <button key={s} role="menuitemradio" aria-checked={s === seasonMode} className="t-item" onClick={() => setSeasonMode(s)}>
               <span>{s}</span>
-              {s === "auto" && <small>{`follows calendar`}</small>}
+              {s === "auto" && <small>{`follow the real date`}</small>}
             </button>
           ))}
+          <div className="t-sect" role="presentation">Preview</div>
+          <SeasonPreview inMenu />
           <div className="t-sect" role="presentation">Holiday</div>
           {(["auto", "none", ...HOLIDAY_IDS] as const).map((h) => (
             <button key={h} role="menuitemradio" aria-checked={h === holidayMode} className="t-item" onClick={() => setHolidayMode(h)}>

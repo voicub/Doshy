@@ -55,3 +55,8 @@ export const plateKey = (text: string, style: PlateStyle, end: PlateEnd) => `${s
 
 /** Rear and front plate sit on the bumper in a 560 x 170 mm holder whatever the plate size. */
 export const PLATE_HOLDER: [number, number] = [0.56, 0.17];
+/** Plate centre above the bumper surface: the 6 mm plate box sits on a 3.5 mm holder. */
+export const PLATE_LIFT = 0.0072;
+
+/** Euler angles (x, y, z) of a plate box (its picture faces +z) on a bumper whose outward normal leans up by `ny` (the sine of the tilt): front plates face +z, rear plates are turned half a turn about y. */
+export const plateRotation = (end: PlateEnd, ny: number): [number, number, number] => (end === "front" ? [-Math.asin(ny), 0, 0] : [Math.asin(ny), Math.PI, 0]);

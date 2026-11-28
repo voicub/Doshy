@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { dbStorage } from "./dbClient";
 import { isRecord } from "./guards.ts";
 
-export const LIVE_LAYERS = ["off", "heat", "humidity", "presence", "power"] as const;
+export const LIVE_LAYERS = ["off", "heat", "humidity", "presence", "power", "pipes"] as const;
 type LiveLayer = (typeof LIVE_LAYERS)[number];
 
 type State = { layer: LiveLayer; setLayer: (l: LiveLayer) => void; cycleLayer: () => void };

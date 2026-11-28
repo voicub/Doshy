@@ -55,21 +55,22 @@ function shaftGeometry(w: number, sill: number, top: number) {
 
 const noRaycast = () => null;
 
-/** Light shafts + sun patch for a glazed opening. Strength follows the window glow (lit lamps) and the live sun (dimmed by cloud). */
+/** Light shafts + sun patch for a glazed opening. Strength follows the window glow (lit lamps) and the live sun (dimmed by cloud). With God rays on, the real rays draw the sun's beams; the faked ones then only carry the lamps' glow. */
 export default function Shafts(props: ShaftProps) {
-  return useKnobs().ambient ? <ShaftBeams {...props} /> : null; // calm tiers draw no sunbeams
+  const k = useKnobs();
+  return k.ambient ? <ShaftBeams {...props} realRays={k.godrays !== "off"} /> : null; // calm tiers draw no sunbeams
 }
 
 type ShaftProps = { w: number; sill: number; top: number; glow: MutableRefObject<number>; cutaway: boolean };
 
-function ShaftBeams({ w, sill, top, glow, cutaway }: ShaftProps) {
+function ShaftBeams({ w, sill, top, glow, cutaway, realRays }: ShaftProps & { realRays: boolean }) {
   const { geometry, patchZ, patchLen } = useMemo(() => shaftGeometry(w, sill, top), [w, sill, top]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const beams = useRef<MeshBasicMaterial>(null);
   const patch = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
     const strength = Math.max(glow.current * GLOW_SHARE, live.look.shaft);
-    if (beams.current) beams.current.opacity = cutaway ? 0 : strength * MAX_OPACITY; // beams would hang in mid-air over the low walls
+    if (beams.current) beams.current.opacity = cutaway ? 0 : Math.max(glow.current * GLOW_SHARE, realRays ? 0 : live.look.shaft) * MAX_OPACITY; // beams would hang in mid-air over the low walls
     if (patch.current) patch.current.opacity = strength * PATCH_OPACITY;
   });
   return (

@@ -18,7 +18,7 @@ export default function GraphicsNotice({ onOpen }: { onOpen: () => void }) {
   if (!lowered) return null;
   return (
     <div className="hud brackets gp-notice" role="status">
-      <p>Graphics set to {TIER_LABEL[lowered]} to keep things smooth. Change it in <button type="button" className="gp-link" onClick={() => { useGraphicsNotice.getState().clear(); onOpen(); }}>Graphics</button>.</p>
+      <p>{lowered === "godrays" ? "God rays turned off" : `Graphics set to ${TIER_LABEL[lowered]}`} to keep things smooth. Change it in <button type="button" className="gp-link" onClick={() => { useGraphicsNotice.getState().clear(); onOpen(); }}>Graphics</button>.</p>
       <button className="icon-btn" aria-label="Hide this message" onClick={() => useGraphicsNotice.getState().clear()}><XIcon size={14} /></button>
     </div>
   );

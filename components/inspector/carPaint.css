@@ -1,5 +1,5 @@
 .car-paint { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-.car-paint .swatch:focus-visible, .car-paint .swatch-custom:focus-visible { outline: 2px solid #5ad7ff; outline-offset: 2px; }
+.car-paint .swatch:focus-visible, .car-paint .swatch-custom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (pointer: coarse) {
   .car-paint .swatches { gap: 10px; }
   .car-paint .swatch, .car-paint .swatch-custom, .car-paint .preset { width: 44px; height: 44px; }

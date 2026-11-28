@@ -11,6 +11,7 @@ import usePlexCommands from "./usePlexCommands";
 import { PROGRESS_TICK_MS } from "./mediaUi";
 import { useNow } from "../useNow";
 import "./PlexCard.css";
+import DeviceGlyph from "./DeviceGlyph";
 
 /** Bedroom TV and Plex: now playing with artwork and seeking, transport, volume, power, a D-pad remote and Plex launch. */
 export default function PlexCard({ onClose }: { onClose: () => void }) {
@@ -62,7 +63,7 @@ export default function PlexCard({ onClose }: { onClose: () => void }) {
           <>
             <div className="pc-power">
               <span className={`pc-dot ${on ? "on" : ""}`} aria-hidden />
-              <span className="t-val">{on ? "TV ON" : power?.state === "unavailable" ? "TV UNAVAILABLE" : "TV OFF"}</span>
+              <span className="t-val"><DeviceGlyph entity={tv.power ?? playId} /> {on ? "TV ON" : power?.state === "unavailable" ? "TV UNAVAILABLE" : "TV OFF"}</span>
               <button className={`btn pc-pbtn ${on ? "" : "primary"}`} onClick={togglePower} aria-label={on ? "Turn TV off" : "Turn TV on"} disabled={busy}>
                 <PowerIcon size={14} /> {on ? "Power off" : "Power on"}
               </button>

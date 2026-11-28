@@ -39,7 +39,7 @@ html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .ins
 
 /* header: title, count, a 44 px close button; it stays on top while the form scrolls */
 html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head {
-  position: sticky; top: 0; z-index: 2; flex: none; min-height: 44px; margin: 0 -12px; padding: 0 4px 0 12px; background: var(--glass, rgba(6, 9, 12, 0.86)); backdrop-filter: blur(var(--blur, 12px));
+  position: sticky; top: 0; z-index: 2; flex: none; min-height: 44px; margin: 0 -12px; padding: 0 4px 0 12px; background: var(--glass, rgb(var(--panel-rgb) / calc(0.86 * var(--panel-k)))); backdrop-filter: blur(var(--blur, 12px));
 }
 html:not([data-vp="regular"])[data-orient="portrait"] .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head { padding-top: 8px; }
 html:not([data-vp="regular"]) .app .hud:is(.drawer, .inspector, .flow-panel, .sheet) > .hud-head .icon-btn { width: 44px; height: 44px; margin: 0; flex: none; }

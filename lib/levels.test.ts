@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { elevationOf, floorY, groundable, levelIdOf, levelsOf, newLevelId, nextElevation, onLevel, outsideRooms, sortedLevels } from "./levels.ts";
+import { elevationOf, floorY, groundable, groundedWall, levelIdOf, levelsOf, newLevelId, nextElevation, onLevel, outsideRooms, sortedLevels } from "./levels.ts";
 import { withDefaultLevels } from "./planOps.ts";
 import { starterPlan } from "./starterPlan.ts";
 import type { Plan } from "./types.ts";
@@ -14,7 +14,7 @@ test("a legacy plan has one ground level at elevation 0", () => {
 });
 
 test("entities without a level, or with an unknown one, live on the first level", () => {
-  const p: Plan = { ...base, levels: [{ id: "L0", name: "Parter", elevation: 1, height: 2.78 }, { id: "L1", name: "Etaj", elevation: 3.78, height: 2.78 }] };
+  const p: Plan = { ...base, levels: [{ id: "L0", name: "Ground floor", elevation: 1, height: 2.78 }, { id: "L1", name: "First floor", elevation: 3.78, height: 2.78 }] };
   assert.equal(levelIdOf(p, p.walls[0]), "L0");
   assert.equal(levelIdOf(p, p.walls[2]), "L0");
   assert.deepEqual(onLevel(p, "L0").walls.map((w) => w.id), ["a", "c"]);
@@ -22,7 +22,7 @@ test("entities without a level, or with an unknown one, live on the first level"
 });
 
 test("a raised ground floor keeps its elevation and a new level stacks above the top one", () => {
-  const p: Plan = { ...base, levels: [{ id: "L1", name: "Etaj", elevation: 3.78, height: 2.78 }, { id: "L0", name: "Parter", elevation: 1, height: 2.78 }] };
+  const p: Plan = { ...base, levels: [{ id: "L1", name: "First floor", elevation: 3.78, height: 2.78 }, { id: "L0", name: "Ground floor", elevation: 1, height: 2.78 }] };
   assert.equal(elevationOf(p, "L0"), 1);
   assert.deepEqual(sortedLevels(p).map((l) => l.id), ["L0", "L1"]);
   assert.equal(nextElevation(p), 3.78 + 2.78);
@@ -48,4 +48,14 @@ test("only unlifted items on the lowest level of a raised building can stand on 
   assert.equal(groundable(plan, id), true);
   assert.equal(groundable(plan, id, 0.3), false);
   assert.equal(groundable({ levels: [{ id: "L0", name: "G", elevation: 0, height: 2.78 }] }, "L0"), false, "nothing to drop to on a ground-level floor");
+});
+
+test("a garden fence stands on the ground of a raised building, unless it touches the building or the building is not raised", () => {
+  const room = { id: "r", name: "Flat", x: 0, y: 0, w: 8, h: 6, color: "#fff", floor: "wood" as const };
+  const fence = (a: [number, number], b: [number, number]) => ({ id: "f", a: { x: a[0], y: a[1] }, b: { x: b[0], y: b[1] }, style: "fence_picket" as const });
+  const raised: Plan = { walls: [], openings: [], items: [], rooms: [room], levels: [{ id: "L0", name: "Ground floor", elevation: 1, height: 2.78 }] };
+  assert.equal(groundedWall(raised, fence([-3, -3], [11, -3])), true, "a boundary fence far from the flat");
+  assert.equal(groundedWall(raised, fence([-3, 3], [11, 3])), false, "a fence running through the flat is part of its floor");
+  assert.equal(groundedWall(raised, fence([-3, -3], [4, 3])), false, "one end inside the flat");
+  assert.equal(groundedWall({ ...raised, levels: [{ id: "L0", name: "Ground floor", elevation: 0, height: 2.78 }] }, fence([-3, -3], [11, -3])), false, "nothing to drop to when the floor is on the ground");
 });

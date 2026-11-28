@@ -1,10 +1,18 @@
 export type Pt = { x: number; y: number };
+import type { Scene } from "./scenes";
+import type { Choreography } from "./arrival";
+import type { FloorPhoto } from "./floorPhoto";
+import type { MaterialRef } from "./materialRef";
+import type { Annotation, Trace } from "./designTypes";
+import type { Maintenance } from "./maintenance";
+import type { UtilityLine } from "./utilities";
+import type { MdiIcon } from "./mdi";
 import type { Site } from "./siteTypes";
 /**
  * What a wall face is made of. `plaster` and `brick` are the original two; the rest are listed with their looks in lib/materials.ts.
  * `glass` makes the whole wall a transparent pane with a thin frame.
  */
-export type WallStyle = "plaster" | "brick" | "redbrick" | "whitebrick" | "concrete" | "woodv" | "woodh" | "stone" | "metro" | "stripes" | "batten" | "glass" | "paint" | "fence_picket" | "fence_wire" | "fence_panel" | "wall_stone" | "wall_brick_low" | "hedge";
+export type WallStyle = "plaster" | "brick" | "redbrick" | "whitebrick" | "concrete" | "woodv" | "woodh" | "stone" | "metro" | "stripes" | "batten" | "glass" | "paint" | "fence_picket" | "fence_wire" | "fence_panel" | "wall_stone" | "wall_brick_low" | "hedge" | "fence_slat" | "fence_bar" | "fence_iron" | "fence_glass" | "wall_block" | "fence_rail" | "fence_electric" | "fence_bamboo";
 export type Wall = {
   id: string;
   a: Pt;
@@ -15,6 +23,9 @@ export type Wall = {
   /** Face B (the left side): absent = same as face A. Lets a house be painted differently inside and out (lib/materials.ts `wallFaces`). */
   styleB?: WallStyle;
   colorB?: string;
+  /** A PBR texture from Poly Haven on face A / face B (lib/materialRef.ts). Drawn instead of the style's look at Balanced and above; the ref's `avg` colour at Eco and Light. The style stays, so removing the material restores the old look. */
+  material?: MaterialRef;
+  materialB?: MaterialRef;
   /** Slab thickness in metres (default WALL_T). Used by the collision slabs of solid items (columns), which are modelled as one short thick wall. */
   thickness?: number;
   /** Height in metres (lib/fences.ts `wallHeight`). Absent = the storey's wall height. Fences, garden walls and hedges are low and set it. */
@@ -74,6 +85,8 @@ export type Room = {
   powerEntities?: string[]; // power sensors (W) that belong to the room, summed for the room's live consumption
   areas?: string[]; // Home Assistant area ids whose entities belong to this room
   parent?: string; // id of the room this one is a part of (e.g. an alcove): shares its chip, entities and lights
+  floorPhoto?: FloorPhoto; // a photo of the real floor, drawn instead of `floor` at Balanced and above (lib/floorPhoto.ts); the colour only at Eco and Light
+  floorMaterial?: MaterialRef; // a PBR texture from Poly Haven on the floor (lib/materialRef.ts); never together with floorPhoto
   level?: string;
 };
 export type Item = {
@@ -97,7 +110,7 @@ export type Item = {
 /** Building kind: an apartment is one flat (one level, possibly raised above the ground); a house can have several levels. */
 export type BuildingType = "apartment" | "house";
 /**
- * A storey. `elevation` = height of its finished floor above the ground (m); a raised ground floor ("parter inalt") is a level
+ * A storey. `elevation` = height of its finished floor above the ground (m); a raised ground floor is a level
  * with elevation 1.0. `height` = floor-to-floor height (storey incl. slab), used to stack levels automatically.
  */
 export type Level = { id: string; name: string; elevation: number; height: number };
@@ -129,9 +142,33 @@ export type GroundEdge = "none" | "kerb" | "sleeper" | "brick" | "steel";
  * top-left corner of the unturned rectangle (like a Room). Not a room: no walls, no chip, no area in the building's totals. It always lies on the ground,
  * whatever level is shown. `color` tints the surface; absent = the kind's natural colour (lib/materials.ts).
  */
-export type GroundArea = { id: string; x: number; y: number; w: number; h: number; rot?: number; kind: FloorKind; color?: string; edge?: GroundEdge; name?: string };
-/** A strip of ground drawn as a line of points: a garden path, a drive, a river of gravel. `width` in metres, rounded at the bends. */
-export type GroundPath = { id: string; points: Pt[]; width: number; kind: FloorKind; color?: string; edge?: GroundEdge; name?: string };
+export type GroundArea = { id: string; x: number; y: number; w: number; h: number; rot?: number; kind: FloorKind; color?: string; edge?: GroundEdge; name?: string; material?: MaterialRef };
+/** Lane markings painted along a road: none, a dashed or solid white centre line, white lines along both edges, or a double yellow centre line. */
+export type RoadMarks = "none" | "dashed" | "solid" | "edges" | "double";
+/** Which sides of a road get a raised pavement (sidewalk). `left` and `right` are seen walking along the line from its first point to its last, plan y down. */
+export type PavementSides = "none" | "left" | "right" | "both";
+/**
+ * A strip of ground drawn as a line of points: a garden path, a drive, a road, a river of gravel. `width` in metres. Every option below is optional, so
+ * plans saved before roads existed keep their round-ended path:
+ * `ends` = how the two ends finish (default round); `smooth` = the points are control points of a curve; `marks` / `pavement` / `pavementWidth` make it a road;
+ * `stones` lays separate stepping stones along the line instead of a continuous surface (lib/ground.ts, lib/lineGeometry.ts).
+ */
+export type GroundPath = {
+  id: string;
+  points: Pt[];
+  width: number;
+  kind: FloorKind;
+  color?: string;
+  edge?: GroundEdge;
+  name?: string;
+  ends?: "round" | "flat";
+  smooth?: boolean;
+  marks?: RoadMarks;
+  pavement?: PavementSides;
+  pavementWidth?: number;
+  stones?: boolean;
+  material?: MaterialRef; // a PBR texture from Poly Haven for the surface (lib/materialRef.ts)
+};
 /** What a flow carries; decides its colour and unit. */
 export type FlowKind = "power" | "water" | "gas" | "data";
 /**
@@ -153,6 +190,13 @@ export type Plan = {
   site?: Site; // where the plan stands on Earth and which real surroundings to draw (lib/siteTypes.ts); absent = no surroundings
   flows?: Flow[];
   added?: string[]; // keys of lib/additions.ts already merged into this plan
+  scenes?: Scene[]; // named sets of device targets, run from the HUD (lib/scenes.ts)
+  choreographies?: Choreography[]; // arrival and departure choreographies: lights that welcome you home, what goodbye switches off (lib/arrival.ts); never in a guest link
+  annotations?: Annotation[]; // notes, arrows, dimension lines and zones to remember (lib/annotations.ts)
+  trace?: Trace; // a floor plan image shown under the plan to trace over (lib/trace.ts)
+  maintenance?: Maintenance; // recurring upkeep tasks and what was snoozed on the maintenance board (lib/maintenance.ts); never in a guest link
+  utilities?: UtilityLine[]; // drawn water, gas, drain and heating pipes, traced from a leak or gas alarm to the valve that stops them (lib/utilities.ts)
+  icons?: Record<string, MdiIcon>; // Material Design icons chosen by hand for devices (`item.params.icon` = `mdi:name`), kept so the plan shows them offline and in guest links (lib/mdiPlan.ts)
 };
 
 export type SelType = "wall" | "opening" | "room" | "item" | "void" | "ground" | "path";

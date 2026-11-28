@@ -1,5 +1,5 @@
 /* The Advanced fold of the stairs-opening inspector. */
 .void-adv { display: grid; gap: 8px; }
-.void-adv > summary { cursor: pointer; font: 500 10px/1.4 var(--font-geist-mono), ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: #5ad7ff; min-height: 24px; display: flex; align-items: center; }
-.void-adv > summary:focus-visible { outline: 2px solid #5ad7ff; outline-offset: 2px; }
+.void-adv > summary { cursor: pointer; font: 500 10px/1.4 var(--font-geist-mono), ui-monospace, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); min-height: 24px; display: flex; align-items: center; }
+.void-adv > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (pointer: coarse) { .void-adv > summary { min-height: 44px; } }

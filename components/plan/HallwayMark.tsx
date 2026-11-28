@@ -18,13 +18,13 @@ export default function HallwayMark({ plan, level, u, px }: { plan: Plan; level:
   const vertical = Math.abs(h.nx) > 0.5; // the corridor runs north-south: read the label bottom to top
   return (
     <g pointerEvents="none" aria-hidden>
-      <polygon points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill="#cfeaf5" fillOpacity={0.05} stroke="#cfeaf5" strokeOpacity={0.55} strokeWidth={0.02 * u} strokeDasharray={`${0.14 * u} ${0.1 * u}`} />
+      <polygon points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill="var(--plan-line)" fillOpacity={0.05} stroke="var(--plan-line)" strokeOpacity={0.55} strokeWidth={0.02 * u} strokeDasharray={`${0.14 * u} ${0.1 * u}`} />
       <text
         transform={`translate(${cx} ${cy})${vertical ? " rotate(-90)" : ""}`}
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={10.5 * px}
-        fill="#cfeaf5"
+        fill="var(--plan-line)"
         fillOpacity={0.8}
         style={{ ...MONO, paintOrder: "stroke", stroke: PAPER, strokeWidth: 5 * px, strokeLinejoin: "round" }}
       >

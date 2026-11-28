@@ -13,13 +13,18 @@ html:is([data-coarse="1"], :not([data-vp="regular"])) .cat-btn:active { color: v
 /* ---------- compact screens ---------- */
 html:not([data-vp="regular"]) .drawer.catalog { gap: 8px; }
 html:not([data-vp="regular"]) .drawer.catalog > *, .cc > * { flex-shrink: 0; } /* the sheet scrolls; nothing in it may squash */
-html:not([data-vp="regular"]) .app .hud.drawer.catalog > :is(.sheet-grab, .hud-head) { background: #070b0f; } /* cards scroll under them: no see-through */
-html:not([data-vp="regular"]) .drawer.catalog .search { position: sticky; top: 44px; z-index: 2; flex: none; gap: 8px; background: #070b0f; }
+html:not([data-vp="regular"]) .app .hud.drawer.catalog > :is(.sheet-grab, .hud-head) { background: var(--sunken); } /* cards scroll under them: no see-through */
+html:not([data-vp="regular"]) .drawer.catalog .search { position: sticky; top: 44px; z-index: 2; flex: none; gap: 8px; background: var(--sunken); }
 html:not([data-vp="regular"])[data-orient="portrait"] .drawer.catalog .search { top: 72px; }
 html:not([data-vp="regular"]) .drawer.catalog .search svg { width: 20px; height: 20px; flex: none; }
 html:not([data-vp="regular"]) .drawer.catalog .search input { padding-block: 0; }
 /* the sheet scrolls as a whole (search stays under the header), so the card list is not a second scroller */
 html:not([data-vp="regular"]) .drawer.catalog .cards { flex: none; overflow: visible; gap: 8px; padding: 0 0 4px; }
+html:not([data-vp="regular"]) .cat-lines > summary { display: flex; align-items: center; min-height: 44px; font-size: 12px; }
+html:not([data-vp="regular"]) .cat-lines .field-note, html:not([data-vp="regular"]) .cl-name { font-size: 12px; }
+html:not([data-vp="regular"]) .cl-tile { min-height: 64px; padding: 4px; }
+html:not([data-vp="regular"]) .cl-tile .line-pic { height: 44px; }
+html:not([data-vp="regular"]) .cl-tile > span { font-size: 12px; line-height: 1.15; letter-spacing: 0; }
 
 html:not([data-vp="regular"]) .cat-card { height: 222px; contain-intrinsic-size: auto 222px; }
 html:not([data-vp="regular"]) .cat-thumb { height: 76px; }
@@ -36,7 +41,7 @@ html:not([data-vp="regular"]) .cmf-real { font-size: 12px; padding: 3px 6px; let
 .cc-chip[aria-pressed="true"], .cc-chip[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
 .cc-sep { flex: none; align-self: stretch; width: 1px; margin: 6px 2px; background: var(--accent-line); }
 .cc-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--err); }
-.cc-panel { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; border-block: 1px solid var(--accent-line); background: rgba(255, 255, 255, 0.015); }
+.cc-panel { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; border-block: 1px solid var(--accent-line); background: rgb(var(--fg-rgb) / 0.015); }
 .cc-panel > .label { padding: 0 12px; }
 .cc-panel > :not(.label, .cc-row) { margin: 0 12px; }
 

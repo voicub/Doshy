@@ -1,5 +1,6 @@
 // Pure helpers for the statistics panel and /api/ha/history. Imports only pure modules (relative, with extension): the node test runner loads this file directly.
 import { isRecord } from "./guards.ts";
+import { haFetch } from "./haHome.ts";
 import { within } from "./requestTimeout.ts";
 
 type NumSeries = { kind: "num"; t: number[]; v: number[] };
@@ -203,7 +204,7 @@ const HISTORY_TIMEOUT_MS = 40_000;
 export async function fetchHistory(entities: string[], hours: number, opts: { points?: number; attrs?: string[]; signal?: AbortSignal } = {}): Promise<HistoryResult> {
   const q = new URLSearchParams({ entities: entities.join(","), hours: String(hours), points: String(opts.points ?? 240) });
   if (opts.attrs?.length) q.set("attrs", opts.attrs.join(","));
-  const res = await fetch(`/api/ha/history?${q}`, { cache: "no-store", signal: within(HISTORY_TIMEOUT_MS, opts.signal) });
+  const res = await haFetch(`/api/ha/history?${q}`, { cache: "no-store", signal: within(HISTORY_TIMEOUT_MS, opts.signal) });
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
   return res.json();
 }

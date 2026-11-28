@@ -154,6 +154,13 @@ export const SENSORS: Record<string, Def> = {
   ]),
 
   // ---- climate and light
+  sn_barometer: def("Analog wall barometer", 0.2, 0.04, 1.6, [
+    b(0, 1.5, -0.018, 0.12, 0.12, 0.004, WOOD),
+    cz(0, 1.5, -0.003, 0.2, 0.034, WOOD),
+    cz(0, 1.5, 0.014, 0.194, 0.006, "#b89550"),
+    cz(0, 1.5, 0.017, 0.178, 0.002, "#f4ecd9"),
+    led(0, 1.446, 0.0185, 0.006),
+  ], { wall: true, tags: "atmospheric pressure hPa rain change fair dial" }),
   sn_temp_eink: def("Temperature and humidity sensor (e-ink)", 0.05, 0.015, 0.06, [
     b(0, 0.03, 0, 0.05, 0.06, 0.012, WHITE),
     b(0, 0.036, 0.0065, 0.038, 0.03, 0.002, LED, { glow: true }),

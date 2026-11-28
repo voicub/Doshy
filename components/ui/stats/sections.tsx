@@ -10,9 +10,9 @@ import { Gantt, Legend, TimeChart, holdTo, type GanttRow, type Line, type Pt } f
 import type { Ent, StatsSpec } from "./spec";
 import type { StatsData } from "./useStatsData";
 
-const ACCENT = "#5ad7ff";
-const INDOOR = [ACCENT, "#b8c7d1", "#2f9fc0", "#6f8794"];
-const OUTDOOR = "#6f8794";
+const ACCENT = "var(--accent)";
+const INDOOR = [ACCENT, "var(--lg-b8c7d1)", "var(--lg-2f9fc0)", "var(--lg-6f8794)"];
+const OUTDOOR = "var(--lg-6f8794)";
 
 const numPts = (s: Series | undefined, to: number): Pt[] | null => (s?.kind === "num" && s.t.length ? holdTo(s.t.map((t, i) => ({ t, v: s.v[i] })), to) : null);
 const numValues = (s: Series | undefined) => (s?.kind === "num" ? s.v : []);
@@ -62,8 +62,8 @@ export function TemperatureSection({ spec, data }: { spec: StatsSpec; data: Stat
   const steps = setpoint ? numericSteps(setpoint, data.to) : [];
   const bands: Interval[] = action ? onIntervals(action, data.from, data.to, (s) => s === "heating") : [];
   if (steps.length) {
-    lines.push({ id: "setpoint", label: "Setpoint", color: "#ffffff", dash: "2 3", step: true, width: 1, pts: steps.map((p) => ({ t: p.t, v: p.v })) });
-    legend.push({ label: "Setpoint", color: "#ffffff", dash: "2 3" });
+    lines.push({ id: "setpoint", label: "Setpoint", color: "var(--hi)", dash: "2 3", step: true, width: 1, pts: steps.map((p) => ({ t: p.t, v: p.v })) });
+    legend.push({ label: "Setpoint", color: "var(--hi)", dash: "2 3" });
   }
   if (!lines.length) return <Section title="Temperature" meta="C"><Empty>No temperature sensors found in Home Assistant.</Empty></Section>;
   const r = rangeOf(lines);

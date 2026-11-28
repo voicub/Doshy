@@ -5,8 +5,13 @@ import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { AdditiveBlending, Color, MathUtils, Object3D, type Group, type InstancedMesh } from "three";
 import { useStore } from "@/lib/store";
 import type { Item } from "@/lib/types";
-import { livePosition, modeOf, startDrive, stepDrive, stepLive, type Drive } from "@/lib/vacuumDrive";
+import { livePosition, modeOf, retarget, startDrive, stepDrive, stepLive, type Drive } from "@/lib/vacuumDrive";
 import { buildWorld } from "@/lib/vacuumPath";
+import { lapInRoom } from "@/lib/vacuumPathRoom";
+import { cleaningLine, readVacuumReport } from "@/lib/vacuumReport";
+import { matchRoomName } from "@/lib/ambientNames";
+import { levelIdOf } from "@/lib/levels";
+import CleaningRoom from "./AmbientLifeClean";
 import { useReducedMotion } from "./motion";
 
 const DEG = Math.PI / 180;
@@ -40,11 +45,26 @@ export default function Vacuum({ item, root }: { item: Item; root: RefObject<Gro
   const active = live && !!st;
   const world = useMemo(() => (active ? buildWorld({ walls, openings, rooms, items, voids, levels }, item) : null), [active, walls, openings, rooms, items, voids, levels, item]);
 
+  // The room the vacuum says it is cleaning (when it says): highlighted, and the simulated lap shrinks to that room's lanes. Anything missing: the whole lap, as before.
+  const cleaning = modeOf(st?.state) === "cleaning";
+  const report = useMemo(() => readVacuumReport(st?.attributes), [st?.attributes]);
+  const focus = useMemo(() => {
+    if (!world || !cleaning || !report.room) return undefined;
+    return matchRoomName(report.room, rooms.filter((r) => levelIdOf({ levels }, r) === world.levelId));
+  }, [world, cleaning, report.room, rooms, levels]);
+  const lane = useMemo(() => {
+    const lap = world && focus ? lapInRoom(world, focus) : null;
+    return world && lap ? { ...world, clean: lap } : world;
+  }, [world, focus]);
+
   const drive = useRef<Drive | null>(null);
   const latest = useRef({ mode: modeOf(st?.state), pos: livePosition(st?.attributes, item.params), last: st?.last_changed });
   latest.current = { mode: modeOf(st?.state), pos: livePosition(st?.attributes, item.params), last: st?.last_changed };
   const restart = reduced ? `${st?.state}|${st?.last_changed}` : "";
   useEffect(() => void (drive.current = null), [world, reduced, restart]); // a new plan restarts the lap; reduced motion re-places the robot on every change of state
+  useEffect(() => {
+    if (drive.current && lane && !latest.current.pos) retarget(drive.current, lane); // another room to clean: carry on from where the robot stands
+  }, [lane]);
 
   const trail = useRef<InstancedMesh>(null);
   const stamps = useRef({ next: 0, born: new Float32Array(TRAIL_N).fill(-1e9), lastX: NaN, lastY: NaN, dirty: false });
@@ -70,12 +90,13 @@ export default function Vacuum({ item, root }: { item: Item; root: RefObject<Gro
     const t = clock.elapsedTime;
     const { mode, pos, last } = latest.current;
     const since = last ? Math.max(0, Date.now() - Date.parse(last)) || 0 : 0;
-    const d = (drive.current ??= startDrive(world, mode, since, reduced));
+    const w = lane ?? world; // the lap cut down to the room being cleaned, else the whole lap
+    const d = (drive.current ??= startDrive(w, mode, since, reduced));
     const { x: px, y: py, heading: ph } = d;
     if (pos) {
       stepLive(d, pos, dt);
       d.mode = mode;
-    } else if (!reduced) stepDrive(d, world, mode, dt);
+    } else if (!reduced) stepDrive(d, w, mode, dt);
     g.position.set(d.x, FLOOR_TOP, d.y);
     g.rotation.y = Math.PI / 2 - d.heading + (d.wiggle > 0 && !reduced ? Math.sin(t * WIGGLE_HZ) * WIGGLE_AMP * d.wiggle : 0);
     if (d.x !== px || d.y !== py || d.heading !== ph || (d.wiggle > 0 && !reduced)) keepAlive();
@@ -110,11 +131,16 @@ export default function Vacuum({ item, root }: { item: Item; root: RefObject<Gro
     if (alive) keepAlive();
   });
 
-  if (!world || reduced) return null;
+  if (!world) return null;
   return (
-    <instancedMesh ref={trail} args={[undefined, undefined, TRAIL_N]} frustumCulled={false} renderOrder={1}>
-      <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial transparent blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-    </instancedMesh>
+    <>
+      {focus && <CleaningRoom itemId={item.id} room={focus} line={cleaningLine(focus.name, report.cleanedAreaM2)} />}
+      {!reduced && (
+        <instancedMesh ref={trail} args={[undefined, undefined, TRAIL_N]} frustumCulled={false} renderOrder={1}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial transparent blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        </instancedMesh>
+      )}
+    </>
   );
 }

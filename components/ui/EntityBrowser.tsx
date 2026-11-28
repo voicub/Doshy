@@ -11,6 +11,7 @@ import "./EntityBrowser.css";
 import "./compactLink.css";
 
 const ARM_MS = 4000;
+const SCROLL_STEP_PX = 48; // the window of mounted rows reaches at least six rows (> 200 px) past the view, so a scroll position up to this stale shows no gap; a finger scroll fires an event per frame, each used to re-render the list (158 -> 53 renders for a 1300 px scroll)
 
 /** Keeps `viewH` equal to the scroller's height (re-attached whenever the scroller is remounted, `key`). */
 function useViewHeight(scroller: RefObject<HTMLDivElement | null>, key: unknown) {
@@ -103,7 +104,7 @@ export default function EntityBrowser({ onClose, initialQuery = "", initialMapRo
         {mapping ? (
           <MapSheet room={mapping} areas={areas} entityArea={entityArea} onDone={() => setMapRoom(null)} />
         ) : (
-          <div className="eb-scroll" ref={scroller} onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)} role="list" aria-label="Entities by room">
+          <div className="eb-scroll" ref={scroller} onScroll={(e) => { const top = e.currentTarget.scrollTop; setScrollTop((prev) => (Math.abs(top - prev) < SCROLL_STEP_PX && top > 0 ? prev : top)); }} role="list" aria-label="Entities by room">
             <div style={{ height: total, position: "relative" }}>
               {slice.map((r, i) => {
                 const top = offsets[first + i];

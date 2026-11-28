@@ -18,6 +18,7 @@ export default function SceneHtml({ position, children }: { position: [number, n
   const gl = useThree((s) => s.gl);
   const host = useMemo(() => {
     const el = document.createElement("div");
+    el.className = "scene-html"; // the walkthrough hides these floating labels (components/ui/WalkHud.css)
     el.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;will-change:transform;z-index:${HTML_Z};visibility:hidden`;
     return el;
   }, []);

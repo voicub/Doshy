@@ -1,5 +1,5 @@
 /* Screensaver: a calm dark cover with the time. Above everything (settings sheet 9500, this 9600). No hover, no motion beyond a slow fade. */
-.saver { position: fixed; inset: 0; z-index: 9600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); border: 0; border-radius: 0; background: #020406; color: var(--text); text-align: center; cursor: none; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.saver { position: fixed; inset: 0; z-index: 9600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); border: 0; border-radius: 0; background: #020406; color: var(--text); text-align: center; cursor: none; touch-action: none; -webkit-user-select: none; user-select: none; }
 .saver[data-style="dim"] { background: rgba(0, 0, 0, 0.9); }
 .saver:focus-visible { outline: 0; box-shadow: none; }
 .saver-time { font: 300 clamp(64px, 26vmin, 220px) / 1 var(--mono); letter-spacing: 0.04em; color: #cfe6f1; font-variant-numeric: tabular-nums; }

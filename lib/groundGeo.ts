@@ -78,3 +78,46 @@ export function edgeTris(poly: Pt[], def: EdgeDef): Tris {
   }
   return out;
 }
+
+/** Flat triangles with one opacity per vertex: the soft shade around a ground surface. */
+export type Fringe = { pos: number[]; alpha: number[] };
+const MAX_MITRE = 2; // a sharp corner never pushes the ring further than this many widths
+
+/**
+ * A soft shade around a polygon: a ring `width` metres wide just outside its outline, opacity `edge` on the outline and 0 on the outer side. It settles a patio or a
+ * path into the lawn the way the dark gap and the ambient light of a real edge do, instead of a hard colour change. Corners follow the mitre direction (never more than
+ * MAX_MITRE widths out), so the ring is closed and has no notches.
+ */
+export function fringeTris(poly: Pt[], width: number, edge: number): Fringe {
+  const out: Fringe = { pos: [], alpha: [] };
+  const n = poly.length;
+  if (n < 3 || width <= 0) return out;
+  const sign = signedArea(poly) >= 0 ? 1 : -1;
+  const normals = poly.map((a, i): Pt => {
+    const b = poly[(i + 1) % n];
+    const l = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    return { x: (sign * (b.y - a.y)) / l, y: (-sign * (b.x - a.x)) / l }; // outward, like edgeTris
+  });
+  const outer = poly.map((p, i): V => {
+    const [a, b] = [normals[(i + n - 1) % n], normals[i]];
+    const m = { x: a.x + b.x, y: a.y + b.y };
+    const l = Math.hypot(m.x, m.y);
+    const dir = l < 1e-6 ? b : { x: m.x / l, y: m.y / l };
+    const reach = Math.min(MAX_MITRE, 1 / Math.max(dir.x * b.x + dir.y * b.y, 1e-6)) * width;
+    return [p.x + dir.x * reach, 0, p.y + dir.y * reach];
+  });
+  const inner = poly.map((p): V => [p.x, 0, p.y]);
+  const tri = (a: V, aa: number, b: V, ba: number, c: V, ca: number) => {
+    const flip = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]) < 0;
+    for (const [p, al] of flip ? ([[a, aa], [c, ca], [b, ba]] as const) : ([[a, aa], [b, ba], [c, ca]] as const)) {
+      out.pos.push(...p);
+      out.alpha.push(al);
+    }
+  };
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    tri(inner[i], edge, inner[j], edge, outer[j], 0);
+    tri(inner[i], edge, outer[j], 0, outer[i], 0);
+  }
+  return out;
+}

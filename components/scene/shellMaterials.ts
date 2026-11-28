@@ -17,8 +17,11 @@ function stripes(): Texture {
   return stripeMap;
 }
 
+/** What a surface gives a <meshStandardMaterial>: the roughness always, the texture maps when the tier draws textures. */
+export type SurfaceProps = { roughness: number; map?: Texture; normalMap?: Texture; normalScale?: Vector2; roughnessMap?: Texture };
+
 /** Props for a <meshStandardMaterial>: the surface's texture maps at this tier (none at textures 0) and the roughness to pair with them. */
-export function surfaceProps(surf: Surface, k: Knobs, rough: number) {
+export function surfaceProps(surf: Surface, k: Knobs, rough: number): SurfaceProps {
   if (k.textures === 0) return { roughness: rough };
   const t = pbrTexture(surf.kind, k.textureSize, { ...surf.opts, normal: k.textures === 2 });
   const b = surf.bump ?? 1;
@@ -46,6 +49,12 @@ export function sharedMaterial(key: string, make: () => MeshStandardMaterial): M
     cache.set(key, m);
   }
   return m;
+}
+
+/** Forgets one shared material and frees it: for materials that wear textures with a life of their own (components/scene/materialTextures.ts), which go when their last user leaves. */
+export function dropSharedMaterial(key: string): void {
+  cache.get(key)?.dispose();
+  cache.delete(key);
 }
 
 export function surfaceMaterial(surf: Surface, tint: string, rough: number, k: Knobs, end = false): MeshStandardMaterial {

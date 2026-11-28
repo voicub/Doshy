@@ -47,7 +47,7 @@ export default function NewPlanPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <HudPanel title="New plan" meta={`${TEMPLATES.length} templates`} onClose={onClose} className="drawer new-plan">
+    <HudPanel title="Templates" meta={`${TEMPLATES.length} templates`} onClose={onClose} className="drawer new-plan">
       {picked ? (
         <ReplaceConfirm picked={picked} compact={compact} exported={exported} onExported={() => setExported(true)} onReplace={() => apply(picked)} onBack={() => setPicked(null)} />
       ) : (

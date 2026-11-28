@@ -15,6 +15,9 @@ import { ClimateChip, OpenChip } from "./StatusChips";
 import LaundryChip from "./LaundryChip";
 import { TIME_CHOICES, WEATHER_CHOICES, setTimeChoice, type TimeChoice, type WeatherChoice } from "./skyControls";
 import { useDeclutter } from "../scene/declutterState";
+import { MOON_LABEL } from "@/lib/moon";
+import { MoonGlyph, RealSkyButton, WeatherSourceItems, moonText } from "./RealSky";
+import { PressureChip } from "./PressureBits";
 
 const ENVS: readonly Environment[] = ["studio", "garden"];
 export const WEATHER_ICON: Record<WeatherKind, Icon> = { clear: SunIcon, cloudy: CloudIcon, fog: CloudFogIcon, rain: CloudRainIcon, storm: CloudLightningIcon, snow: CloudSnowIcon };
@@ -85,6 +88,7 @@ function WeatherChip() {
               </button>
             ))}
           </div>
+          <WeatherSourceItems onPick={close} />
         </div>
       )}
     </div>
@@ -105,6 +109,12 @@ function TimeControl() {
         <div className="t-cell t-sun" title={`Sun elevation, ${sky.source === "sun.sun" ? "from Home Assistant sun.sun" : "computed from the home position"}`} aria-label={`Sun elevation ${el} degrees`}>
           <MonoLabel>Sun</MonoLabel>
           <span className="t-val">{`${el >= 0 ? "+" : "-"}${Math.abs(el)} DEG`}</span>
+        </div>
+      )}
+      {sky.phase !== "day" && (
+        <div className="t-cell t-sun t-moon" title={`Moon: ${moonText(sky.moon, sky.moonSource)}`} aria-label={`Moon: ${moonText(sky.moon, sky.moonSource)}`}>
+          <MoonGlyph moon={sky.moon} />
+          <span className="t-val">{MOON_LABEL[sky.moon.name]}</span>
         </div>
       )}
     </>
@@ -139,12 +149,16 @@ export default function TelemetryBar({ lit, total, climate, onClimate }: { lit: 
           <OpenChip />
           <LaundryChip max={1} />
           <ClimateChip active={climate} onClick={onClimate} />
+          <RealSkyButton />
           <TimeControl />
           <WeatherChip />
+          <PressureChip />
           <SeasonControls />
           <Segmented className="t-env" label="Environment" value={environment} options={ENVS} onChange={setEnvironment} />
           {declutterBtn}
-          <button className="t-btn" aria-pressed={cutaway} onClick={() => setCutaway(!cutaway)}>Cut-away</button>
+          <button className="t-btn" aria-pressed={cutaway} onClick={() => setCutaway(!cutaway)} title={cutaway ? "Cut-away: every wall is low. Click for Auto: only the walls facing you are cut, the ones behind stay up and follow as you turn the view." : "Cut-away: Auto. The walls facing you are cut and the ones behind stay up, following as you turn the view. Click to cut every wall."}>
+            Cut-away <span className="t-state">{cutaway ? "All" : "Auto"}</span>
+          </button>
           <button className="t-btn" onClick={() => setCinema(true)} aria-label="Cinema mode">
             <FilmSlateIcon size={14} /> <span className="t-lbl">Cinema</span>
           </button>

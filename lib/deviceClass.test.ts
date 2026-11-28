@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { classifyDevice, gpuName, type DeviceSignals } from "./deviceClass.ts";
+import { classifyDevice, gpuName, isSoftwareRenderer, type DeviceSignals } from "./deviceClass.ts";
 
 const LINUX_ARM = "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
@@ -57,4 +57,18 @@ test("an always-on Linux wall display on x86 starts on Light", () => {
 test("gpuName trims the ANGLE wrapper", () => {
   assert.equal(gpuName("ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)"), "Apple, ANGLE Metal Renderer: Apple M1 Max");
   assert.equal(gpuName("V3D 7.1.7"), "V3D 7.1.7");
+});
+
+test("a software renderer is named and explained; a graphics chip is not", () => {
+  for (const r of ["ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)", "llvmpipe (LLVM 15.0.6, 128 bits)", "ANGLE (Mesa, llvmpipe (LLVM 15.0.6, 128 bits), OpenGL ES 3.2)", "Microsoft Basic Render Driver"]) assert.ok(isSoftwareRenderer(r), r);
+  for (const r of ["V3D 7.1.7", "ANGLE (Broadcom, V3D 7.1.7.0, OpenGL ES 3.1 Mesa 24.2.8)", "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Max, Unspecified Version)", "Mali-G52"]) assert.ok(!isSoftwareRenderer(r), r);
+  assert.ok(!isSoftwareRenderer(undefined));
+  const c = classifyDevice({ screenWidth: 800, screenHeight: 480, cores: 4, memory: 4, ua: LINUX_ARM, renderer: "llvmpipe (LLVM 15.0.6, 128 bits)", kiosk: true });
+  assert.equal(c.tier, "eco");
+  assert.equal(c.software, true);
+  assert.equal(c.renderer, "llvmpipe (LLVM 15.0.6, 128 bits)");
+  assert.ok(c.reasons.some((r) => /GPU acceleration/.test(r)));
+  const hw = classifyDevice({ screenWidth: 800, screenHeight: 480, cores: 4, memory: 4, ua: LINUX_ARM, renderer: "V3D 7.1.7" });
+  assert.equal(hw.software, false);
+  assert.ok(!hw.reasons.some((r) => /GPU acceleration/.test(r)));
 });

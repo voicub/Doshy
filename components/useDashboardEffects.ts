@@ -108,13 +108,14 @@ export function useDashboardKeys({ palette, help, toggleBrowser, toggleClimate, 
   }, [palette, help]);
 }
 
-type Open = { menu: boolean; house: boolean; live: boolean; stats: boolean; energy: boolean; inbox: boolean; media: boolean; cal: boolean; roomSheet: boolean; left: boolean; catalog: boolean; device: boolean; camera: boolean; curtain: boolean };
+type Open = { menu: boolean; house: boolean; plans: boolean; live: boolean; stats: boolean; energy: boolean; inbox: boolean; media: boolean; cal: boolean; roomSheet: boolean; left: boolean; catalog: boolean; device: boolean; camera: boolean; curtain: boolean };
 
 /** Which panels are open now. */
 export function openPanels(o: Open): Set<PanelKey> {
   const open = new Set<PanelKey>();
   if (o.menu) open.add("menu");
   if (o.house && o.live) open.add("house");
+  if (o.plans) open.add("plans");
   if (o.stats) open.add("stats");
   if (o.energy) open.add("energy");
   if (o.inbox) open.add("inbox");

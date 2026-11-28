@@ -141,6 +141,8 @@ export interface Ctx {
   lamp: Mesh;
   tail: Mesh;
   plates: PlateMount[];
+  /** Which ends get the dark plate holder behind the plate (off where the owner moved the plate away from it). */
+  holders: Record<PlateEnd, boolean>;
   info: { chargePort?: "l" | "r" | "f"; exhausts: number; spokes: number };
 }
 

@@ -1,21 +1,26 @@
 "use client";
 import { SpeakerHighIcon } from "@phosphor-icons/react";
-import { memo, useMemo, useRef, type RefObject } from "react";
+import { memo, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { Color, type Group } from "three";
 import { CATALOG, type Def } from "@/lib/catalog";
 import { finishOf, carPresence } from "@/lib/cars";
 import { critterPresence } from "@/lib/critters";
-import { iconOf } from "@/lib/deviceIcons";
+import { iconOf, mdiOf } from "@/lib/deviceIcons";
 import { WALL_CUT_H } from "@/lib/geometry";
 import { TOGGLEABLE, domainOf } from "@/lib/ha";
 import { lightInfo } from "@/lib/light";
 import { plateOf } from "@/lib/plate";
+import { usePlateEdit } from "@/lib/plateEditState";
+import { itemPlateFits } from "@/lib/plateFit";
 import { useKnobs } from "@/lib/quality";
 import { useStore } from "@/lib/store";
 import type { Item } from "@/lib/types";
 import { isVacuumKind } from "@/lib/vacuumPath";
 import { iconComponent } from "./../ui/deviceIcons";
+import { useItemIcon } from "./../ui/useItemIcon";
 import { domainIcon } from "./../ui/domainIcon";
+import DeviceGlyph from "../ui/DeviceGlyph";
+import Barometer from "./Barometer";
 import CameraFov from "./CameraFov";
 import CarMesh from "./CarMesh";
 import { Marker as DeviceMarker } from "./DeclutterLayer";
@@ -28,6 +33,7 @@ import { ItemParts, usePartDraw } from "./itemParts";
 import { itemPointerProps } from "./itemPointer";
 import { useIsoItemGone, useIsoSink, useIsoZone } from "./isoState";
 import { useCutaway } from "./levelState";
+import { useAutoCut, useSquash, useWallPieceCut } from "./facingState";
 import { useModelNode } from "./ModelMesh";
 import { useReducedMotion } from "./motion";
 import { emitsLight, lampRank, pointShadowIds } from "./pointShadow";
@@ -65,6 +71,7 @@ function CutCap({ item, def, y }: { item: Item; def: Def; y: number }) {
 function ItemInner({ item, def, cut, rootRef }: { item: Item; def: Def; cut: boolean; rootRef?: RefObject<Group | null> }) {
   const st = useStore((s) => (item.entity ? s.states[item.entity] : undefined));
   const lv = useItemLive(item); // a sensor reading, or the run state of an appliance on a smart plug (useItemLive.ts)
+  const mdi = useItemIcon(item); // a Material Design icon: the owner's pick, or Home Assistant's own for the entity (Display > Device icons)
   const edit = useStore((s) => s.view !== "live"); // editing views never toggle devices and carry no state badges
   const toggle = useStore((s) => s.toggle);
   const knobs = useKnobs();
@@ -88,6 +95,7 @@ function ItemInner({ item, def, cut, rootRef }: { item: Item; def: Def; cut: boo
   const draw = usePartDraw(def, item, knobs, away, motion.fx, !!model.node);
   const frame = useItemFrame({ item, def, edit, reduced, echo, thermo: drive.thermo, heating: drive.heating, media: drive.media, sec: drive.sec, state: st?.state, lv, tint, motion, targetLevel: emits ? info.level : drive.sec ? drive.sec.level : drive.level0, rgb: info.rgb });
   const { drop, clips } = useFloorPool(item);
+  const plateEditing = usePlateEdit((s) => (s.editing?.id === item.id ? s.editing.end : null)); // the plate the inspector is adjusting on this car, outlined
 
   const lightY = ((def.light?.y ?? def.h * 0.8) * item.h) / def.h + elev;
   const cutK = cut && item.h > WALL_CUT_H ? WALL_CUT_H / item.h : 1; // solid building parts (columns, risers) are cut down like the walls in cut-away view
@@ -95,10 +103,11 @@ function ItemInner({ item, def, cut, rootRef }: { item: Item; def: Def; cut: boo
   const pointer = edit ? {} : itemPointerProps({ item, domain, lv, gesture, canToggle, curtainCard: motion.curtainCard, openCurtain: motion.openCurtain, toggle });
 
   return (
-    <group ref={rootRef} position={[item.x, drop, item.y]} rotation={[0, -item.rot * DEG, 0]} {...pointer}>
+    <group ref={rootRef} name={`item:${item.id}`} position={[item.x, drop, item.y]} rotation={[0, -item.rot * DEG, 0]} {...pointer}>
       <group ref={frame.body} position={[0, elev, 0]} scale={[item.w / def.w, (item.h * cutK) / def.h, item.d / def.d]}>
-        {!model.node && def.car && <CarMesh spec={def.car} color={item.color} finish={finishOf(item.params, item.color ?? def.car.color)} level={frame.level} ghost={away} plate={plateOf(item.params)} />}
+        {!model.node && def.car && <CarMesh spec={def.car} color={item.color} finish={finishOf(item.params, item.color ?? def.car.color)} level={frame.level} ghost={away} plate={plateOf(item.params)} fits={itemPlateFits(item.params)} editing={plateEditing} />}
         <ItemParts item={item} def={def} knobs={knobs} away={away} emits={emits} fx={motion.fx} frame={frame} draw={draw} />
+        {!model.node && item.kind === "sn_barometer" && <Barometer state={st} edit={edit} />}
         {model.node}
       </group>
       {!model.node && def.critter && <Critter item={item} def={def} ghost={away} edit={edit} elev={elev} />}
@@ -119,9 +128,34 @@ function ItemInner({ item, def, cut, rootRef }: { item: Item; def: Def; cut: boo
         </DeviceMarker>
       )}
       {st && !edit && !lv.sensor && !lv.wash && !away && (
-        <ItemBadge item={item} st={st} label={label} y={Math.min(item.h * cutK + elev, 2.4) + 0.3} canToggle={canToggle} isCamera={isCamera} lit={lit} rgb={info.rgb} Icon={iconComponent(iconOf(item.params)) ?? (echo ? SpeakerHighIcon : domainIcon(domain))} gesture={gesture} openCurtain={motion.curtainCard ? motion.openCurtain : null} toggle={toggle} />
+        <ItemBadge item={item} st={st} label={label} y={Math.min(item.h * cutK + elev, 2.4) + 0.3} canToggle={canToggle} isCamera={isCamera} lit={lit} rgb={info.rgb} Icon={iconComponent(iconOf(item.params)) ?? (echo ? SpeakerHighIcon : domainIcon(domain))} mdi={mdi} gesture={gesture} openCurtain={motion.curtainCard ? motion.openCurtain : null} toggle={toggle} />
+      )}
+      {!st && !edit && !lv.sensor && !lv.wash && (mdiOf(item.params) || iconOf(item.params)) && (
+        <DeviceMarker id={`${item.id}:saved-icon`} kind="badge" position={[0, Math.min(item.h * cutK + elev, 2.4) + 0.3, 0]} label={def.label}>
+          <span className="badge" data-saved-device-icon={item.id}><DeviceGlyph item={item} /></span>
+        </DeviceMarker>
       )}
     </group>
+  );
+}
+
+/**
+ * A pillar (column, riser) is part of the building shell, so it is lowered like the walls: always with Cut-away on, and with it off while the pillar stands on the camera's
+ * side of the building (lib/wallFacing.ts). Same mesh, scaled from the floor (no geometry rebuilt), eased like the walls; the dark cap sits at the cut height once it is low.
+ */
+function PillarSquash({ item, def, low, children }: { item: Item; def: Def; low: boolean; children: ReactNode }) {
+  const ref = useRef<Group>(null);
+  const lowered = low && item.h > WALL_CUT_H;
+  useSquash(ref, lowered ? WALL_CUT_H / item.h : 1);
+  return (
+    <>
+      <group ref={ref} name={`pillar:${item.id}`}>{children}</group>
+      {lowered && (
+        <group position={[item.x, 0, item.y]} rotation={[0, -item.rot * DEG, 0]}>
+          <CutCap item={item} def={def} y={item.elev ?? 0} />
+        </group>
+      )}
+    </>
   );
 }
 
@@ -135,11 +169,15 @@ export default memo(function ItemMesh({ item }: { item: Item }) {
   const iso = useIsoZone(); // Room mode: other rooms' furniture sinks away; the isolated room's wall pieces all show, so every device in it can be seen and touched
   const rooms = useRef<Group>(null);
   useIsoSink(rooms, useIsoItemGone(item.id), !!def && emitsLight(item.entity, def, item.kind)); // a lamp's group stays in the scene (flat): a hidden light would recompile every material
+  const wallCut = useWallPieceCut(item, !!def?.wall); // Cut-away off: a piece hangs on its wall, so it goes while that wall is cut
+  const pillarCut = useAutoCut(def?.pillar ? item.id : undefined) === "cut"; // Cut-away off: a pillar on the camera's side of the building is lowered
   if (!def || outOfSeason) return null;
-  if (cutaway && def.wall && !edit && !iso) return def.cat === "Sensors" ? <SensorStub item={item} /> : null; // the wall's piece goes with the wall; a sensor keeps its badge
+  if ((cutaway || wallCut) && def.wall && !edit && !iso) return def.cat === "Sensors" ? <SensorStub item={item} /> : null; // the wall's piece goes with the wall; a sensor keeps its badge
+  // stairs stay whole (you need to see where they lead); other solid parts are cut down with Cut-away on; pillars ease in PillarSquash instead
+  const inner = <ItemInner item={item} def={def} cut={cutaway && !!def.solid && !def.stair && !def.pillar} rootRef={root} />;
   return (
     <group ref={rooms}>
-      <ItemInner item={item} def={def} cut={cutaway && !!def.solid && !def.stair} rootRef={root} /> {/* stairs stay whole: you need to see where they lead */}
+      {def.pillar ? <PillarSquash item={item} def={def} low={cutaway || pillarCut}>{inner}</PillarSquash> : inner}
       {isVacuumKind(item.kind) && <Vacuum item={item} root={root} />}
       {/^sec_(cam|doorbell)/.test(item.kind) && <CameraFov item={item} />}
     </group>

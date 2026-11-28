@@ -121,7 +121,7 @@ function RoamRing({ radius }: { radius: number }) {
 export default function Critter({ item, def, ghost, edit, elev }: { item: Item; def: Def; ghost: boolean; edit: boolean; elev: number }) {
   const spec = def.critter!;
   const calm = !useKnobs().ambient; // a calm tier keeps pets in their resting pose: no breathing, blinking or wandering to redraw
-  const reduced = useReducedMotion() || calm;
+  const reduced = useReducedMotion() || calm || ghost; // an away pet is a quiet silhouette at its spot: nothing to breathe or wander, so it keeps the frame pacer asleep
   const par = critterParams(item.params, spec);
   const cfg = useMemo<Cfg>(() => ({ b: BEHAVIOUR[spec.kind], spec, radius: par.roam, speed: par.speed, pose: par.pose }), [spec, par.roam, par.speed, par.pose]);
   const roaming = !edit && !reduced && !ghost && par.roam > 0;

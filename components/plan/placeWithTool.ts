@@ -3,6 +3,7 @@ import { addPillar } from "@/lib/pillars";
 import { useStore } from "@/lib/store";
 import { uid } from "@/lib/uid";
 import { groundDown } from "./groundTool";
+import { linesDown, linesPoint } from "./linesTool";
 import { lvPlan } from "./levelPlan";
 import { paintAt } from "./paint2d";
 import { presetOf, usePillarUi } from "./pillarUi";
@@ -10,7 +11,7 @@ import { groundCtx, type PointerEnv } from "./pointerEnv";
 import { openingAt } from "./planPoint";
 import { useWallUi } from "./wallUi";
 
-/** The primary button (or a finger lifting) with the current tool: place a wall point, start a room or stairs rectangle, place an opening or pillar, paint, start a garden shape, or select nothing. */
+/** The primary button (or a finger lifting) with the current tool: place a wall or garden line point, start a room or stairs rectangle, place an opening or pillar, paint, start a garden shape, or select nothing. */
 export function placeWithTool(e: RPE, env: PointerEnv, startPan: (e: RPE) => void) {
   const { tool, g, point, px } = env;
   const store = useStore.getState();
@@ -40,6 +41,8 @@ export function placeWithTool(e: RPE, env: PointerEnv, startPan: (e: RPE) => voi
     g.end();
   } else if (tool === "garden") {
     groundDown(groundCtx(env, e));
+  } else if (tool === "lines") {
+    linesDown(linesPoint(point, e));
   } else if (tool === "stairwell") {
     point.capture(e);
     g.begin();

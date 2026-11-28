@@ -3,6 +3,9 @@ import { useMemo, useState } from "react";
 import { useCarModels } from "@/lib/carModelStore";
 import { creditsOf, LICENSE_SHORT } from "@/lib/carModels";
 import { CATALOG } from "@/lib/catalog";
+import { useCustom } from "@/lib/customStore";
+import { PH_CREDIT } from "@/lib/polyhaven";
+import { creditsOf as phCredits, sourceLink } from "@/lib/polyhavenPiece";
 import PieceDialog from "./PieceDialog";
 import "./carModelFinder.css";
 
@@ -13,6 +16,8 @@ import "./carModelFinder.css";
 export default function CarCredits({ onClose }: { onClose: () => void }) {
   const models = useCarModels((s) => s.models);
   const list = useMemo(() => creditsOf(models), [models]);
+  const pieces = useCustom((s) => s.pieces);
+  const ph = useMemo(() => phCredits(pieces), [pieces]);
   return (
     <PieceDialog title="Credits for 3D models" onClose={onClose}>
       <div className="pd-scroll">
@@ -40,6 +45,23 @@ export default function CarCredits({ onClose }: { onClose: () => void }) {
             ))}
           </ul>
         )}
+        {ph.length > 0 && (
+          <>
+            <h3 className="label">Poly Haven models (CC0)</h3>
+            <p className="cmc-note">{PH_CREDIT}. These models are free to use without credit; the authors are named here to thank them.</p>
+            <ul className="cmc-list">
+              {ph.map((s) => (
+                <li key={s.id}>
+                  <strong>{s.name}</strong>
+                  <span>
+                    {s.authors ? `by ${s.authors} · ` : ""}
+                    <a href={sourceLink(s.id)} target="_blank" rel="noopener noreferrer">Source on Poly Haven</a>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
       <footer className="pb-foot">
         <button type="button" className="btn" onClick={onClose}>Close</button>
@@ -48,11 +70,12 @@ export default function CarCredits({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** "3D model credits" link for the catalog drawer; shown only while some real car model is in use. */
+/** "3D model credits" link for the catalog drawer; shown while a real car model or a Poly Haven piece is in use. */
 export function CreditsLink() {
   const count = useCarModels((s) => Object.keys(s.models).length);
+  const hasPh = useCustom((s) => s.pieces.some((p) => p.source));
   const [open, setOpen] = useState(false);
-  if (!count) return null;
+  if (!count && !hasPh) return null;
   return (
     <>
       <button type="button" className="cmf-credits-link" onClick={() => setOpen(true)}>3D model credits</button>

@@ -8,7 +8,7 @@ import useDataPanel from "./useDataPanel";
 import "./dataPanel.css";
 
 /** Data and backups: saved versions of the plan, uploaded files, and a backup to download or import. */
-export default function DataPanel({ onClose }: { onClose: () => void }) {
+export default function DataPanel({ onClose, onHomes }: { onClose: () => void; /** open the Homes manager (the plan manager's homes view) */ onHomes?: () => void }) {
   const d = useDataPanel();
   const { data, problem, note, busy, ask, setAsk } = d;
   const off = busy !== null;
@@ -44,6 +44,13 @@ export default function DataPanel({ onClose }: { onClose: () => void }) {
             <KeptSection kept={d.kept} off={off} onRestore={d.restoreKept} />
             <FilesSection files={data.files} off={off} ask={ask} setAsk={setAsk} onDelete={(r) => void d.remove(r)} />
             <BackupSection off={off} importing={busy === "import"} file={d.file} setFile={d.setFile} onImport={(f) => void d.doImport(f)} />
+            {onHomes && (
+              <section className="dp-homes" aria-label="Other homes">
+                <MonoLabel>Other homes</MonoLabel>
+                <p className="hint">Each plan can show its own Home Assistant. A backup keeps the homes' names and addresses, but the tokens in it are scrambled and the key stays in a file next to the database on this server: restored on another machine, a home asks for its token again.</p>
+                <button type="button" className="btn" onClick={onHomes}>Manage homes</button>
+              </section>
+            )}
           </>
         )}
         <p className={`field-note ${note?.ok ? "ok" : "warn"}`} role="status" aria-live="polite">{note?.text}</p>

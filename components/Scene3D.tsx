@@ -1,14 +1,13 @@
 "use client";
 import { Canvas, useFrame, useThree, type RootState } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clamp } from "@/lib/mathUtil";
-import { Object3D, Vector3, type DirectionalLight, type HemisphereLight, type MeshStandardMaterial } from "three";
-import { useKnobs, useQuality, reportRenderer } from "@/lib/quality";
-import { framePolicy, frameFlags } from "@/lib/framePacer";
+import { Object3D, Vector3, type DirectionalLight, type HemisphereLight } from "three";
+import { useKnobs, useQuality, reportRenderer, isLite } from "@/lib/quality";
+import { framePolicy, frameFlags, type FramePolicy } from "@/lib/framePacer";
 import { useVp } from "@/lib/useVp";
 import { probe } from "./scene/devProbe";
 import { planBounds } from "@/lib/geometry";
-import { mottleTexture, tiledTexture } from "@/lib/textures";
 import { useStore, type Environment } from "@/lib/store";
 import Levels from "./scene/Levels";
 import { baseElevation } from "@/lib/stairs";
@@ -19,62 +18,50 @@ import Surroundings from "./scene/site/Surroundings";
 import { useSurroundings } from "./scene/site/useSurroundings";
 import FoliageDriver from "./scene/FoliageDriver";
 import HolidayDecor from "./scene/season/HolidayDecor";
-import { seasonGroundColor, seasonMottleColor } from "@/lib/season";
-import { useSky } from "@/lib/useSky";
 import { useSkySettings } from "@/lib/sky";
 import CloudShadows from "./scene/CloudShadows";
 import SkyDriver from "./scene/SkyDriver";
+import NightSky from "./scene/NightSky";
 import Weather from "./scene/Weather";
+import AmbientLife from "./scene/AmbientLife";
 import { live } from "./scene/skyLive";
-import { useWetSurface } from "./scene/useWet";
+import GardenGround from "./scene/GardenGround";
 import PostFx, { Studio } from "./scene/PostFx";
 import QualityGovernor from "./scene/QualityGovernor";
 import FrameDriver from "./scene/FrameDriver";
 import { GlGuard, GlNotice } from "./scene/GlStatus";
 import { useFramePaused } from "./scene/useFramePaused";
 import { useFrameWatchdog } from "./scene/useFrameWatchdog";
-import SkyEnv from "./scene/SkyEnv";
+import HdriEnv from "./scene/HdriEnv";
 import Rig from "./scene/Rig";
+import SnapshotBridge from "./scene/SnapshotBridge";
 import StudioFloor from "./scene/StudioFloor";
 import EditOverlay from "./scene/edit/EditOverlay";
 import FurnitureEditor3D from "./scene/edit/FurnitureEditor3D";
 import SelectionPicker from "./scene/edit/SelectionPicker";
 import Flows from "./scene/Flows";
+import EnergyFlow from "./scene/EnergyFlow";
+import PipesLayer from "./scene/PipesLayer";
 import { useLiveLayer } from "@/lib/liveLayer";
 import DeclutterLayer from "./scene/DeclutterLayer";
+import { FacingDriver } from "./scene/facingState";
 import ItemPulse from "./scene/ItemPulse";
+import PresenceAvatars from "./scene/PresenceAvatars";
+import AlertFx from "./scene/AlertFx";
+import SunHeat from "./scene/SunHeat";
+import FootprintHalo from "./scene/FootprintHalo";
+import AnnotationPins from "./scene/AnnotationPins";
+import MaintenanceMarkers from "./scene/MaintenanceMarkers";
+import { useThemeColors } from "@/lib/useThemeColors";
+import { STUDIO_BACKDROP } from "@/lib/studioLook";
+import { useWalkActive } from "@/lib/walkStore";
+
+const WalkRig = lazy(() => import("./scene/walk/WalkRig")); // the first-person camera: downloaded the first time somebody walks
 
 const GARDEN_SHADOW_EXTENT = 32; // items on the lawn and drive cast and receive sun shadows this far (m) around the building centre
 const STUDIO_SHADOW_MARGIN = 14; // metres of sun shadow beyond the building's corners on the studio ground
-const BACKDROP: Record<Environment, string> = { studio: "#030406", garden: "#0a0c11" };
-
-/** The garden's lawn. While the real surroundings show (`covered`) their ground replaces it (same lawn look near the plan), so this plane only stays as the invisible catcher of a double click. */
-function Ground({ cx, cz, covered }: { cx: number; cz: number; covered: boolean }) {
-  const tex = useMemo(() => tiledTexture("grass", 140, 140), []);
-  const mottle = useMemo(() => mottleTexture(140, 140), []);
-  const setFocusRoom = useStore((s) => s.setFocusRoom);
-  const { season, mix } = useSky().season;
-  const grass = seasonGroundColor(season, Math.round(mix * 50) / 50);
-  const mott = seasonMottleColor(season, Math.round(mix * 50) / 50);
-  const mat = useRef<MeshStandardMaterial>(null);
-  useWetSurface(mat, grass, 1, 0.5, 0.4);
-  useEffect(() => () => tex.dispose(), [tex]);
-  useEffect(() => () => mottle.dispose(), [mottle]);
-  return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, -0.002, cz]} receiveShadow onDoubleClick={() => setFocusRoom(null)}>
-        <planeGeometry args={[140, 140]} />
-        <meshStandardMaterial ref={mat} map={tex} color={grass} roughness={1} visible={!covered} />
-      </mesh>
-      {!covered && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.004, cz]} renderOrder={1} raycast={() => null}>
-          <planeGeometry args={[140, 140]} />
-          <meshBasicMaterial color={mott} alphaMap={mottle} transparent opacity={0.3} depthWrite={false} />
-        </mesh>
-      )}
-    </>
-  );
-}
+const WALK_ECO_DPR = 0.85; // Eco draws a walkthrough a little coarser: first person fills the whole screen with near surfaces, which costs more than the isometric view
+const BACKDROP: Record<Environment, string> = { studio: STUDIO_BACKDROP, garden: "#0a0c11" };
 
 /** How far the sun (directional, so only its shadow camera cares) stands from the flat: casters nearer to the sun than SUN_DISTANCE - 0.5 m (the shadow camera's near plane) cast a shadow, so it must reach past the neighbours that cast shadows (SiteBuildings SHADOW_M plus a block's depth). */
 const SUN_DISTANCE = 60;
@@ -84,15 +71,16 @@ const SUN_REDRAW_M2 = 0.1;
 const TIGHT_SHADOW_MARGIN = 9;
 
 const NO_ENV_FILL = 1.45;
-/** Sun (moon at night) and fill follow the live sky: direction, colour and strength are written each frame, never through React. */
-function Lighting({ cx, cz, extent, garden }: { cx: number; cz: number; extent: number; garden: boolean }) {
-  const { shadowMap, shadowSoft, fx, studioEnv } = useKnobs();
+/** Sun (moon at night) and fill follow the live sky: direction, colour and strength are written each frame, never through React. `onSun` hands the sun light to whoever needs its shadow map (the god rays). */
+function Lighting({ cx, cz, extent, garden, onSun }: { cx: number; cz: number; extent: number; garden: boolean; onSun: (light: DirectionalLight | null) => void }) {
+  const { shadowMap, shadowSoft, fx, studioEnv, shadows } = useKnobs();
   const lazy = fx !== "film"; // Eco and Light redraw the sun's shadow map only when something that casts a shadow may have changed (the camera alone never does); the film tiers redraw it every frame as always
   const gl = useThree((s) => s.gl);
   const radius = clamp((shadowSoft * shadowMap) / (2 * extent), 1, 12); // texels of filter for a constant soft edge in metres
   const target = useMemo(() => new Object3D(), []);
   const hemi = useRef<HemisphereLight>(null);
-  const sun = useRef<DirectionalLight>(null);
+  const sun = useRef<DirectionalLight | null>(null);
+  const sunRef = useCallback((light: DirectionalLight | null) => { sun.current = light; onSun(light); }, [onSun]);
   const fill = useRef<DirectionalLight>(null);
   const drawnSun = useRef(new Vector3(Infinity, 0, 0)); // where the sun stood when its shadow map was last drawn
   useEffect(() => {
@@ -129,9 +117,9 @@ function Lighting({ cx, cz, extent, garden }: { cx: number; cz: number; extent: 
       <primitive object={target} position={[cx, 0, cz]} />
       <directionalLight
         key={`${extent}-${garden}-${shadowMap}`}
-        ref={sun}
+        ref={sunRef}
         target={target}
-        castShadow
+        castShadow={shadows}
         shadow-mapSize={[shadowMap, shadowMap]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
@@ -178,28 +166,35 @@ function useGlRecovery(direct: boolean) {
 type Frame = { cx: number; cz: number; half: number };
 
 /** Everything inside the canvas: sky, lights, ground, the building and its levels, weather, the editors' 3D parts and the post stack. */
-function SceneContents({ frame, extent, demandCapMs, direct }: { frame: Frame; extent: number; demandCapMs: number | null; direct: boolean }) {
+function SceneContents({ frame, extent, pace, direct }: { frame: Frame; extent: number; pace: FramePolicy | null; direct: boolean }) {
   const k = useKnobs();
   const plan = useStore((s) => s.plan);
   const environment = useStore((s) => s.environment);
   const view = useStore((s) => s.view);
   const powerLayer = useLiveLayer((s) => s.layer === "power"); // the power lines (energy flows) belong to the Power layer of the Live view
   const garden = environment === "garden";
+  const [sun, setSun] = useState<DirectionalLight | null>(null); // the sun's light, once mounted (a new one replaces it when the shadow map is rebuilt)
   const surroundings = useSurroundings() !== null;
+  const walking = useWalkActive(); // first person: the isometric view's floating labels are off and the walker's camera is mounted
+  const themed = useThemeColors(); // the Studio's clear colour follows the HUD theme (read once per theme change); the garden's sky logic is untouched
+  const backdrop = garden ? BACKDROP.garden : themed.sceneBackdrop;
   return (
     <>
-      <color attach="background" args={[BACKDROP[environment]]} />
-      <SkyDriver backdrop={BACKDROP[environment]} />
+      <color attach="background" args={[backdrop]} />
+      <SkyDriver backdrop={backdrop} />
+      {k.nightSky !== 0 && <NightSky level={k.nightSky} />}
       <QualityGovernor />
-      {demandCapMs !== null && <FrameDriver capMs={demandCapMs} />}
+      {pace && <FrameDriver capMs={pace.capMs} ambientMs={pace.ambientMs} shadowMs={pace.shadowMs} />}
       <Rig />
-      <DeclutterLayer />
-      <Lighting cx={frame.cx} cz={frame.cz} extent={extent} garden={garden} />
-      {k.ibl ? <SkyEnv garden={garden} /> : k.studioEnv && <Studio />}
+      <FacingDriver />
+      <SnapshotBridge />
+      {walking ? <Suspense fallback={null}><WalkRig /></Suspense> : <DeclutterLayer />}
+      <Lighting cx={frame.cx} cz={frame.cz} extent={extent} garden={garden} onSun={setSun} />
+      {k.ibl ? <HdriEnv garden={garden} /> : k.studioEnv && <Studio />}
       <FoliageDriver />
       {garden ? (
         <>
-          <Ground cx={frame.cx} cz={frame.cz} covered={surroundings} />
+          <GardenGround cx={frame.cx} cz={frame.cz} covered={surroundings} />
           <Surroundings />
           <Scatter plan={plan} />
           <SeasonGarden cx={frame.cx} cz={frame.cz} />
@@ -209,16 +204,25 @@ function SceneContents({ frame, extent, demandCapMs, direct }: { frame: Frame; e
         <StudioFloor cx={frame.cx} cz={frame.cz} />
       )}
       <GroundAreas />
+      <FootprintHalo />
       <Levels />
+      <AnnotationPins />
+      {!walking && <MaintenanceMarkers />}
       <group position-y={baseElevation(plan)}>
         <HolidayDecor />
       </group>
       <Weather cx={frame.cx} cz={frame.cz} half={frame.half} />
+      {view === "live" && <AmbientLife />}
       {view === "furniture" && <FurnitureEditor3D />}
       {view === "ha" && <SelectionPicker />}
       {(view === "ha" || (view === "live" && powerLayer)) && <Flows interactive={view === "ha"} />}
+      <EnergyFlow />
+      <PipesLayer />
       <ItemPulse />
-      {!direct && <PostFx />}
+      {view === "live" && <PresenceAvatars />}
+      <AlertFx />
+      <SunHeat />
+      {!direct && <PostFx sun={sun} />}
     </>
   );
 }
@@ -234,6 +238,7 @@ export default function Scene3D() {
   const environment = useStore((s) => s.environment);
   const view = useStore((s) => s.view);
   const garden = environment === "garden";
+  const walking = useWalkActive();
   const direct = k.fx === "none"; // drawn straight to the screen: no post stack, so the browser's own multisampling and the materials' tone mapping do the work
   const { epoch, lost, rebuild, onCreated } = useGlRecovery(direct);
   useFrameWatchdog(!paused, rebuild); // a view that stops drawing, could not start, or lost its graphics for good is built again by itself
@@ -249,15 +254,15 @@ export default function Scene3D() {
     <>
       <GlGuard key={epoch} onRetry={rebuild}>
         <Canvas
-          key={direct ? "direct" : "post"}
-          shadows="percentage"
+          key={`${direct ? "direct" : "post"}-${k.antialias ? "aa" : "plain"}-${k.shadows ? "sh" : "flat"}`} // the multisampling is fixed when the GL context is made, and the shadow shaders when the materials compile: a change of either builds the canvas again
+          shadows={k.shadows ? "percentage" : false}
           flat={!direct}
-          frameloop={paused || lost ? "never" : policy.demand ? "demand" : "always"}
-          dpr={[1, k.pixelRatio]}
-          gl={{ antialias: direct, powerPreference: "high-performance" }}
+          frameloop={paused || lost ? "never" : policy.demand || walking ? "demand" : "always"} // a walker standing still draws nothing, whatever the tier
+          dpr={k.pixelRatio < 1 ? k.pixelRatio : walking && isLite(tier) ? WALK_ECO_DPR : [1, k.pixelRatio]} // below 1 (software drawing) a fixed smaller render size; otherwise the screen's own ratio up to the tier's cap (Eco walks a little coarser)
+          gl={{ antialias: direct && k.antialias, powerPreference: "high-performance" }}
           onCreated={onCreated}
         >
-          <SceneContents frame={frame} extent={extent} demandCapMs={policy.demand ? policy.capMs : null} direct={direct} />
+          <SceneContents frame={frame} extent={extent} pace={policy.demand || walking ? policy : null} direct={direct} />
         </Canvas>
       </GlGuard>
       {lost && (

@@ -2,6 +2,7 @@
 import { useStore } from "@/lib/store";
 import FurnitureInspector from "./inspector/FurnitureInspector";
 import GroundPanel, { GardenPanel } from "./inspector/GroundPanel";
+import LinesPanel from "./inspector/LinesPanel";
 import LinkInspector from "./inspector/LinkInspector";
 import PaintPanel from "./inspector/PaintPanel";
 import PillarPanel from "./inspector/PillarPanel";
@@ -15,11 +16,13 @@ export default function Inspector() {
   const view = useStore((s) => s.view);
   const painting = useStore((s) => s.tool === "paint" && (s.view === "plan" || s.view === "furniture"));
   const gardening = useStore((s) => s.tool === "garden" && s.view === "plan");
+  const drawingLines = useStore((s) => s.tool === "lines" && s.view === "plan");
   const compact = useVp().vp !== "regular";
   const opened = useEditUi((s) => s.inspectorOpen);
-  if (compact && view !== "ha" && !painting && !gardening && !opened) return null; // compact screens: a tap on a piece must not cover the canvas, "Edit" in the edit strip opens this
+  if (compact && view !== "ha" && !painting && !gardening && !drawingLines && !opened) return null; // compact screens: a tap on a piece must not cover the canvas, "Edit" in the edit strip opens this
   if (painting) return <PaintPanel />;
   if (gardening) return <GardenPanel />;
+  if (drawingLines) return <LinesPanel />;
   if (!sel) return null;
   // key: edit state (typed drafts, clamp notices) never leaks from one selection to the next
   const key = `${view}:${sel.type}:${sel.id}`;

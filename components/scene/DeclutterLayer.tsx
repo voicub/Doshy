@@ -9,26 +9,29 @@ import { isolationOf, markerInZone, type Zone } from "@/lib/roomIsolate";
 import { useStore } from "@/lib/store";
 import { occluded, type Slab } from "@/lib/occlusion";
 import { WALL_CUT_H, WALL_H, WALL_T } from "@/lib/geometry";
-import { wallHeight } from "@/lib/fences";
+import { isSeeThroughFence, wallHeight } from "@/lib/fences";
 import { elevationOf, levelIdOf } from "@/lib/levels";
 import type { Plan } from "@/lib/types";
+import type { WallCut } from "@/lib/wallFacing";
 import { useDeclutter } from "./declutterState";
 import { useReducedMotion } from "./motion";
 import { useLevelVisibility } from "./levelState";
+import { useAutoCuts } from "./facingState";
 import { clamp } from "@/lib/mathUtil";
 import "./declutter.css";
 
-/** The plan's walls as slabs for the behind-a-wall test: full height, or the cut-away height on the storey being worked on; glass lets you see through; hidden storeys draw none. */
-function wallSlabs(plan: Plan, cutaway: boolean, activeId: string, visible: Record<string, boolean>): Slab[] {
+/** The plan's walls as slabs for the behind-a-wall test: full height, or the cut-away height on the storey being worked on (every wall with Cut-away on, the cut ones with it off: `auto`); glass lets you see through; hidden storeys draw none. */
+function wallSlabs(plan: Plan, cutaway: boolean, auto: ReadonlyMap<string, WallCut> | undefined, activeId: string, visible: Record<string, boolean>): Slab[] {
   const out: Slab[] = [];
   for (const w of plan.walls) {
     const lv = levelIdOf(plan, w);
     const dx = w.b.x - w.a.x;
     const dz = w.b.y - w.a.y;
     const len = Math.hypot(dx, dz);
-    if (visible[lv] === false || w.style === "glass" || w.style === "fence_wire" || len < 1e-6) continue;
+    if (visible[lv] === false || isSeeThroughFence(w.style) || len < 1e-6) continue;
     const y0 = elevationOf(plan, lv);
-    out.push({ x: w.a.x, z: w.a.y, ux: dx / len, uz: dz / len, len, r: (w.thickness ?? WALL_T) / 2, y0, y1: y0 + Math.min(wallHeight(w, WALL_H), cutaway && lv === activeId ? WALL_CUT_H : Infinity) });
+    const low = lv === activeId && (cutaway || auto?.get(w.id) === "cut");
+    out.push({ x: w.a.x, z: w.a.y, ux: dx / len, uz: dz / len, len, r: (w.thickness ?? WALL_T) / 2, y0, y1: y0 + Math.min(wallHeight(w, WALL_H), low ? WALL_CUT_H : Infinity) });
   }
   return out;
 }
@@ -227,7 +230,7 @@ export function Marker({ position, kind, children, id, alert = false, dot, label
 
   useEffect(() => {
     rootRef.current?.render(children);
-    entry.pip.style.setProperty("--dc", dot ?? "#8a98a3");
+    entry.pip.style.setProperty("--dc", dot ?? "var(--lg-8a98a3)");
     const text = label ?? "Device";
     entry.pip.setAttribute("aria-label", `${text}. Show details`);
     entry.pip.title = text;
@@ -541,8 +544,9 @@ export default function DeclutterLayer() {
   const ov = useRef({ v: 0, tx: 0, ty: 0, tz: 0, slabs: null as Slab[] | null }).current; // the sight line toward the camera, and which walls it was tested against
   const cutaway = useStore((s) => s.cutaway);
   const { activeId, visible } = useLevelVisibility();
+  const auto = useAutoCuts(activeId, true); // labels hidden behind a wall follow each wall's own state: only the walls that are cut let a label behind them show
   const slabs = useRef<Slab[]>([]);
-  slabs.current = useMemo(() => wallSlabs(plan, cutaway, activeId, visible), [plan, cutaway, activeId, visible]);
+  slabs.current = useMemo(() => wallSlabs(plan, cutaway, auto, activeId, visible), [plan, cutaway, auto, activeId, visible]);
   const list = useRef<Entry[]>([]);
   const anchors = useRef<Anchor[]>([]);
 

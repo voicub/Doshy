@@ -1,6 +1,7 @@
 "use client";
 import { HouseIcon, LightbulbIcon, ListIcon, MoonIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import { useHomeLabel } from "@/lib/homes";
 import { useStore } from "@/lib/store";
 import { useHouseLive } from "@/lib/useLive";
 import { useSky } from "@/lib/useSky";
@@ -12,8 +13,11 @@ import LaundryChip from "./LaundryChip";
 import { Equaliser } from "./MediaBits";
 import { useMediaUi } from "./mediaUi";
 import { OpenChip } from "./StatusChips";
+import { PlanChip } from "./PlanSwitcher";
+import { PressureStripItem } from "./PressureBits";
 import { WEATHER_ICON } from "./TelemetryBar";
 import "./compactChrome.css";
+import "./homeChip.css";
 
 const STATUS_TEXT: Record<HaStatus, string> = { loading: "linking", online: "online", offline: "offline" };
 
@@ -34,8 +38,10 @@ function Clock() {
  */
 export default function CompactStrip({ status, lit, total, live }: { status: HaStatus; lit: number; total: number; live: boolean }) {
   const sky = useSky();
+  const home = useHomeLabel(); // null while there is only one home
   const house = useHouseLive();
   const menu = useChromeUi((s) => s.menu);
+  const plansOpen = useChromeUi((s) => s.plans);
   const houseOpen = useChromeUi((s) => s.house);
   const mediaOpen = useMediaUi((s) => s.open);
   const playing = useStore((s) => Object.values(s.states).some((e) => e.entity_id.startsWith("media_player.") && (e.state === "playing" || e.state === "buffering")));
@@ -50,15 +56,18 @@ export default function CompactStrip({ status, lit, total, live }: { status: HaS
 
   return (
     <header className="cstrip hud" data-live={live} role="toolbar" aria-label="Status and menu">
-      <span className={`cs-ha ${status}`} role="status" aria-label={`Home Assistant ${STATUS_TEXT[status]}`}>
+      <span className={`cs-ha ${status}`} role="status" aria-label={`Home Assistant ${STATUS_TEXT[status]}${home ? `, ${home}` : ""}`} title={home ?? undefined}>
         <i className="dot" aria-hidden />
         {status !== "online" && <span className="cs-ha-text">{STATUS_TEXT[status]}</span>}
+        {home && <span className="cs-ha-home">{home}</span>}
       </span>
       <Clock />
+      <PlanChip compact open={plansOpen} onClick={() => useChromeUi.getState().setPlans(!plansOpen)} />
       {live && (
         <button type="button" className="cs-house" aria-expanded={houseOpen} aria-label={`${summary}. Open the house card`} onClick={() => useChromeUi.getState().setHouse(!houseOpen)}>
           <span className="cs-item"><Glyph size={20} aria-hidden /><b>{out}</b><small>out</small></span>
           <span className="cs-item"><HouseIcon size={20} aria-hidden /><b>{inside}</b><small>in</small></span>
+          <PressureStripItem />
           {power !== undefined && <span className="cs-item cs-power"><b>{power}</b><small>W</small></span>}
         </button>
       )}

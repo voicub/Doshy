@@ -78,7 +78,7 @@ const base = (levels: Plan["levels"]): Plan => ({
 });
 
 test("an exterior door on a raised ground floor gets stairs that lead away from the building", () => {
-  const specs = entranceStairs(base([{ id: "L0", name: "Parter inalt", elevation: 1, height: 2.78 }]));
+  const specs = entranceStairs(base([{ id: "L0", name: "Ground floor", elevation: 1, height: 2.78 }]));
   assert.equal(specs.length, 1); // windows get none
   const s = specs[0];
   assert.equal(s.count, 6);

@@ -117,7 +117,7 @@ export function TimeChart({ from, to, lines, unit, digits = 1, bands, bandLabel,
           {cur.t !== null && (
             <g pointerEvents="none">
               <line x1={px(hoverX)} x2={px(hoverX)} y1={M.t} y2={M.t + ph} className="sc-cross" />
-              {rows.map(({ l, p }) => p && <circle key={l.id} cx={hoverX} cy={y(p.v)} r={3} fill="#05070a" stroke={l.color} strokeWidth={1.5} />)}
+              {rows.map(({ l, p }) => p && <circle key={l.id} cx={hoverX} cy={y(p.v)} r={3} fill="var(--bg)" stroke={l.color} strokeWidth={1.5} />)}
             </g>
           )}
           <rect x={M.l} y={M.t} width={pw} height={ph} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => cur.setT(null)} />

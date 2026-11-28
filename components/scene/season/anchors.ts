@@ -16,7 +16,7 @@ export type Anchors = {
 };
 
 export const RAIL_TOP = 1.1;
-const BALCONY_NAME = /balcon|terrace|terasa|patio|loggia/i;
+const BALCONY_NAME = /balcon|terrace|patio|loggia/i;
 const PROBE = WALL_T / 2 + 0.15;
 const inRoom = (rooms: Room[], x: number, y: number) => rooms.some((r) => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h);
 

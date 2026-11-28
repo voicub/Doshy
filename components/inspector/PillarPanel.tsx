@@ -8,6 +8,7 @@ import HudPanel from "../ui/HudPanel";
 import NumField from "../ui/NumField";
 import Segmented from "../ui/Segmented";
 import { Group, LevelTag } from "./shared";
+import { ColourField } from "./PaintPanel";
 import { closeInspector } from "./closeInspector";
 import "../plan/pillar.css";
 
@@ -61,6 +62,9 @@ export default function PillarPanel({ id }: { id: string }) {
             </button>
           ))}
         </div>
+      </Group>
+      <Group label="Paint">
+        <ColourField undoable value={it.color ?? null} reset="Original" natural={def.parts[0].c} onChange={(color) => set({ color: color ?? undefined })} />
       </Group>
       <details className="pillar-adv">
         <summary>Advanced</summary>

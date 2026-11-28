@@ -2,6 +2,7 @@
 import { ArrowsInSimpleIcon, ArrowsOutSimpleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { lastMotion } from "@/lib/securityLook";
+import { haFetch } from "@/lib/haHome";
 import { REQUEST_TIMEOUT_MS, within } from "@/lib/requestTimeout";
 import { useStore } from "@/lib/store";
 import { hudScale, hudViewport } from "@/lib/displayStore";
@@ -10,6 +11,7 @@ import { useNow } from "../useNow";
 import MonoLabel from "./MonoLabel";
 import type { DeviceTarget } from "./serviceActions";
 import "./cameraCard.css";
+import DeviceGlyph from "./DeviceGlyph";
 
 const REFRESH_MS = 3000; // a new snapshot this often while the card is open and the tab visible
 const REFRESH_BIG_MS = 2000;
@@ -48,7 +50,7 @@ function useSnapshot(entity: string, every: number) {
       const mine = new AbortController();
       ctl = mine;
       try {
-        const res = await fetch(`/api/ha/camera?entity=${encodeURIComponent(entity)}`, { cache: "no-store", headers: etag ? { "If-None-Match": etag } : {}, signal: within(REQUEST_TIMEOUT_MS, mine.signal) });
+        const res = await haFetch(`/api/ha/camera?entity=${encodeURIComponent(entity)}`, { cache: "no-store", headers: etag ? { "If-None-Match": etag } : {}, signal: within(REQUEST_TIMEOUT_MS, mine.signal) });
         if (res.status === 200) {
           const next = URL.createObjectURL(await res.blob());
           etag = res.headers.get("ETag");
@@ -115,7 +117,7 @@ export default function CameraCard({ target, onClose }: { target: DeviceTarget; 
   return (
     <div ref={root} className={`camcard${big ? " big" : ""}${!big && !style ? " center" : ""}`} style={style} role="dialog" aria-label={`Camera ${name}`}>
       <HudPanel title="camera" meta={target.entity} onClose={onClose} className="cc">
-        <h2 className="hud-name">{name}</h2>
+        <h2 className="hud-name"><DeviceGlyph entity={target.entity} size={20} /> {name}</h2>
         <div className="cc-frame">
           {src && <img src={src} alt={`Live snapshot of ${name}`} className={status === "error" ? "stale" : ""} />}
           {!src && <p className="field-note" role="status">{status === "error" ? "No picture. Is the camera online?" : "Loading picture..."}</p>}

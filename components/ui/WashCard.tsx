@@ -11,6 +11,7 @@ import { useDismiss } from "./useDismiss";
 import { WASH_ICON } from "./washIcons";
 import { ProgramSelect, timing, WashControls, WashFacts } from "./WashParts";
 import "./washData.css";
+import DeviceGlyph from "./DeviceGlyph";
 
 const WIDTH = 320;
 
@@ -69,7 +70,7 @@ export default function WashCard({ target, onClose }: { target: DeviceTarget; on
     <div ref={root} className={`devcard ${style ? "" : "center"}`} style={style} role="dialog" aria-label={`${KIND_LABEL[v.kind]} ${v.name}`}>
       <HudPanel title={KIND_LABEL[v.kind]} meta={v.name.toLowerCase() === KIND_LABEL[v.kind].toLowerCase() ? undefined : v.name} onClose={onClose} className="dc wc">
         <div className={`wc-state ${badge.tone}`} style={{ ["--sc" as string]: color }}>
-          <Icon size={26} aria-hidden />
+          <DeviceGlyph entity={target.entity} size={26} fallback={<Icon size={26} aria-hidden />} />
           <div className="wc-words" role="status" aria-live="polite">
             <b>{wordsOf(v)}</b>
             {when && <small>{when}</small>}

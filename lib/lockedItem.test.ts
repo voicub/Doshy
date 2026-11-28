@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { commitPlan, undoStep, redoStep, type HistoryState } from "./history.ts";
-import { checkPlan, getPlan, putPlan } from "./db/plans.ts";
+import { checkPlan } from "./db/planDoc.ts";
+import { getPlan, putPlan } from "./db/plans.ts";
 import { tempDb } from "./db/testDb.ts";
 import type { Item, Plan } from "./types.ts";
 
@@ -31,8 +32,8 @@ test("a locked item survives the server round trip, unlocked items carry no flag
   const t = tempDb();
   try {
     const { json } = checkPlan(p);
-    putPlan(t.db, { json, baseRev: 0, format: 3 });
-    const got = JSON.parse(getPlan(t.db)!.json) as Plan;
+    putPlan(t.db, 1, { json, baseRev: 0, format: 3 });
+    const got = JSON.parse(getPlan(t.db, 1)!.json) as Plan;
     assert.deepEqual(got.items.map((i) => i.locked), [true, undefined]);
   } finally {
     t.cleanup();

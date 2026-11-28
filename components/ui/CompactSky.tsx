@@ -1,5 +1,8 @@
 "use client";
 import { FilmSlateIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon } from "@phosphor-icons/react";
+import { toggleReplay, useReplay } from "@/lib/replay";
+import { useChromeUi } from "./chromeUi";
 import type { ReactNode } from "react";
 import { HOLIDAY_IDS, HOLIDAY_LABEL, SEASONS } from "@/lib/season";
 import { useSkySettings } from "@/lib/sky";
@@ -11,6 +14,8 @@ import LevelViewToggle from "./LevelViewToggle";
 import LiveLayerSwitch from "./LiveLayerSwitch";
 import Segmented from "./Segmented";
 import { TIME_CHOICES, WEATHER_CHOICES, setTimeChoice, type TimeChoice } from "./skyControls";
+import { RealSkyRow, WeatherSourceChoices, moonText } from "./RealSky";
+import SeasonPreview from "./SeasonPreview";
 
 const ENVS: readonly Environment[] = ["studio", "garden"];
 const DIRS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
@@ -35,18 +40,21 @@ export function SkyControls() {
   const windOptions = ["auto", ...WIND_PRESETS.map((p) => p.label.toLowerCase())] as const;
   return (
     <>
-      <Group label={`Time of day${s.timeMode === "auto" ? `, sun ${el >= 0 ? "+" : "-"}${Math.abs(el)} degrees` : ""}`}>
+      <div className="more-grid"><RealSkyRow /></div>
+      <Group label={`Time of day${s.timeMode === "auto" ? `, sun ${el >= 0 ? "+" : "-"}${Math.abs(el)} degrees` : ""}${sky.phase !== "day" ? `, ${moonText(sky.moon, sky.moonSource)}` : ""}`}>
         <Segmented className="cm-seg" label="Time of day" value={timeValue} options={TIME_CHOICES} onChange={setTimeChoice} />
       </Group>
       <Group label="Weather">
         <Segmented className="cm-seg" label="Weather" value={s.weatherMode} options={WEATHER_CHOICES} onChange={s.setWeatherMode} format={(c) => (c === "auto" ? "auto (from HA)" : c)} />
+        <WeatherSourceChoices />
       </Group>
       <Group label="Wind">
         <Segmented className="cm-seg" label="Wind strength" value={windValue} options={windOptions} onChange={(v) => (v === "auto" ? s.setWindMode("auto") : s.setWind({ windSpeed: WIND_PRESETS.find((p) => p.label.toLowerCase() === v)?.speed ?? s.windSpeed }))} />
         {s.windMode === "manual" && <Segmented className="cm-seg" label="Wind comes from" value={compass8(s.windFrom)} options={DIRS} onChange={(d) => s.setWind({ windFrom: DIRS.indexOf(d) * 45 })} />}
       </Group>
       <Group label="Season">
-        <Segmented className="cm-seg" label="Season" value={s.seasonMode} options={SEASON_CHOICES} onChange={s.setSeasonMode} format={(c) => (c === "auto" ? "auto (calendar)" : c)} />
+        <Segmented className="cm-seg" label="Season" value={s.seasonMode} options={SEASON_CHOICES} onChange={s.setSeasonMode} format={(c) => (c === "auto" ? "follow the real date" : c)} />
+        <SeasonPreview />
       </Group>
       <details className="cm-details">
         <summary>Holidays</summary>
@@ -62,6 +70,7 @@ export function SceneControls({ onCinema }: { onCinema: () => void }) {
   const environment = useStore((s) => s.environment);
   const setEnvironment = useStore((s) => s.setEnvironment);
   const cutaway = useStore((s) => s.cutaway);
+  const replayOpen = useReplay((s) => s.open);
   const setCutaway = useStore((s) => s.setCutaway);
   const declutter = useDeclutter((s) => s.on);
   const setDeclutter = useDeclutter((s) => s.set);
@@ -74,10 +83,14 @@ export function SceneControls({ onCinema }: { onCinema: () => void }) {
       </Group>
       <div className="more-grid">
         <button type="button" className={`more-row ${cutaway ? "active" : ""}`} aria-pressed={cutaway} onClick={() => setCutaway(!cutaway)}>
-          <span className="more-text">Cut-away walls</span>
+          <span className="more-text">Cut-away walls<small>{cutaway ? "All walls low" : "Auto: walls facing you are cut"}</small></span>
         </button>
         <button type="button" className={`more-row ${declutter ? "active" : ""}`} aria-pressed={declutter} onClick={() => setDeclutter(!declutter)}>
           <span className="more-text">Tidy labels</span>
+        </button>
+        <button type="button" className={`more-row ${replayOpen ? "active" : ""}`} aria-pressed={replayOpen} onClick={() => { toggleReplay(); useChromeUi.getState().setMenu(false); }}>
+          <ClockCounterClockwiseIcon size={18} />
+          <span className="more-text">History replay<small>Scrub the last 24 hours or 7 days</small></span>
         </button>
         <button type="button" className="more-row" onClick={onCinema}>
           <FilmSlateIcon size={18} />

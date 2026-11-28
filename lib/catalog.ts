@@ -21,6 +21,7 @@ import { SEASONAL } from "./catalog.seasonal.ts";
 import { SENSORS } from "./catalog.sensors.ts";
 import { STAIRS } from "./catalog.stairs.ts";
 import { VEGETATION, vegPart } from "./catalog.vegetation.ts";
+import { UTILITIES } from "./catalog.utilities.ts";
 import type { CarSpec } from "./cars.ts";
 import type { CritterSpec } from "./critters.ts";
 import type { Species } from "./vegetation.ts";
@@ -176,7 +177,7 @@ const BASE: Record<string, Def> = {
   },
 };
 
-export const CATALOG: Record<string, Def> = { ...BASE, ...BASE_LIVING, ...BASE_DINING, ...BASE_DECOR, ...HOME_OFFICE, ...HOME_LIVING, ...HOME_KITCHEN, ...HOME_BATH, ...HOME_BEDROOM, ...APPLIANCES, ...DECOR, ...PLANTS_V2, ...SEASONAL, ...STAIRS, ...GARAGE, ...CARS, ...ENERGY, ...SECURITY, ...SENSORS, ...OUTDOOR, ...VEGETATION, ...GARDEN, ...ANIMALS };
+export const CATALOG: Record<string, Def> = { ...BASE, ...BASE_LIVING, ...BASE_DINING, ...BASE_DECOR, ...HOME_OFFICE, ...HOME_LIVING, ...HOME_KITCHEN, ...HOME_BATH, ...HOME_BEDROOM, ...APPLIANCES, ...DECOR, ...PLANTS_V2, ...SEASONAL, ...STAIRS, ...GARAGE, ...CARS, ...ENERGY, ...SECURITY, ...SENSORS, ...OUTDOOR, ...VEGETATION, ...GARDEN, ...ANIMALS, ...UTILITIES };
 export const KINDS = Object.keys(CATALOG);
 /** Is this kind a structural pillar (a column or the plumbing riser)? Pillars belong to the Plan mode: see `Def.pillar`. */
 export const isPillar = (kind: string) => !!CATALOG[kind]?.pillar;

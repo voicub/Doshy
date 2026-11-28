@@ -1,11 +1,13 @@
 import type { Def, Part } from "../catalog";
 import { HANG_LIGHTS } from "./lights.hang.ts";
 import { GROUND_LIGHTS } from "./lights.ground.ts";
+import { STREET_LIGHTS } from "./lights.street.ts";
 import { BULB_OFF, PI, TRUNK, b, cy, gd, led, lit, range, rod, shellPoints, vegPart, WARM } from "./kit.ts";
 
 // Lit plants and LED strips. Every glow part follows the linked HA light/switch (on/off, brightness, colour); `light` is the soft pool it casts.
 // Lights must sit at or below 1.78 m: higher ones count as ceiling fixtures in components/scene/pointShadow.ts and would take the shadow
-// slots of the indoor lamps. Each item adds a real point light to the scene, so decorative pieces use a small `k`.
+// slots of the indoor lamps. The street lights (lights.street.ts) are the exception: they keep their real height and rank as garden lights anyway.
+// Each item adds a real point light to the scene, so decorative pieces use a small `k`.
 const RGB_OFF = ["#ff6b8a", "#6bd0ff", "#8aff9a", "#ffd36b", "#c58aff"];
 const RGB_DEFAULT = "#9be8ff";
 
@@ -83,5 +85,6 @@ export const LIGHTS: Record<string, Def> = {
   gd_led_strip_1: strip(1),
   gd_led_strip_3: strip(3),
   ...GROUND_LIGHTS,
+  ...STREET_LIGHTS,
   ...HANG_LIGHTS,
 };

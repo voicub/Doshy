@@ -6,6 +6,8 @@ import { iconComponent } from "../ui/deviceIcons";
 import { DEVICE_EVENT } from "../ui/serviceActions";
 import { iconOf } from "@/lib/deviceIcons";
 import type { Item } from "@/lib/types";
+import MdiGlyph from "../ui/MdiGlyph";
+import { useItemIcon } from "../ui/useItemIcon";
 import { Marker } from "./DeclutterLayer";
 import type { WashLive } from "./useItemLive";
 import "./WashFx.css";
@@ -23,6 +25,7 @@ export default function WashFx({ item, elev, wash }: { item: Item; elev: number;
   const { view, badge } = wash;
   const color = `#${wash.tint.getHexString()}`;
   const Icon = iconComponent(iconOf(item.params)) ?? WASH_ICON[view.kind];
+  const mdi = useItemIcon(item);
   const arc = badge.tone === "done" ? 100 : badge.pct;
   const open = (x: number, y: number) => window.dispatchEvent(new CustomEvent(DEVICE_EVENT, { detail: { entity: item.entity, x, y } }));
   return (
@@ -42,7 +45,7 @@ export default function WashFx({ item, elev, wash }: { item: Item; elev: number;
             <circle className="wfx-track" cx="15" cy="15" r={R} />
             {arc !== undefined && <circle className="wfx-arc" cx="15" cy="15" r={R} strokeDasharray={`${(CIRC * arc) / 100} ${CIRC}`} transform="rotate(-90 15 15)" />}
           </svg>
-          <Icon size={13} weight="regular" aria-hidden />
+          {mdi ? <MdiGlyph icon={mdi} size={13} /> : <Icon size={13} weight="regular" aria-hidden />}
         </span>
         <span className="wfx-text">
           <b>{badge.title}</b>

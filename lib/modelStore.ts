@@ -1,4 +1,6 @@
 import { ApiError, NetError, deleteResource, fetchResourceFile, fetchResources, putResource } from "./dbApi.ts";
+import { fetchGuestModel } from "./guestApi.ts";
+import { guestTokenOf, onGuestPage } from "./guestMode.ts";
 import { setPhase } from "./syncStatus.ts";
 
 /**
@@ -105,6 +107,10 @@ export async function putModel(id: string, m: StoredModel, name?: string): Promi
 
 /** A stored model, from this browser's copy or else from the server (and then copied here). undefined when neither has it. */
 export async function getModel(id: string): Promise<StoredModel | undefined> {
+  if (onGuestPage()) {
+    const token = guestTokenOf(location.pathname); // a guest reads a model from its link's own route, and never from or into this browser's saved models
+    return token ? fetchGuestModel(token, id) : undefined;
+  }
   const hit = await cacheGet(id);
   if (hit) return hit;
   try {

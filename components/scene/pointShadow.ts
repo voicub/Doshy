@@ -34,7 +34,7 @@ function ranked(items: Item[]) {
       const def = CATALOG[it.kind];
       if (!def || !emitsLight(it.entity, def, it.kind)) return [];
       const y = (((def.light?.y ?? def.h * 0.8) * it.h) / def.h) + (it.elev ?? 0);
-      return [{ id: it.id, ceiling: y > 1.8 }];
+      return [{ id: it.id, ceiling: y > 1.8 && def.cat !== "Garden" }]; // street lights are tall but outdoors: they never outrank room lamps
     })
     .sort((a, b) => Number(b.ceiling) - Number(a.ceiling));
   r = { ids: new Set(order.slice(0, MAX_POINT_SHADOWS).map((o) => o.id)), rank: new Map(order.map((o, i) => [o.id, i])) };

@@ -61,8 +61,9 @@ export default function Dock(props: Props) {
 
   const importPlan = async (f: File) => {
     try {
-      setPlan(await readPlanFile(f));
-      setError(null);
+      let note: string | null = null; // why the plan opened without its floor plan picture, if it did
+      setPlan(await readPlanFile(f, (n) => (note = n)));
+      setError(note);
     } catch (e) {
       setError(`Invalid plan file: ${errorMessage(e)}`);
     }

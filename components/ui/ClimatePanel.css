@@ -4,13 +4,19 @@
 .cl-sec { display: flex; flex-direction: column; gap: 8px; }
 .dial { position: relative; display: grid; place-items: center; }
 .dial > svg { width: 248px; height: 248px; cursor: pointer; touch-action: none; border-radius: 50%; overflow: visible; }
+/* The dial is most of the panel on a small screen: the finger drags the RING, a swipe that starts anywhere else on it scrolls the panel (a touch-action: none dial swallowed every swipe that began on it). The ring gets a 40-unit (~49 px) invisible stroke to grab. */
+.d-hit { fill: none; stroke: transparent; stroke-width: 40; stroke-linecap: round; }
+@media (pointer: coarse) {
+  .dial > svg { pointer-events: none; }
+  .dial > svg .d-hit { pointer-events: stroke; }
+}
 .dial > svg:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
-.d-track { fill: none; stroke: rgba(138, 160, 173, 0.22); stroke-width: 7; stroke-linecap: round; }
-.d-fill { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; filter: drop-shadow(0 0 4px rgba(90, 215, 255, 0.5)); }
-.dial.heating .d-fill { stroke: #ff9d2e; filter: drop-shadow(0 0 6px rgba(255, 157, 46, 0.7)); animation: warm-stroke 2.4s ease-in-out infinite; }
-@keyframes warm-stroke { 50% { filter: drop-shadow(0 0 12px rgba(255, 157, 46, 1)); } }
+.d-track { fill: none; stroke: rgb(var(--dim-rgb) / 0.22); stroke-width: 7; stroke-linecap: round; }
+.d-fill { fill: none; stroke: var(--accent); stroke-width: 7; stroke-linecap: round; filter: drop-shadow(0 0 4px rgb(var(--accent-rgb) / 0.5)); }
+.dial.heating .d-fill { stroke: var(--lg-ff9d2e); filter: drop-shadow(0 0 6px rgb(var(--lg-255-157-46) / 0.7)); animation: warm-stroke 2.4s ease-in-out infinite; }
+@keyframes warm-stroke { 50% { filter: drop-shadow(0 0 12px rgb(var(--lg-255-157-46) / 1)); } }
 .dial.off .d-fill { stroke: var(--muted); filter: none; }
-.d-tick { stroke: rgba(138, 160, 173, 0.5); stroke-width: 0.8; }
+.d-tick { stroke: rgb(var(--dim-rgb) / 0.5); stroke-width: 0.8; }
 .d-cur { stroke: var(--text); stroke-width: 2.4; stroke-linecap: round; }
 .d-thumb { fill: var(--bg); stroke: var(--text); stroke-width: 2; }
 .d-val { font: 300 42px var(--mono); fill: var(--text); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
@@ -18,18 +24,18 @@
 .d-now { font: 500 10px var(--mono); letter-spacing: 0.12em; fill: var(--muted); }
 .d-action { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 7px; font: 500 10.5px/1 var(--mono); letter-spacing: 0.18em; color: var(--muted); }
 .d-action i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
-.dial.heating .d-action { color: #ffb066; }
-.dial.heating .d-action i { background: #ff9d2e; animation: warm 1.6s ease-in-out infinite; }
+.dial.heating .d-action { color: var(--lg-ffb066); }
+.dial.heating .d-action i { background: var(--lg-ff9d2e); animation: warm 1.6s ease-in-out infinite; }
 .d-btns { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 70px; }
 .d-btns .icon-btn { border: 1px solid var(--accent-line); width: 28px; height: 28px; }
 .d-btns .icon-btn:disabled { opacity: 0.35; pointer-events: none; }
 .cl-out { display: flex; gap: 18px; }
 .cl-rooms { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--accent-line); border-radius: var(--r); }
-.cl-room { display: grid; grid-template-columns: 1fr auto 56px 42px; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; text-align: left; font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); border-bottom: 1px solid rgba(90, 215, 255, 0.07); }
+.cl-room { display: grid; grid-template-columns: 1fr auto 56px 42px; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; text-align: left; font: 500 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); border-bottom: 1px solid rgb(var(--line-rgb) / 0.07); }
 .cl-room:hover { background: var(--accent-soft); }
 .cl-room small { text-align: right; font-size: 10.5px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 .cl-room small.ok { color: var(--ok); }
-.cl-room small.hot { color: #ffb066; }
+.cl-room small.hot { color: var(--lg-ffb066); }
 .cl-room small.cold { color: var(--accent); }
 @media (pointer: coarse) {
   .d-btns .icon-btn { width: var(--touch); height: var(--touch); }

@@ -3,9 +3,9 @@
 .brand-row { display: flex; align-items: center; gap: 11px; }
 .wordmark { margin: 0; font: 600 13px/1 var(--mono); letter-spacing: 0.44em; color: var(--text); }
 .reactor { position: relative; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--accent); animation: breathe 4.5s ease-in-out infinite; }
-.reactor::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed rgba(90, 215, 255, 0.65); animation: spin 28s linear infinite; }
+.reactor::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed rgb(var(--line-rgb) / 0.65); animation: spin 28s linear infinite; }
 .reactor::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-@keyframes breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(90, 215, 255, 0), inset 0 0 3px rgba(90, 215, 255, 0.15); } 50% { box-shadow: 0 0 14px 0 rgba(90, 215, 255, 0.4), inset 0 0 6px rgba(90, 215, 255, 0.45); } }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--accent-rgb) / 0), inset 0 0 3px rgb(var(--accent-rgb) / 0.15); } 50% { box-shadow: 0 0 14px 0 rgb(var(--accent-rgb) / 0.4), inset 0 0 6px rgb(var(--accent-rgb) / 0.45); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 .ha { display: flex; align-items: center; gap: 8px; font: 500 10px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .ha .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }

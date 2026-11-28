@@ -2,14 +2,14 @@
 import { useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { ExtrudeGeometry, MeshPhysicalMaterial, MeshStandardMaterial, Path, Shape, type Group } from "three";
-import { GLASS_TINTS } from "@/lib/openings";
+import { FRAME_DARK, FRAME_LIGHT, GLASS_TINTS } from "@/lib/openings";
 import { useKnobs } from "@/lib/quality";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { GlassTint, Opening } from "@/lib/types";
 import { live } from "./skyLive";
 
-export const FRAME = "#e8e4dc";
-export const FRAME_DARK = "#3a3d44";
+export { FRAME_DARK };
+export const FRAME = FRAME_LIGHT;
 export const STONE = "#b9b2a6";
 export const WOOD = "#8a6a4a";
 export const BAR = 0.05;

@@ -56,7 +56,7 @@ export function tempComfort(value: number, unit = "°C"): TempComfort {
 export const humidityComfort = (rh: number): HumidityComfort => (rh < 30 ? "dry" : rh > 60 ? "humid" : "ok");
 
 /** A sensor of the device itself (chip / CPU / internal temperature), not the room air. */
-const DEVICE_INTERNAL = /device_temperature|chip|cpu|soc_|internal/;
+export const DEVICE_INTERNAL = /device_temperature|chip|cpu|soc_|internal/;
 
 const reading = (st: HAState | undefined, attr?: "current_temperature" | "current_humidity"): Reading | undefined => {
   if (!st) return undefined;
@@ -127,7 +127,7 @@ export function roomLive(plan: Plan, states: Record<string, HAState>, room: Room
   };
 }
 
-const cleanName = (s: string) => s.replace(/[^\p{L}\p{N} .'-]/gu, "").replace(/\s+/g, " ").trim();
+export const cleanName = (s: string) => s.replace(/[^\p{L}\p{N} .'-]/gu, "").replace(/\s+/g, " ").trim();
 
 /** Whole-flat figures from the well-known entities; anything missing is left undefined. Persons with no tracking (unknown / unavailable) are skipped. */
 export function houseLive(states: Record<string, HAState>): HouseLive {

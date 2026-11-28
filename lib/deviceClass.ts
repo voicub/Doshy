@@ -16,17 +16,30 @@ export type DeviceSignals = {
   kiosk?: boolean;
 };
 
-export type DeviceClass = { tier: Tier; /** Plain-words reasons, shown under "Chosen for this device" in the Graphics panel. */ reasons: string[] };
+export type DeviceClass = {
+  tier: Tier;
+  /** Plain-words reasons, shown under "Chosen for this device" in the Graphics panel. */
+  reasons: string[];
+  /** The graphics chip's name once a GL context exists (the Graphics panel shows it). */
+  renderer?: string;
+  /** The browser draws the 3D view on the processor (llvmpipe, SwiftShader, WARP): far slower than any graphics chip, so Eco goes lighter still (lib/quality.ts). */
+  software?: boolean;
+};
 
 const SMALL_SCREEN_SIDE = 700; // css px: the shorter side of a 7 inch panel (800x480, 1024x600)
 const PHONE_UA = /Android|iPhone|iPad|iPod|Mobile/i;
 const ARM_UA = /armv7l|armv8l|aarch64|Raspberry|CrOS/i;
 const WEAK_GPU = /V3D|VideoCore|Mali|Adreno|llvmpipe|SwiftShader|PowerVR|Software/i;
+const SOFTWARE_GL = /llvmpipe|softpipe|SwiftShader|Basic Render|Software/i;
+
+/** Does this WebGL renderer string name a software rasteriser? */
+export const isSoftwareRenderer = (renderer: string | undefined): boolean => !!renderer && SOFTWARE_GL.test(renderer);
 
 /** The graphics chip's name without the ANGLE/Direct3D wrapping, for the explanation text. */
 export const gpuName = (renderer: string): string => renderer.replace(/^ANGLE \((.*)\)$/, "$1").split(",").slice(0, 2).join(",").trim();
 
-export function classifyDevice(s: DeviceSignals): DeviceClass {
+/** The tier a device starts on, with the plain-words reasons; `classifyDevice` adds the renderer facts. */
+function tierOf(s: DeviceSignals): { tier: Tier; reasons: string[] } {
   const ua = s.ua ?? "";
   const side = Math.min(s.screenWidth, s.screenHeight);
   const phone = PHONE_UA.test(ua);
@@ -53,6 +66,13 @@ export function classifyDevice(s: DeviceSignals): DeviceClass {
   // a wall display on a Linux mini PC or similar: always on, usually modest graphics
   if (s.kiosk && /Linux/i.test(ua)) return { tier: "low", reasons: ["This is an always-on display on a Linux computer: Light keeps it cool."] };
   return { tier: "high", reasons: ["This looks like a computer with room to spare."] };
+}
+
+export function classifyDevice(s: DeviceSignals): DeviceClass {
+  const base = tierOf(s);
+  const software = isSoftwareRenderer(s.renderer);
+  const reasons = software ? [...base.reasons, "The 3D view is drawn in software (the processor, not the graphics chip), which is very slow. Turn on GPU acceleration in the browser."] : base.reasons;
+  return { ...base, reasons, renderer: s.renderer, software };
 }
 
 /** The signals of the running browser. Only called in the browser (never at import time). */

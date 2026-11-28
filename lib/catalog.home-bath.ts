@@ -32,7 +32,7 @@ const tap = (x: number, y: number, z: number, c: string, o: { len?: number; dia?
 const WATER_COLUMN: Def = {
   label: "Water column (plumbing riser)", brand: "Generic", cat: "Bathroom", w: 0.45, d: 0.35, h: 2.58, solid: true, pillar: true,
   parts: [
-    b(0, 1.29, 0, 0.45, 2.58, 0.35, TILE, { ...MATT, bevel: 0.006 }),
+    b(0, 1.29, 0, 0.45, 2.58, 0.35, TILE, { ...MATT, bevel: 0.006, m: true }), // m: paintable (Item.color); the hatch, seams and chrome keep their own colours
     b(0, 1.0, 0.176, 0.3, 0.5, 0.004, "#dfe3e5", { ...MATT, bevel: 0.002 }), // inspection hatch
     b(0, 0.75, 0.176, 0.04, 0.012, 0.004, CHR, { ...CHROME }),
     b(0, 1.0, 0.176, 0.3, 0.004, 0.005, SEAM, { ...MATT, bevel: 0 }),
@@ -40,7 +40,7 @@ const WATER_COLUMN: Def = {
     b(0, 0.75, 0.18, 0.304, 0.004, 0.004, SEAM, { bevel: 0, detail: 1 }),
     b(-0.15, 1.0, 0.18, 0.004, 0.5, 0.004, SEAM, { bevel: 0, detail: 1 }),
     b(0.15, 1.0, 0.18, 0.004, 0.5, 0.004, SEAM, { bevel: 0, detail: 1 }),
-    b(0, 0.04, 0.178, 0.45, 0.08, 0.006, "#d6d8d8", { ...MATT, bevel: 0.002, detail: 1 }), // skirting
+    b(0, 0.04, 0.178, 0.45, 0.08, 0.006, "#d6d8d8", { ...MATT, bevel: 0.002, detail: 1, m: true }), // skirting
     cy(-0.12, 1.2, 0.18, 0.014, 0.006, CHR, { ...CHROME, r: [HALF_PI, 0, 0], detail: 2 }), // hatch screws
   ],
 };

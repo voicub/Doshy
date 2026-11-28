@@ -1,5 +1,5 @@
 "use client";
-import { ArmchairIcon, BlueprintIcon, BrowserIcon, ColumnsIcon, CubeIcon, CursorIcon, DoorIcon, DotsThreeIcon, FlowerIcon, LineSegmentIcon, MagnifyingGlassIcon, PaintBucketIcon, PlugsConnectedIcon, SquareIcon, StairsIcon } from "@phosphor-icons/react";
+import { ArmchairIcon, BlueprintIcon, BrowserIcon, ColumnsIcon, CubeIcon, CursorIcon, DoorIcon, DotsThreeIcon, FlowerIcon, LineSegmentIcon, MagnifyingGlassIcon, NotePencilIcon, PaintBucketIcon, PlugsConnectedIcon, RoadHorizonIcon, RulerIcon, SquareIcon, StairsIcon } from "@phosphor-icons/react";
 import { useContext, type ReactNode } from "react";
 import { useStore, VIEWS, type Tool, type View } from "@/lib/store";
 import { useChromeUi } from "./chromeUi";
@@ -14,7 +14,11 @@ export const TOOLS: { tool: Tool; label: string; icon: ReactNode; hint: string }
   { tool: "pillar", label: "Pillar", icon: <ColumnsIcon size={18} />, hint: "Pick a shape in the panel, then click where the pillar stands. It snaps to wall ends and wall lines (Alt: free)." },
   { tool: "paint", label: "Paint", icon: <PaintBucketIcon size={18} />, hint: "Pick a material and colour in the panel, then click walls and rooms. Alt-click picks up a colour." },
   { tool: "stairwell", label: "Stairs opening", icon: <StairsIcon size={18} />, hint: "Drag a rectangle where the stairs go up through the floor. The stairs themselves come from the Furniture catalog." },
-  { tool: "garden", label: "Garden", icon: <FlowerIcon size={18} />, hint: "Pick a surface, then drag a patio, lawn or pond, or click along a path (double-click to finish). Presets drop a ready-made size with one click." },
+  { tool: "garden", label: "Garden", icon: <FlowerIcon size={18} />, hint: "Pick a surface, then drag a patio, lawn or pond. Presets drop a ready-made size with one click." },
+  { tool: "lines", label: "Garden lines", icon: <RoadHorizonIcon size={18} />, hint: "Roads, paths, fences and lights: pick a kind, click points on the plan, double-click to finish." },
+  { tool: "ruler", label: "Measure", icon: <RulerIcon size={18} />, hint: "Click two points to measure. Use the panel for wall lengths, room areas and 'Does it fit here?'." },
+  { tool: "annotate", label: "Notes", icon: <NotePencilIcon size={18} />, hint: "Pick a note, arrow, dimension or zone, then click the plan. Click one to edit or delete it." },
+  { tool: "pipes", label: "Pipes", icon: <LineSegmentIcon size={18} />, hint: "Draw water, gas and drain lines. Add valves, then link them in Home Assistant view." },
 ];
 
 export const MODES: Record<View, { label: string; icon: ReactNode; hint: string }> = {

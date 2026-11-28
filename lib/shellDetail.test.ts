@@ -218,3 +218,23 @@ test("on the owner's flat and every template, no trim of any wall leaves the wal
   }
   assert.ok(walls > 30, `only ${walls} walls checked`);
 });
+
+test("a painted frame gets casings of its own colour on both faces; unpainted openings keep the wall trim's paint", () => {
+  const painted: Span = { ...win, color: "#3a3d44" };
+  const base = { len: 6, t: 0.12, height: 2.58, top: 2.58, faces: { inside: [1], outside: -1 } as TrimFaces, ground: false, crown: false };
+  const plain = wallTrims({ ...base, spans: [door, win] });
+  assert.deepEqual(plain.tinted, [], "nothing to tint when no frame has a colour");
+  const mixed = wallTrims({ ...base, spans: [door, painted, { ...door, s0: 4.5, s1: 5.4, color: "#3a3d44" }] });
+  assert.deepEqual(mixed.tinted.map((x) => x.color), ["#3a3d44"], "two openings of one colour are one mesh");
+  const faces = (m: MeshData) => new Set(Array.from({ length: m.normals.length / 3 }, (_, i) => Math.sign(Math.round(m.normals[i * 3 + 2] * 100))));
+  assert.ok(faces(mixed.tinted[0].mesh).has(1) && faces(mixed.tinted[0].mesh).has(-1), "the room face and the outside face both get the casing");
+  const b = bounds(mixed.tinted[0].mesh);
+  assert.ok(b.lo[0] > -3 - 1e-6 && b.hi[0] < 3 + 1e-6, "centred on the wall like the paint mesh");
+  assert.ok(plain.paint!.positions.length > mixed.paint!.positions.length, "the painted window's casing is not also drawn in the white paint");
+});
+
+test("openingSpans carries the frame colour and leaves it out when there is none", () => {
+  const o = (color?: string) => ({ id: "o", wallId: "w", type: "window", t: 0.5, width: 1, height: 1.2, sill: 0.9, ...(color && { color }) }) as Opening;
+  assert.equal(openingSpans([o("#3a3d44")], 4, 2.58)[0].color, "#3a3d44");
+  assert.ok(!("color" in openingSpans([o()], 4, 2.58)[0]));
+});

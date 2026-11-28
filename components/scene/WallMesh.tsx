@@ -6,21 +6,25 @@ import { MathUtils, type Group } from "three";
 import { WALL_CUT_H, WALL_H, WALL_T, roomAtLevel, wallBoxes, wallLen, type Box } from "@/lib/geometry";
 import { WALLS, faceTint, isGlassWall, isOutdoorFloor, wallFaces, type Face } from "@/lib/materials";
 import { tiledTexture } from "@/lib/textures";
-import { isFence, wallHeight } from "@/lib/fences";
+import { isFence, isSolidFence, wallHeight } from "@/lib/fences";
 import { useStore } from "@/lib/store";
 import { isOn } from "@/lib/light";
 import { useKnobs, type Knobs } from "@/lib/quality";
 import { WALL_SURFACE, type Surface } from "@/lib/shellLook";
 import { buttEnds, trimFaces } from "@/lib/shellDetail";
-import { levelIdOf } from "@/lib/levels";
+import { groundedWall, levelIdOf } from "@/lib/levels";
 import type { Room, Wall } from "@/lib/types";
 import OpeningMesh from "./OpeningMesh";
 import WallTrims from "./WallTrims";
 import { WALL_EDGE, wallBox } from "./shellGeometry";
 import { flatMaterial, surfaceMaterial } from "./shellMaterials";
+import { MATERIAL_ROUGHNESS, turnUvs, wallSide } from "@/lib/materialLook";
+import { materialFace, useMaterialLook, type MaterialLook } from "./useMaterialLook";
 import FenceMesh from "./FenceMesh";
 import { useCutaway, useLevel } from "./levelState";
 import { useIsoSink, useIsoWall } from "./isoState";
+import { useAutoCut } from "./facingState";
+import { useReducedMotion } from "./motion";
 import { NO_SHADOW } from "./pointShadow";
 
 const { damp } = MathUtils;
@@ -66,7 +70,7 @@ function GlassBox({ s0, s1, y0, y1, tint }: { s0: number; s1: number; y0: number
 }
 
 /** A wall segment at the lowest tier: the flat voxel look it always had. */
-function FlatWallBox({ box, len, wall }: { box: Box; len: number; wall: Wall }) {
+function FlatWallBox({ box, len, wall, lookA, lookB }: { box: Box; len: number; wall: Wall; lookA: MaterialLook | null; lookB: MaterialLook | null }) {
   const t = wall.thickness ?? WALL_T;
   // extend wall ends by half a thickness so corners close
   const s0 = box.s0 === 0 ? -t / 2 : box.s0;
@@ -82,11 +86,13 @@ function FlatWallBox({ box, len, wall }: { box: Box; len: number; wall: Wall }) 
   useEffect(() => () => texB?.dispose(), [texB]);
   if (fa.style === "glass") return <GlassBox s0={s0 - len / 2} s1={s1 - len / 2} y0={box.y0} y1={box.y1} tint={faceTint(fa)} />;
   const face = (i: number, f: typeof fa, map: typeof texA) => <meshStandardMaterial key={i} attach={`material-${i}`} map={map} color={faceTint(f)} roughness={WALLS[f.style].rough} />;
+  const painted = (i: number, look: MaterialLook) => <meshStandardMaterial key={i} attach={`material-${i}`} color={look.color} roughness={MATERIAL_ROUGHNESS} />; // a Poly Haven texture at this tier: its average colour
   return (
     <mesh position={[(s0 + s1) / 2 - len / 2, (box.y0 + box.y1) / 2, 0]} castShadow receiveShadow>
       <boxGeometry args={[s1 - s0, h, t]} />
-      {[0, 1, 3, 4].map((i) => face(i, fa, texA))}
-      {face(5, fb, same ? texA : texB)}
+      {[0, 1, 3].map((i) => face(i, fa, texA))}
+      {lookA ? painted(4, lookA) : face(4, fa, texA)}
+      {lookB ? painted(5, lookB) : face(5, fb, same ? texA : texB)}
       <meshStandardMaterial attach="material-2" color={isFence(wall.style) ? faceTint(fa) : CAP} roughness={0.7} />
       {plinthH > 0 && (
         <mesh position={[0, plinthH / 2 - h / 2, 0]} castShadow receiveShadow>
@@ -102,7 +108,7 @@ const CAP_ROUGH = 0.7;
 const surfaceOf = (f: Face) => WALL_SURFACE[f.style];
 
 /** A wall segment with real surface: rounded edges, metric uvs so brick courses, boards and plaster keep their size on any length, shared PBR materials. */
-function ShellWallBox({ box, len, wall, k, butt }: { box: Box; len: number; wall: Wall; k: Knobs; butt: readonly [boolean, boolean] }) {
+function ShellWallBox({ box, len, wall, k, butt, lookA, lookB }: { box: Box; len: number; wall: Wall; k: Knobs; butt: readonly [boolean, boolean]; lookA: MaterialLook | null; lookB: MaterialLook | null }) {
   const t = wall.thickness ?? WALL_T;
   const s0 = box.s0 === 0 ? (butt[0] ? 0 : -t / 2) : box.s0; // extend wall ends by half a thickness so corners close (not into a wall running straight on: that would overlap)
   const s1 = box.s1 === len ? (butt[1] ? len : len + t / 2) : box.s1;
@@ -112,20 +118,27 @@ function ShellWallBox({ box, len, wall, k, butt }: { box: Box; len: number; wall
   const cy = (box.y0 + box.y1) / 2;
   const sa = surfaceOf(fa);
   const sb = surfaceOf(fb);
-  const geo = useMemo(
-    () =>
-      wallBox(s1 - s0, h, t, k.bevelSegments, WALL_EDGE, [cx, cy, 0], (_x, _y, nz) => {
-        const f: Surface | undefined = nz < -0.5 ? sb : sa; // face B is -z; everything else (ends, underside) reads as face A
-        return { tile: f?.tile ?? 1, swap: f?.swap };
-      }),
-    [s0, s1, h, t, cx, cy, k.bevelSegments, sa, sb],
-  );
+  const [tileA, turnA, tileB, turnB] = [lookA?.tile, lookA?.rotation, lookB?.tile, lookB?.rotation];
+  const geo = useMemo(() => {
+    const g = wallBox(s1 - s0, h, t, k.bevelSegments, WALL_EDGE, [cx, cy, 0], (_x, _y, nz) => {
+      const side = wallSide(nz);
+      const tile = side === "A" ? tileA : side === "B" ? tileB : undefined; // a face that wears a texture: its metres per repeat (the ends and the underside keep the wall's own look)
+      if (tile) return { tile };
+      const f: Surface | undefined = nz < -0.5 ? sb : sa; // face B is -z; everything else (ends, underside) reads as face A
+      return { tile: f?.tile ?? 1, swap: f?.swap };
+    });
+    const normal = g.getAttribute("normal").array;
+    const uv = g.getAttribute("uv").array as Float32Array;
+    if (tileA && turnA) turnUvs(uv, turnA, (i) => wallSide(normal[i * 3 + 2]) === "A");
+    if (tileB && turnB) turnUvs(uv, turnB, (i) => wallSide(normal[i * 3 + 2]) === "B");
+    return g;
+  }, [s0, s1, h, t, cx, cy, k.bevelSegments, sa, sb, tileA, turnA, tileB, turnB]);
   useEffect(() => () => geo.dispose(), [geo]);
   const fence = isFence(wall.style);
   const side = (f: Face, surf: Surface | undefined, end = false) => (surf ? surfaceMaterial(surf, faceTint(f), WALLS[f.style].rough, k, end) : flatMaterial(faceTint(f), WALLS[f.style].rough, end));
   const mats = useMemo(
-    () => [side(fa, sa, true), side(fa, sa, true), flatMaterial(fence ? faceTint(fa) : CAP, CAP_ROUGH), side(fa, sa, true), side(fa, sa), side(fb, sb)],
-    [fa.style, fa.color, fb.style, fb.color, sa, sb, fence, k], // keyed by the face values, not the face objects
+    () => [side(fa, sa, true), side(fa, sa, true), flatMaterial(fence ? faceTint(fa) : CAP, CAP_ROUGH), side(fa, sa, true), lookA ? materialFace(lookA) : side(fa, sa), lookB ? materialFace(lookB) : side(fb, sb)],
+    [fa.style, fa.color, fb.style, fb.color, sa, sb, fence, k, lookA, lookB], // keyed by the face values, not the face objects
   );
   if (fa.style === "glass") return <GlassBox s0={s0 - len / 2} s1={s1 - len / 2} y0={box.y0} y1={box.y1} tint={faceTint(fa)} />;
   return <mesh position={[cx - len / 2, cy, 0]} geometry={geo} material={mats} castShadow receiveShadow />;
@@ -146,10 +159,13 @@ function ShadowWall({ box, len, wall }: { box: Box; len: number; wall: Wall }) {
 
 export default function WallMesh({ wall }: { wall: Wall }) {
   const k = useKnobs();
+  const lookA = useMaterialLook(wall.material); // Poly Haven textures on the two faces (lib/materialRef.ts): nothing loads when a wall has none
+  const lookB = useMaterialLook(wall.materialB);
   const openings = useStore((s) => s.plan.openings);
   const iso = useIsoWall(wall.id); // Room mode: far walls of the isolated room stand, near ones are cut, the rest sink away
+  const auto = useAutoCut(wall.id); // Cut-away off: the wall is cut when it faces the camera, stands when it is behind (lib/wallFacing.ts)
   const cutGlobal = useCutaway();
-  const cutaway = iso === "tall" ? false : iso === "cut" ? true : cutGlobal;
+  const cutaway = iso === "tall" ? false : iso === "cut" ? true : cutGlobal || auto === "cut";
   const { id: levelId, elevation } = useLevel();
   const lit = useStore((s) => s.plan.items.some((it) => it.entity?.startsWith("light.") && isOn(s.states[it.entity])));
   const glow = useRef(0);
@@ -163,14 +179,20 @@ export default function WallMesh({ wall }: { wall: Wall }) {
   const top = cutaway ? Math.min(H, WALL_CUT_H) : H;
   const ref = useRef<Group>(null);
   const sink = useIsoSink(ref, iso === "hide");
-  const was = useRef({ iso, top });
+  const reduced = useReducedMotion();
+  const was = useRef({ iso, auto, top });
   useLayoutEffect(() => {
-    // a wall that is raised or cut by Room mode grows or shrinks from where it stood instead of jumping
-    if ((iso !== undefined || was.current.iso !== undefined) && was.current.top !== top) sink.current = Math.min(20, Math.max(0.001, (sink.current * was.current.top) / top));
-    was.current = { iso, top };
-  }, [iso, top, sink]);
+    // a wall that Room mode or the automatic cut-away raises or cuts grows or shrinks from where it stood instead of jumping (instantly under reduced motion)
+    const moved = iso !== undefined || was.current.iso !== undefined || auto !== undefined || was.current.auto !== undefined;
+    if (moved && !reduced && was.current.top !== top) {
+      sink.current = Math.min(20, Math.max(0.001, (sink.current * was.current.top) / top));
+      if (ref.current) ref.current.scale.y = sink.current; // the new geometry is drawn at the old height from its very first frame
+    }
+    was.current = { iso, auto, top };
+  }, [iso, auto, top, sink, reduced]);
   const fence = isFence(wall.style);
-  const open = fence && wall.style !== "wall_stone" && wall.style !== "wall_brick_low"; // posts, pickets, wire, boards and hedges are built by FenceMesh; low walls are plain slabs
+  const grounded = useStore((s) => fence && groundedWall(s.plan, wall)); // the level group lifts the wall by its floor height: a garden fence stands on the ground instead
+  const open = fence && !isSolidFence(wall.style); // posts, pickets, bars, panes and hedges are built by FenceMesh; low walls and block walls are plain slabs
   const boxes = useMemo(() => wallBoxes(len, mine, cutaway ? Math.min(H, WALL_CUT_H) : H), [len, mine, cutaway, H]);
   const plan = useStore((s) => s.plan);
   const butt = useMemo(() => buttEnds(wall, plan.walls.filter((w) => levelIdOf(plan, w) === levelIdOf(plan, wall))), [plan.walls, plan.levels, wall]); // the slices the ends depend on, not the whole plan
@@ -192,11 +214,11 @@ export default function WallMesh({ wall }: { wall: Wall }) {
     return b && !a ? -1 : 1;
   });
   return (
-    <group ref={ref} position={[(wall.a.x + wall.b.x) / 2, 0, (wall.a.y + wall.b.y) / 2]} rotation={[0, -angle, 0]}>
+    <group ref={ref} name={`wall:${wall.id}`} position={[(wall.a.x + wall.b.x) / 2, grounded ? -elevation : 0, (wall.a.y + wall.b.y) / 2]} rotation={[0, -angle, 0]}>
       {open
         ? <FenceMesh style={wall.style} boxes={boxes} len={len} t={wall.thickness ?? WALL_T} color={faceTint(faceA)} />
         : boxes.map((b, i) => (
-            k.textures > 0 ? <ShellWallBox key={i} box={b} len={len} wall={wall} k={k} butt={butt} /> : <FlatWallBox key={i} box={b} len={len} wall={wall} />
+            k.textures > 0 ? <ShellWallBox key={i} box={b} len={len} wall={wall} k={k} butt={butt} lookA={lookA} lookB={lookB} /> : <FlatWallBox key={i} box={b} len={len} wall={wall} lookA={lookA} lookB={lookB} />
           ))}
       {!glass && !fence && tall.map((b, i) => (
         <ShadowWall key={`s${i}`} box={b} len={len} wall={wall} />

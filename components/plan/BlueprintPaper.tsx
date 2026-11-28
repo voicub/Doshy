@@ -3,9 +3,9 @@ import type { Frame } from "@/lib/planView";
 import type { FloorKind, WallStyle } from "@/lib/types";
 
 /** Cyanotype blue the plan is drawn on, and the pale line colour of everything drafted on it. */
-export const PAPER = "#0a2647";
-export const LINE = "#cfeaf5";
-const RULE = "#9fd4ff"; // millimetre-paper rulings
+export const PAPER = "var(--plan-paper)";
+export const LINE = "var(--plan-line)";
+const RULE = "var(--plan-rule)"; // millimetre-paper rulings
 
 /** Fill that draws a floor material as drafting symbols (planks, tiles, turf) instead of a colour. */
 export const floorFill = (floor: FloorKind) => (floor === "carpet" ? "none" : `url(#bp-floor-${floor})`);
@@ -16,6 +16,7 @@ const WALL_HATCH: Record<WallStyle, string> = {
   plaster: "bp-wall", paint: "bp-wall", brick: "bp-wall-brick", redbrick: "bp-wall-brick", whitebrick: "bp-wall-brick", concrete: "bp-wall-concrete",
   woodv: "bp-wall-wood", woodh: "bp-wall-wood", batten: "bp-wall-stripes", stripes: "bp-wall-stripes", stone: "bp-wall-stone", metro: "bp-wall-tile", glass: "bp-wall-glass",
   fence_picket: "bp-wall-wood", fence_wire: "bp-wall-glass", fence_panel: "bp-wall-wood", wall_stone: "bp-wall-stone", wall_brick_low: "bp-wall-brick", hedge: "bp-wall-stripes",
+  fence_slat: "bp-wall-wood", fence_bar: "bp-wall-stripes", fence_iron: "bp-wall-stripes", fence_glass: "bp-wall-glass", wall_block: "bp-wall-concrete", fence_rail: "bp-wall-wood", fence_electric: "bp-wall-glass", fence_bamboo: "bp-wall-stripes",
 };
 
 type FloorPattern = { kind: FloorKind; w: number; h: number; d: string; dots?: [number, number][]; strong?: boolean };

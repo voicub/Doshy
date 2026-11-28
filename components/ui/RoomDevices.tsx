@@ -7,9 +7,11 @@ import { useStore } from "@/lib/store";
 import type { Room } from "@/lib/types";
 import { isolationOf, type Zone } from "@/lib/roomIsolate";
 import HudPanel from "./HudPanel";
+import PinnedScenes from "./PinnedScenes";
 import { useRoomSheet } from "./roomSheetStore";
 import { DEVICE_EVENT } from "./serviceActions";
 import { WASH_ICON } from "./washIcons";
+import DeviceGlyph from "./DeviceGlyph";
 import "./washData.css";
 import "./roomDevices.css";
 
@@ -52,6 +54,7 @@ function Sheet({ room, zone }: { room: Room; zone?: Zone }) {
 
   return (
     <HudPanel title="Devices" meta={`${name} · ${rows.length}`} onClose={close} className={zone ? "rd rd-dock sheet" : "rd sheet"}>
+      <PinnedScenes roomId={room.id} />
       {rows.length === 0 ? (
         <p className="rd-empty">{EMPTY}</p>
       ) : (
@@ -86,7 +89,7 @@ function Sheet({ room, zone }: { room: Room; zone?: Zone }) {
 /** The appliance icon of a WashData row. */
 function Kind({ kind }: { kind: NonNullable<DeviceRow["wash"]> }) {
   const Icon = WASH_ICON[kind];
-  return <Icon className="rd-kind" size={16} aria-hidden />;
+  return <Icon size={16} aria-hidden />;
 }
 
 function Row({ row: r }: { row: DeviceRow }) {
@@ -104,7 +107,7 @@ function Row({ row: r }: { row: DeviceRow }) {
       onContextMenu={(e) => { e.preventDefault(); details(e.clientX, e.clientY); }}
     >
       <button className="rd-main" onClick={() => useItemFocus.getState().frameItem(r.itemId)} aria-label={`${r.name}, ${r.value}${r.alert ? ", needs attention" : ""}. Show in the home`}>
-        <span className="rd-name">{r.wash && <Kind kind={r.wash} />}{r.name}</span>
+        <span className="rd-name"><DeviceGlyph itemId={r.itemId} entity={r.entity} className="rd-kind" fallback={r.wash ? <Kind kind={r.wash} /> : undefined} />{r.name}</span>
         <span className={`rd-val ${r.on ? "on" : ""}`}>{r.value}</span>
       </button>
       {r.toggleable && (

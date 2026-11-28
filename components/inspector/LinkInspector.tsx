@@ -13,6 +13,7 @@ import { washdataOf } from "@/lib/washdata";
 import { useVp } from "@/lib/useVp";
 import type { Plan, Room } from "@/lib/types";
 import EntityPicker from "../ui/EntityPicker";
+import MakeItButton from "../ui/MakeItButton";
 import IconPicker from "./IconPicker";
 import { domainIcon } from "../ui/domainIcon";
 import { WASH_ICON } from "../ui/washIcons";
@@ -29,6 +30,7 @@ import { isWindowCurtain } from "@/lib/curtain";
 import CurtainOptions from "./CurtainOptions";
 import { securityDomains } from "@/lib/securityLook";
 import { isVacuumKind } from "@/lib/vacuumPath";
+import { utilityDomains } from "@/lib/utilities";
 
 const ITEM_DOMAINS = TOGGLEABLE;
 const SENSOR_ITEM_DOMAINS = ["binary_sensor", "sensor", "lock", "siren"]; // what the Sensors catalog category links to (lib/sensors.ts)
@@ -95,12 +97,13 @@ function ItemLink({ id }: { id: string }) {
   return (
     <HudPanel title="Link" meta={room?.name} onClose={closeInspector} className="inspector link-sheet">
       <h3 className="hud-name">{def?.label ?? it.kind}</h3>
-      {!(def && isWindowCurtain(it.kind, def.cat)) && <EntityPicker label={def?.cat === "Sensors" ? "Sensor" : "Home Assistant entity"} value={it.entity} onChange={(entity) => patch("item", it.id, { entity })} domains={securityDomains(it.kind) ?? (def?.cat === "Sensors" ? SENSOR_ITEM_DOMAINS : def?.cat === "Energy" || def?.cat === "Garage & EV" ? ENERGY_ITEM_DOMAINS : def?.cat === "Animals" ? ANIMAL_DOMAINS : ITEM_DOMAINS)} fit={domainsForCategory(def?.cat)} preferAreas={prefer} wash={def && offersWashdata(it.kind, def.label, def.cat) ? { family: familyOf(`${it.kind} ${def.label}`) } : undefined} />}
+      {!(def && isWindowCurtain(it.kind, def.cat)) && <EntityPicker label={def?.cat === "Sensors" ? "Sensor" : "Home Assistant entity"} value={it.entity} onChange={(entity) => patch("item", it.id, { entity })} domains={utilityDomains(it.kind) ?? securityDomains(it.kind) ?? (def?.cat === "Sensors" ? SENSOR_ITEM_DOMAINS : def?.cat === "Energy" || def?.cat === "Garage & EV" ? ENERGY_ITEM_DOMAINS : def?.cat === "Animals" ? ANIMAL_DOMAINS : ITEM_DOMAINS)} fit={utilityDomains(it.kind) ?? domainsForCategory(def?.cat)} preferAreas={prefer} wash={def && offersWashdata(it.kind, def.label, def.cat) ? { family: familyOf(`${it.kind} ${def.label}`) } : undefined} />}
       {wash && <WashLine item={it} />}
       {def?.cat === "Animals" && <small className="field-note">A pet tracker (device_tracker or person) shows the animal as a ghost marked away when it is not home. A feeder, door or motion sensor shows its reading. A switch or light turns the coop or kennel lamp on.</small>}
       {isVacuumKind(it.kind) && <VacuumPosition item={it} />}
       {def && isWindowCurtain(it.kind, def.cat) && <CurtainOptions item={it} prefer={prefer} />}
       {it.entity && <IconPicker item={it} fallback={wash ? WASH_ICON[wash.kind] : domainIcon(domainOf(it.entity))} />}
+      {it.entity && <MakeItButton entity={it.entity} />}
       <More tiny={tiny}>
         {def && PLUG_CATEGORIES.includes(def.cat) && !it.entity?.startsWith("light.") && !(wash && !it.params?.plugEntity && !it.params?.powerEntity) && <PlugLink item={it} roomName={room?.name} />}
         <RoomItems type="item" id={it.id} />
@@ -178,6 +181,7 @@ function OpeningLink({ id }: { id: string }) {
     <HudPanel title="Link" meta={o.type === "door" ? "Door" : "Window"} onClose={closeInspector} className="inspector link-sheet">
       <EntityPicker label="Contact sensor, cover or switch" value={o.entity} onChange={(entity) => patch("opening", o.id, { entity })} domains={OPENING_DOMAINS} preferAreas={prefer} />
       {!tiny && <button className="btn" disabled={!o.entity} onClick={() => patch("opening", o.id, { entity: undefined })}><LinkBreakIcon size={14} /> Clear link</button>}
+      {o.entity && <MakeItButton entity={o.entity} />}
     </HudPanel>
   );
 }

@@ -33,7 +33,7 @@ export default function OpeningMark({ o, wall, plan, on, ghost, quiet, u, px, to
   const sw = doorSwing(o, wall);
   const side = sw.normal.x * nx + sw.normal.y * ny > 0 ? 1 : -1; // which side of the wall (along +n or -n) the leaf opens to
   const blocked = door && !ghost && swings(o) && plan.items.some((it) => CATALOG[it.kind]?.solid && CATALOG[it.kind].stair !== "step" && swingHitsFootprint(sw, o.width, fp(it))); // furniture is not drawn in plan mode, so only visible structure (columns, stairs) flags a swing
-  const edge = on ? ACCENT : "#e8f1f7";
+  const edge = on ? ACCENT : "var(--text)";
   const hair = 0.03 * u;
   const tagSide = door ? -side : 1;
   const tagAt = P(0, tagSide * (wallW / 2 + (on ? 0.12 : 0.08) * Math.max(u, 0.5)));
@@ -59,7 +59,7 @@ export default function OpeningMark({ o, wall, plan, on, ghost, quiet, u, px, to
       <line {...run(0)} stroke={INK} strokeWidth={wallW + 0.04} />
       {on && <line {...run(0)} stroke={ACCENT} strokeOpacity={0.22} strokeWidth={wallW + 0.14} />}
       {[-h, h].map((s) => (
-        <line key={s} x1={P(s, -wallW / 2).x} y1={P(s, -wallW / 2).y} x2={P(s, wallW / 2).x} y2={P(s, wallW / 2).y} stroke={on ? ACCENT : "#cfeaf5"} strokeWidth={hair} />
+        <line key={s} x1={P(s, -wallW / 2).x} y1={P(s, -wallW / 2).y} x2={P(s, wallW / 2).x} y2={P(s, wallW / 2).y} stroke={on ? ACCENT : "var(--plan-line)"} strokeWidth={hair} />
       ))}
       <OpeningSymbol o={o} P={P} sw={sw} side={side} inward={inwardSign(plan, wall, o.t)} edge={edge} accent={ACCENT} warn={WARN} blocked={blocked} hair={hair} u={u} wallW={wallW} />
       {on && !ghost && door && swings(o) && onFlip && (
@@ -69,7 +69,7 @@ export default function OpeningMark({ o, wall, plan, on, ghost, quiet, u, px, to
         </>
       )}
       {text && (
-        <text x={tagAt.x} y={tagAt.y + (Math.abs(sx) > 0.5 ? 0.06 : tagSide * ny > 0 ? 0.2 : -0.04) * u} fontSize={Math.max((on ? 0.2 : 0.16) * u, touch > 1 ? 12 * px : 0)} textAnchor={anchor} fill={on ? "#e8f1f7" : ACCENT} style={{ ...MONO, ...HALO, strokeWidth: HALO.strokeWidth * u }} pointerEvents="none">{text}</text>
+        <text x={tagAt.x} y={tagAt.y + (Math.abs(sx) > 0.5 ? 0.06 : tagSide * ny > 0 ? 0.2 : -0.04) * u} fontSize={Math.max((on ? 0.2 : 0.16) * u, touch > 1 ? 12 * px : 0)} textAnchor={anchor} fill={on ? "var(--text)" : ACCENT} style={{ ...MONO, ...HALO, strokeWidth: HALO.strokeWidth * u }} pointerEvents="none">{text}</text>
       )}
     </g>
   );

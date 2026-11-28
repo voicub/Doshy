@@ -3,15 +3,15 @@ import { useEffect, type MutableRefObject } from "react";
 import { useStore } from "@/lib/store";
 import type { Pt, Sel } from "@/lib/types";
 import { turnVoid } from "@/lib/voids";
-import { useGroundDraft } from "./groundTool";
+import { useLinesDraft } from "./linesTool";
 import { inOneStep } from "./oneStep";
 
-/** What the keys (and the strip's Done) ask of the editor: end the gesture in progress, fit the view, end the garden path being drawn. Always the latest render's. */
-export type PlanActions = { finish: () => void; fit: () => void; finishPath: () => void };
+/** What the keys (and the strip's Done) ask of the editor: end the gesture in progress, fit the view, end the garden line being drawn. Always the latest render's. */
+export type PlanActions = { finish: () => void; fit: () => void; finishLine: () => void };
 
 const typing = (e: KeyboardEvent) => e.target instanceof Element && e.target.matches("input,select,textarea");
 const bare = (e: KeyboardEvent) => !e.metaKey && !e.ctrlKey;
-const pathDrawn = () => useGroundDraft.getState().path.length > 0;
+const lineDrawn = () => useLinesDraft.getState().points.length > 0;
 
 /** Ctrl/Cmd+Z undoes (Shift: redoes), Ctrl+Y redoes. */
 function historyKey(e: KeyboardEvent, live: MutableRefObject<PlanActions>): boolean {
@@ -26,10 +26,10 @@ function historyKey(e: KeyboardEvent, live: MutableRefObject<PlanActions>): bool
   return true;
 }
 
-/** Enter and Esc end a garden path being drawn (where it is, like a wall chain); Esc otherwise ends the gesture, the wall chain and the tool; 0 fits the view. */
+/** Enter and Esc end a garden line being drawn (where it is, like a wall chain); Esc otherwise ends the gesture, the wall chain and the tool; 0 fits the view. */
 function endKey(e: KeyboardEvent, live: MutableRefObject<PlanActions>, setWallStart: (p: null) => void): boolean {
-  if ((e.key === "Enter" || e.key === "Escape") && pathDrawn()) {
-    live.current.finishPath();
+  if ((e.key === "Enter" || e.key === "Escape") && lineDrawn()) {
+    live.current.finishLine();
     return true;
   }
   if (e.key === "Escape") {
@@ -72,8 +72,8 @@ function turnSelection(sel: NonNullable<Sel>) {
 }
 
 /**
- * Plan mode's keyboard: Space pans, Ctrl/Cmd+Z undoes, Esc and Enter end a wall chain or garden path, 0 fits the view, Delete removes, R turns the selection.
- * Touchscreens have no Esc key or double click: the edit strip's "Done" (`housey:finish-draw`) ends the wall chain or garden path being drawn, or, with nothing being drawn, leaves the tool.
+ * Plan mode's keyboard: Space pans, Ctrl/Cmd+Z undoes, Esc and Enter end a wall chain or garden line, 0 fits the view, Delete removes, R turns the selection.
+ * Touchscreens have no Esc key or double click: the edit strip's "Done" (`housey:finish-draw`) ends the wall chain or garden line being drawn, or, with nothing being drawn, leaves the tool.
  */
 export function usePlanKeys(live: MutableRefObject<PlanActions>, wallStart: MutableRefObject<Pt | null>, setSpace: (on: boolean) => void, setWallStart: (p: null) => void) {
   useEffect(() => {
@@ -93,7 +93,7 @@ export function usePlanKeys(live: MutableRefObject<PlanActions>, wallStart: Muta
       live.current.finish();
     };
     const onDone = () => {
-      if (pathDrawn()) live.current.finishPath();
+      if (lineDrawn()) live.current.finishLine();
       else if (wallStart.current) setWallStart(null);
       else {
         live.current.finish();

@@ -1,4 +1,5 @@
 import type { HAState } from "./ha.ts";
+import { isPressureEntity } from "./pressure.ts";
 import { familyOf, type Family } from "./running.ts";
 import { KIND_LABEL, washdataFamilies, washView, wordsOf, type WashKind } from "./washdata.ts";
 
@@ -128,3 +129,6 @@ export function washdataOptions(states: Record<string, HAState>, itemFamily?: Fa
     .map((d) => ({ entity: d.anchor, name: d.name, kind: d.kind, kindLabel: KIND_LABEL[d.kind], words: wordsOf(washView(states, d.base)) }))
     .sort((a, b) => mine(a.kind) - mine(b.kind) || a.name.localeCompare(b.name));
 }
+
+/** Barometers, including unavailable sensors, offered together by the entity picker. */
+export const pressureOptions = (states: Record<string, HAState>): HAState[] => Object.values(states).filter(isPressureEntity).sort((a, b) => (a.attributes.friendly_name ?? a.entity_id).localeCompare(b.attributes.friendly_name ?? b.entity_id));

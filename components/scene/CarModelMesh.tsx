@@ -7,7 +7,11 @@ import { guessPaint, listMaterials, prepareInstance } from "@/lib/carPaintMap";
 import type { CarSpec, Finish } from "@/lib/cars";
 import { acquireModel, instanceOf, releaseModel, type Template } from "@/lib/modelLoad";
 import { lods, measureTemplate, prepareTemplate } from "@/lib/carTemplate";
-import type { PlateStyle } from "@/lib/plate";
+import { modelPlates } from "@/lib/carModelPlate";
+import type { PlateEnd, PlateStyle } from "@/lib/plate";
+import { usePlateEdit } from "@/lib/plateEditState";
+import type { PlateFits } from "@/lib/plateFit";
+import CarPlate from "./CarPlate";
 import { acquirePlate, releasePlate } from "./plateTexture";
 
 // A real (imported, optimised, calibrated) model of a catalogue car. Every car of the model shares one parsed template; each placed car is a
@@ -49,10 +53,12 @@ type Props = {
   level: RefObject<number>;
   ghost: boolean;
   plate: { text: string; style: PlateStyle };
+  fits?: PlateFits; // the plate placement to apply (none: the automatic place; the fitting dialogue's preview)
+  editing?: PlateEnd | null;
   onState?: (s: RealState) => void;
 };
 
-export default function CarModelMesh({ spec, entry, color, finish, level, ghost, plate, onState }: Props) {
+export default function CarModelMesh({ spec, entry, color, finish, level, ghost, plate, fits = {}, editing = null, onState }: Props) {
   const { tpl, state } = useRealTemplate(entry.resource);
   const measure = useMemo(() => (tpl ? measureTemplate(tpl) : null), [tpl]);
   const usable = tpl && measure ? "ready" : state === "loading" ? "loading" : "failed";
@@ -111,15 +117,33 @@ export default function CarModelMesh({ spec, entry, color, finish, level, ghost,
   });
 
   const fit = useMemo(() => (measure ? fitModel(measure, entry.calib, { w: spec.width, d: spec.length, h: spec.height }) : null), [measure, entry.calib, spec]);
+  // a model without a plate mesh of its own (most downloads: the plate is baked into the body picture, or left off) gets our plate on its bumpers
+  const hasPlateMesh = !!inst?.handle.plates.length;
+  // the inspector cannot move a plate that is part of the model
+  useEffect(() => {
+    if (!hasPlateMesh) return;
+    usePlateEdit.getState().setOwn(entry.resource, true);
+    return () => usePlateEdit.getState().setOwn(entry.resource, false);
+  }, [hasPlateMesh, entry.resource]);
+  const mounts = useMemo(() => {
+    if (!tpl || !fit || hasPlateMesh) return [];
+    const { near, far } = lods(tpl.root);
+    return modelPlates(far ?? near, fit, { d: spec.length, h: spec.height });
+  }, [tpl, fit, hasPlateMesh, spec]);
   if (!inst || !fit) return null;
   return (
-    <group position={[0, fit.yOffset, 0]} scale={fit.scale}>
-      <group rotation={[0, fit.yaw, 0]}>
-        <group position={[-fit.centre[0], -fit.centre[1], -fit.centre[2]]}>
-          <primitive object={inst.root} />
+    <>
+      <group position={[0, fit.yOffset, 0]} scale={fit.scale}>
+        <group rotation={[0, fit.yaw, 0]}>
+          <group position={[-fit.centre[0], -fit.centre[1], -fit.centre[2]]}>
+            <primitive object={inst.root} />
+          </group>
         </group>
       </group>
-    </group>
+      {mounts.map((m) => (
+        <CarPlate key={m.end} mount={m} fit={fits[m.end]} outline={editing === m.end} text={plate.text} style={plate.style} ghost={ghost} />
+      ))}
+    </>
   );
 }
 

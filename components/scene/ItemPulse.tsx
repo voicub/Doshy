@@ -14,13 +14,13 @@ const REDUCED_S = 1.6; // with reduced motion: a still outline for this long
 const BEAM_H = 2.6; // m
 
 /** An outline of the item (drawn through walls and furniture), a thin beam up from it and a ring at its foot (spreading out for a pulse): visible for a 4 cm sensor too. */
-function Ping({ id, steady }: { id: string; steady: boolean }) {
+function Ping({ id, steady, type = "item" }: { id: string; steady: boolean; type?: "item" | "opening" | "room" }) {
   const plan = useStore((s) => s.plan);
   const reduced = useReducedMotion();
   const ring = useRef<Mesh>(null);
   const t0 = useRef<number | null>(null);
   const [done, setDone] = useState(false);
-  const box = boxOf(plan, { type: "item", id });
+  const box = boxOf(plan, { type, id });
   const still = steady || reduced;
   useEffect(() => {
     if (steady) return;
@@ -60,7 +60,7 @@ export default function ItemPulse() {
   return (
     <>
       {hover && <Ping key={`h${hover}`} id={hover} steady />}
-      {pulse && <Ping key={`p${pulse.n}`} id={pulse.id} steady={false} />}
+      {pulse && <Ping key={`p${pulse.n}`} id={pulse.id} type={pulse.type} steady={false} />}
     </>
   );
 }

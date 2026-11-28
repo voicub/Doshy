@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { MathUtils, MeshBasicMaterial, MeshPhysicalMaterial, type Group, type Mesh } from "three";
 import { WALL_CUT_H, openingSwing } from "@/lib/geometry";
 import { isOpenState } from "@/lib/ha";
-import { styleDef, styleOf } from "@/lib/openings";
+import { frameColor, styleDef, styleOf } from "@/lib/openings";
 import { glowTexture } from "@/lib/textures";
 import { useStore } from "@/lib/store";
 import type { Opening } from "@/lib/types";
@@ -14,7 +14,7 @@ import SillTrim from "./SillTrim";
 import { useKnobs } from "@/lib/quality";
 import { useReducedMotion } from "./motion";
 import { keepAlive } from "@/lib/framePacer";
-import { AJAR, BAR, Bar, DOOR_OPEN, FRAME, FRAME_DARK, Leaf, STONE, WINDOW_OPEN, WOOD, useGlass, type Ref } from "./openingParts";
+import { AJAR, BAR, Bar, DOOR_OPEN, FRAME, Leaf, STONE, WINDOW_OPEN, WOOD, useGlass, type Ref } from "./openingParts";
 import { EntranceDoorOrnament } from "./BuildingHallway";
 import { hallwayOf } from "@/lib/hallway";
 import { Marker } from "./DeclutterLayer";
@@ -156,7 +156,7 @@ function Window({ o, cutaway, glow, thick, amount, known, sw }: { o: Opening; cu
   const cy = sill + h / 2;
   const glass = useGlass(o.tint, glow);
   const detailed = useKnobs().detail >= 1;
-  const dark = o.color ?? FRAME_DARK; // frame; one chosen colour paints the sashes too
+  const dark = frameColor(o); // jambs, sill and head; one chosen colour paints the sashes too
   const sash = o.color ?? FRAME;
   if (h <= BAR) return null; // entirely above the cut-away height
   const clipped = top < full;
@@ -202,6 +202,7 @@ function Door({ o, cutaway, thick, amount, known, sw, outside }: { o: Opening; c
   const leafW = w - BAR * 2;
   const leafH = o.height - BAR;
   const glazed = isGlazed(o);
+  const F = frameColor(o);
   const detailed = useKnobs().detail >= 1;
   const half = (top - sill) / 2;
   const glass = useMemo(() => new MeshPhysicalMaterial({ color: "#9bb8cc", transparent: true, opacity: 0.22, depthWrite: false, roughness: 0.05, side: 2 }), []);
@@ -215,15 +216,15 @@ function Door({ o, cutaway, thick, amount, known, sw, outside }: { o: Opening; c
   });
   return (
     <group>
-      <Bar p={[-w / 2 + BAR / 2, sill + half, 0]} s={[BAR, top - sill, FD]} color={o.color} />
-      <Bar p={[w / 2 - BAR / 2, sill + half, 0]} s={[BAR, top - sill, FD]} color={o.color} />
+      <Bar p={[-w / 2 + BAR / 2, sill + half, 0]} s={[BAR, top - sill, FD]} color={F} />
+      <Bar p={[w / 2 - BAR / 2, sill + half, 0]} s={[BAR, top - sill, FD]} color={F} />
       <Bar p={[0, sill + 0.02, 0]} s={[w, 0.04, FD + 0.06]} color={STONE} />
       {!cutaway && (
         <>
-          <Bar p={[0, full - BAR / 2, 0]} s={[w, BAR, FD]} color={o.color} />
+          <Bar p={[0, full - BAR / 2, 0]} s={[w, BAR, FD]} color={F} />
           {glazed ? (
             <>
-              <Bar p={[0, sill + o.height / 2, 0]} s={[BAR * 0.8, o.height, FD * 0.7]} />
+              <Bar p={[0, sill + o.height / 2, 0]} s={[BAR * 0.8, o.height, FD * 0.7]} color={F} />
               <Leaf x={-w / 2 + BAR} hinge={-1} width={leafW / 2} y0={sill} height={leafH} max={DOOR_OPEN} amount={amount} known={known} inward={sw.n} material={glass} />
               <Leaf x={w / 2 - BAR} hinge={1} width={leafW / 2} y0={sill} height={leafH} max={DOOR_OPEN} amount={amount} known={known} inward={sw.n} material={glass} />
             </>

@@ -9,6 +9,8 @@ import { rgbCss, type RGB } from "@/lib/light";
 import { useStore } from "@/lib/store";
 import { glowTexture } from "@/lib/textures";
 import type { Item } from "@/lib/types";
+import type { MdiIcon } from "@/lib/mdi";
+import MdiGlyph from "../ui/MdiGlyph";
 import { openZone } from "@/lib/zones";
 import { Marker as DeviceMarker } from "./DeclutterLayer";
 import { openDevice, type DeviceGesture } from "./itemGesture";
@@ -116,6 +118,8 @@ type BadgeProps = {
   lit: boolean;
   rgb: RGB;
   Icon: Icon;
+  /** A Material Design drawing (the owner's pick, or Home Assistant's icon for the entity): drawn instead of `Icon` when there is one (components/ui/useItemIcon.ts). */
+  mdi?: MdiIcon;
   gesture: DeviceGesture;
   /** Taps open the curtain card instead of toggling. */
   openCurtain: ((x: number, y: number) => void) | null;
@@ -123,7 +127,7 @@ type BadgeProps = {
 };
 
 /** The state badge of a linked device in the live view: a toggle ring, a camera button or a plain value chip. */
-export function ItemBadge({ item, st, label, y, canToggle, isCamera, lit, rgb, Icon, gesture, openCurtain, toggle }: BadgeProps) {
+export function ItemBadge({ item, st, label, y, canToggle, isCamera, lit, rgb, Icon, mdi, gesture, openCurtain, toggle }: BadgeProps) {
   const alert = ERROR_STATES.includes(st.state);
   const on = lit || st.state === "on";
   return (
@@ -151,18 +155,18 @@ export function ItemBadge({ item, st, label, y, canToggle, isCamera, lit, rgb, I
             e.stopPropagation();
             gesture.menu(e.clientX, e.clientY);
           }}
-          onPointerDown={(e) => gesture.start(e.clientX, e.clientY)}
+          onPointerDown={(e) => gesture.start(e.clientX, e.clientY, e.pointerType)}
           onPointerUp={gesture.cancel}
           onPointerLeave={gesture.cancel}
         >
-          <Icon weight={lit ? "fill" : "regular"} size={16} />
+          {mdi ? <MdiGlyph icon={mdi} size={16} /> : <Icon weight={lit ? "fill" : "regular"} size={16} />}
         </button>
       ) : isCamera ? (
         <button type="button" className="badge" title={`${label}: ${st.state}. Open the picture`} onClick={(e) => openDevice(st.entity_id, e.clientX, e.clientY)}>
-          {`${label} ${st.state}`}
+          {mdi ? <MdiGlyph icon={mdi} size={16} /> : <Icon size={16} />} {`${label} ${st.state}`}
         </button>
       ) : (
-        <div className="badge">{`${st.state}${st.attributes.unit_of_measurement ?? ""}`}</div>
+        <div className="badge">{mdi ? <MdiGlyph icon={mdi} size={16} /> : <Icon size={16} />} {`${st.state}${st.attributes.unit_of_measurement ?? ""}`}</div>
       )}
     </DeviceMarker>
   );

@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { CATALOG, CATEGORIES } from "./catalog.ts";
 import { GARDEN } from "./catalog.garden.ts";
 import { LIGHTS } from "./garden/lights.ts";
+import { STREET_LIGHTS } from "./garden/lights.street.ts";
 import { RAILINGS } from "./garden/railings.ts";
 import { bounds, sagAt, shellPoints, strand, b } from "./garden/kit.ts";
 
 const entries = Object.entries(GARDEN);
 /** Glowing pieces that are status LEDs of an appliance, not lights: they glow while their switch is on and cast no light. */
 const GLOW_ONLY: Record<string, true> = { gd_light_controller: true };
-const MAX_LIGHT_Y = 1.78; // above this a lamp counts as a ceiling fixture (components/scene/pointShadow.ts) and would take the indoor lamps' shadow slots
+const MAX_LIGHT_Y = 1.78; // above this a lamp counts as a ceiling fixture (components/scene/pointShadow.ts) unless it is a Garden piece
 
 test("every garden piece is registered once, in the Garden category, with sane dimensions and plain unique labels", () => {
   assert.ok(CATEGORIES.includes("Garden"));
@@ -50,7 +51,7 @@ test("a light-bearing piece has glow parts and a sane light; glow parts have a l
     if (!d.light) continue;
     assert.match(d.light.color, /^#[0-9a-f]{6}$/i, kind);
     assert.ok(d.light.y > 0 && d.light.y <= d.h, `${kind}: light height ${d.light.y} outside 0..${d.h}`);
-    assert.ok(d.light.y <= MAX_LIGHT_Y, `${kind}: light at ${d.light.y} m would count as a ceiling lamp`);
+    if (!(kind in STREET_LIGHTS)) assert.ok(d.light.y <= MAX_LIGHT_Y, `${kind}: light at ${d.light.y} m would count as a ceiling lamp`); // street lights are tall on purpose; pointShadow ranks garden lamps below room lamps
     assert.ok((d.light.k ?? 1) > 0 && (d.light.k ?? 1) <= 2, kind);
   }
 });

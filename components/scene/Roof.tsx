@@ -10,8 +10,9 @@ import { keepAlive } from "@/lib/framePacer";
 import { useKnobs } from "@/lib/quality";
 import type { Surface } from "@/lib/shellLook";
 import { surfaceProps } from "./shellMaterials";
-import { useCutaway } from "./levelState";
+import { useLevel } from "./levelState";
 import { isolationOf } from "@/lib/roomIsolate";
+import { useWalking } from "@/lib/walkStore";
 
 const FADE_RATE = 5; // the roof lifts off / settles onto the wall tops, like the storeys do
 const HIDE_BELOW = 0.02;
@@ -22,12 +23,13 @@ const SLAB_TINT = "#6f6c67";
 
 /**
  * The house's roof, drawn inside the top level's group (so it is also gone when that level is hidden by the level view).
- * It hides in cut-away and in the editing views, so interiors stay visible; hidden means not drawn and not casting any shadow.
+ * It lifts off whenever its storey is the one being looked into: Cut-away, in either state (all walls low, or the automatic cut by view direction), exists to see the
+ * rooms, and a roof over them would hide exactly that. It also hides in the editing views and in Room mode; hidden means not drawn and not casting any shadow.
  */
 export default function Roof() {
   const { walls, rooms, levels, building } = useStore((s) => s.plan);
   const live = useStore((s) => s.view === "live");
-  const cutaway = useCutaway();
+  const { active } = useLevel();
   const iso = useStore((s) => !!isolationOf(s)); // Room mode lifts the roof off
   const roof = useMemo(() => roofForPlan({ walls, rooms, levels, building, openings: [], items: [] }), [walls, rooms, levels, building]);
   const kn = useKnobs();
@@ -49,7 +51,8 @@ export default function Roof() {
   useEffect(() => () => geometry?.dispose(), [geometry]);
   useEffect(() => () => map?.dispose(), [map]);
 
-  const shown = live && !cutaway && !iso;
+  const walking = useWalking();
+  const shown = live && (walking || (!active && !iso)); // a walker has the roof overhead: it is their ceiling
   const g = useRef<Group>(null);
   const k = useRef(shown ? 1 : 0);
   useFrame((_, dt) => {

@@ -2,13 +2,26 @@
 import { useRef } from "react";
 import type { FormEvent } from "react";
 import { BACKUP_URL } from "@/lib/dbApi";
+import { isRecord } from "@/lib/guards";
 import type { StashEntry } from "@/lib/planStash";
 import { Confirm, Section, size } from "./DataBits";
 import MonoLabel from "./MonoLabel";
 import type { DataSnapshot } from "./useDataPanel";
 
-const KIND_NAMES: Record<string, string> = { model: "3D model", piece: "Custom piece", image: "Image" };
-const DELETE_TEXT: Record<string, string> = { model: "Delete this file? Pieces that use it will show a grey box instead.", piece: "Delete this piece?" };
+const KIND_NAMES: Record<string, string> = { model: "3D model", piece: "Custom piece", image: "Image", city: "City model", material: "Poly Haven texture", hdri: "Poly Haven sky picture" };
+const DELETE_TEXT: Record<string, string> = {
+  model: "Delete this file? Pieces that use it will show a grey box instead.",
+  piece: "Delete this piece?",
+  city: "Delete this city model? The Surroundings panel will say it is missing until you import another.",
+  material: "Delete this texture? Floors, walls and ground that use it fall back to their plain colour. You can download it again from Poly Haven.",
+  hdri: "Delete this sky picture? Lighting that uses it needs another one. You can download it again from Poly Haven.",
+};
+
+/** " · by Rob Tuytel" for a Poly Haven file (its details carry the authors), else nothing. */
+function creditOf(meta: unknown): string {
+  const authors = isRecord(meta) && Array.isArray(meta.authors) ? meta.authors.filter((a): a is string => typeof a === "string" && a !== "") : [];
+  return authors.length ? ` · by ${authors.join(", ")}` : "";
+}
 
 type AskProps = { off: boolean; ask: string | null; setAsk: (key: string | null) => void };
 
@@ -85,7 +98,7 @@ export function FilesSection({ files, off, ask, setAsk, onDelete }: AskProps & {
   return (
     <Section title="Files">
       {files.resources.length === 0 ? (
-        <p className="empty">No files yet. Imported 3D models and your own pieces appear here.</p>
+        <p className="empty">No files yet. Imported 3D models, your own pieces and textures or skies from Poly Haven appear here.</p>
       ) : (
         <ul className="dp-list" aria-label="Files">
           {files.resources.map((r) => {
@@ -95,7 +108,7 @@ export function FilesSection({ files, off, ask, setAsk, onDelete }: AskProps & {
                 <div className="dp-row">
                   <span className="dp-text">
                     <b>{r.name || r.id}</b>
-                    <small>{KIND_NAMES[r.kind] ?? "File"} · {size(r.size)}</small>
+                    <small>{KIND_NAMES[r.kind] ?? "File"} · {size(r.size)}{creditOf(r.meta)}</small>
                   </span>
                   <button type="button" className="btn danger" disabled={off} onClick={() => setAsk(key)} aria-label={`Delete ${r.name || r.id}`}>Delete</button>
                 </div>

@@ -3,13 +3,13 @@
 .rail-title { display: flex; justify-content: space-between; padding: 0 10px 8px; border-bottom: 1px solid var(--accent-line); margin-bottom: 4px; }
 .rail-title b { font-weight: 500; color: var(--text); }
 .rail-item { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 8px 10px; text-align: left; border: 1px solid transparent; border-radius: var(--r); color: var(--muted); transition: color 0.15s, background 0.15s, border-color 0.15s; --l: 6px; }
-.rail-item:hover { color: var(--text); background: rgba(6, 9, 12, 0.5); border-color: var(--accent-line); }
+.rail-item:hover { color: var(--text); background: rgb(var(--panel-rgb) / calc(0.5 * var(--panel-k))); border-color: var(--accent-line); }
 .rail-item.active { color: var(--text); background: var(--glass); border-color: var(--accent-line); backdrop-filter: blur(var(--blur)); }
 .rail-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; }
 .rail-top span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rail-top small { font-size: 10.5px; color: var(--muted); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 .bars { display: flex; gap: 3px; height: 2px; }
-.bars i { width: 12px; height: 2px; background: rgba(138, 160, 173, 0.25); transition: background 0.3s, box-shadow 0.3s; }
+.bars i { width: 12px; height: 2px; background: rgb(var(--dim-rgb) / 0.25); transition: background 0.3s, box-shadow 0.3s; }
 .bars i.on { background: var(--c, var(--text)); box-shadow: 0 0 6px var(--c, transparent); }
 .bars.none { opacity: 0.5; font: 400 9.5px/2px var(--mono); letter-spacing: 0.1em; height: auto; }
 .rail-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

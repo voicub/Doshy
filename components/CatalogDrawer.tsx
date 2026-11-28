@@ -10,11 +10,14 @@ import { useStore } from "@/lib/store";
 import { useVp } from "@/lib/useVp";
 import { useCarModels } from "@/lib/carModelStore";
 import { Card, type CardActions } from "./CatalogCard";
+import CatalogLines from "./CatalogLines";
 import CatalogChips, { type CatalogMode } from "./CatalogChips";
 import CatalogFilters from "./CatalogFilters";
 import CatalogOwn from "./CatalogOwn";
 import CatalogSearch from "./CatalogSearch";
 import ModelImport from "./ModelImport";
+import { PolyHavenModelPick } from "./lazyPanels";
+import type { PhItem } from "@/lib/polyhaven";
 import { CreditsLink } from "./CarCredits";
 import { CarTools } from "./CarAuto";
 import PieceBuilder, { type Draft } from "./PieceBuilder";
@@ -28,7 +31,7 @@ import "./compactCatalog.css";
 
 const OFFERED = KINDS.filter((k) => !CATALOG[k].legacy && !CATALOG[k].pillar).length; // old car models are not offered, only kept for saved plans
 
-type Modal = { t: "build"; draft: Draft; editing?: CustomPiece } | { t: "model"; piece?: CustomPiece } | null;
+type Modal = { t: "build"; draft: Draft; editing?: CustomPiece } | { t: "model"; piece?: CustomPiece; source?: { item: PhItem; file: File } } | { t: "ph" } | null;
 type Note = { text: string; bad?: boolean };
 const MODES: { id: CatalogMode; label: string }[] = [
   { id: "all", label: "Browse" },
@@ -97,7 +100,7 @@ export default function CatalogDrawer({ onClose }: { onClose: () => void }) {
   const missing = useMemo(() => missingKinds(pieces, items), [pieces, items]);
   const favSet = useMemo(() => new Set(favs), [favs]);
   const hasCars = useMemo(() => items.some((i) => CATALOG[i.kind]?.car), [items]);
-  const { kinds, shown, end, rove, setRove } = useCatalogList({ needle, mode, group, cat, body, size, groups, mineKinds, favs, recent, grid });
+  const { kinds, shown, end, rove, setRove } = useCatalogList({ needle, mode, group, cat, body, size, groups, mineKinds, favs, recent });
 
   // card callbacks are created once (they read the latest state through a ref), so cards that did not change skip rendering
   const live = useRef({ active, setTool, tiny, onClose });
@@ -190,6 +193,7 @@ export default function CatalogDrawer({ onClose }: { onClose: () => void }) {
         <CatalogOwn
           missing={missing.length}
           onImportModel={() => setModal({ t: "model" })}
+          onImportPolyHaven={() => setModal({ t: "ph" })}
           onBuild={() => setModal({ t: "build", draft: { name: "My piece", parts: [] } })}
           onCopy={() => {
             pickMode("all");
@@ -210,6 +214,7 @@ export default function CatalogDrawer({ onClose }: { onClose: () => void }) {
         </>
       )}
 
+      {!needle && mode === "all" && <CatalogLines />}
       <div className="cards" ref={grid} role="list" aria-label="Pieces" onKeyDown={moveFocus}>
         {kinds.slice(0, shown).map((k, i) => (
           <Card key={k} k={k} i={i} active={active === k} fav={favSet.has(k)} tab={i === rove} coarse={coarse} piece={pieceOf.get(k)} act={act} />
@@ -219,7 +224,8 @@ export default function CatalogDrawer({ onClose }: { onClose: () => void }) {
       </div>
 
       {modal?.t === "build" && <PieceBuilder draft={modal.draft} editing={modal.editing} onClose={done} />}
-      {modal?.t === "model" && <ModelImport piece={modal.piece} onClose={done} />}
+      {modal?.t === "model" && <ModelImport piece={modal.piece} source={modal.source} onClose={done} />}
+      {modal?.t === "ph" && <PolyHavenModelPick onPicked={(item, file) => setModal({ t: "model", source: { item, file } })} onClose={() => setModal(null)} />}
     </HudPanel>
   );
 }

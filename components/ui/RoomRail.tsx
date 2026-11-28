@@ -1,9 +1,10 @@
 "use client";
-import { BrowserIcon, CubeFocusIcon, ListBulletsIcon } from "@phosphor-icons/react";
+import { BrowserIcon, CubeFocusIcon, ListBulletsIcon, PersonSimpleWalkIcon } from "@phosphor-icons/react";
 import { useMemo } from "react";
 import type { HAState } from "@/lib/ha";
 import { fmtRh, fmtTemp, sinceLabel, type RoomLive } from "@/lib/live";
 import { levelIdOf, sortedLevels } from "@/lib/levels";
+import { walkHere } from "@/lib/walkStore";
 import { openOpenings } from "@/lib/openings";
 import { lightInfo, rgbCss } from "@/lib/light";
 import { roomSummary, type RoomSummary } from "@/lib/rooms";
@@ -76,6 +77,9 @@ function RailRow({ r, compact, live: l, states, isOpen, isFocused: active, isIso
       )}
       <button type="button" className="rail-dev" aria-label={`Devices in ${r.name}`} title="Devices" onClick={() => useRoomSheet.getState().open(r.id)}>
         <ListBulletsIcon size={14} />
+      </button>
+      <button type="button" className="rail-walk" aria-label={`Walk in ${r.name}`} title="Walk in this room" onClick={() => walkHere(r.id)}>
+        <PersonSimpleWalkIcon size={14} />
       </button>
     </div>
   );

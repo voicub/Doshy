@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { computeSky, daylightOf, sunPosition, weatherOf } from "./sky.ts";
+import { moonGain } from "./moon.ts";
 import type { HAState } from "./ha.ts";
 
 const st = (entity_id: string, state: string, attributes: HAState["attributes"] = {}): HAState => ({ entity_id, state, attributes });
@@ -65,4 +66,31 @@ test("season and holiday follow the date and the home latitude, a forced mode ov
   assert.equal(computeSky({}, winterDay, { ...AUTO, holidayMode: "none" }, "day").holiday, null);
   const easter = computeSky({}, new Date(2026, 3, 5, 12), { ...AUTO, easterRite: "western" }, "day");
   assert.equal(easter.holiday?.id, "EASTER");
+});
+
+test("rain with 80% cloud coverage and a 36 km/h wind: rain, heavy cloud, a strong wind (10 m/s)", () => {
+  const states = {
+    "sun.sun": st("sun.sun", "above_horizon", { elevation: 20, azimuth: 200 }),
+    "weather.home": st("weather.home", "rainy", { cloud_coverage: 80, wind_speed: 36 }),
+  };
+  const sky = computeSky(states, new Date("2026-11-20T10:00:00Z"), AUTO, "day");
+  assert.deepEqual([sky.weather.kind, sky.weather.cloud, sky.weather.wind, sky.weather.entity], ["rain", 0.8, 10, "weather.home"]);
+  assert.equal(sky.elevation, 20);
+});
+
+test("the settings pick the weather entity, a forced weather and a manual wind still win", () => {
+  const states = { "weather.home": st("weather.home", "sunny"), "weather.cabin": st("weather.cabin", "snowy", { wind_speed: 36 }) };
+  assert.equal(computeSky(states, new Date(), AUTO, "day").weather.kind, "clear");
+  assert.equal(computeSky(states, new Date(), { ...AUTO, weatherEntity: "weather.cabin" }, "day").weather.kind, "snow");
+  const forced = computeSky(states, new Date(), { timeMode: "auto", weatherMode: "fog", windMode: "manual", windSpeed: 2, windFrom: 90 }, "day");
+  assert.deepEqual([forced.weather.kind, forced.weather.wind, forced.weather.windFrom], ["fog", 2, 90]);
+});
+
+test("the moon comes from the sensor when there is one, else from the date; its light follows the lit share", () => {
+  const night = new Date("2026-01-03T22:00:00Z"); // near a full moon
+  const computed = computeSky({}, night, AUTO, "day");
+  assert.deepEqual([computed.moonSource, computed.moon.name], ["computed", "full_moon"]);
+  const ha = (phase: string) => computeSky({ "sensor.moon_phase": st("sensor.moon_phase", phase) }, night, AUTO, "day");
+  assert.deepEqual([ha("new_moon").moonSource, ha("new_moon").moon.name], ["ha", "new_moon"]);
+  assert.ok(moonGain(ha("full_moon").moon.illumination) > moonGain(ha("new_moon").moon.illumination));
 });

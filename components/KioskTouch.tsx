@@ -5,6 +5,7 @@ import { useDisplay } from "@/lib/displayStore";
 import { createIdle, type Idle } from "@/lib/idle";
 import { fieldHints, keyboardOpen, nextBaseline, wantsKeyboard } from "@/lib/keyboard";
 import { useVp } from "@/lib/useVp";
+import { useWall } from "@/lib/wallStore";
 import { createWakeLock, type WakeLock } from "@/lib/wakeLock";
 
 const KEYBOARD_SETTLE_MS = 350; // the on-screen keyboard slides up; scroll the field into view once it has
@@ -130,7 +131,8 @@ function useKeyboardAssist() {
 export default function KioskTouch() {
   const { kiosk } = useVp();
   useWakeLock(useDisplay((s) => wakeWanted(s, kiosk)));
-  useIdleTimer(useDisplay((s) => saverMs(s, kiosk)));
+  const wall = useWall((s) => s.on); // the wall display takes over from the dark screensaver
+  useIdleTimer(useDisplay((s) => (wall ? 0 : saverMs(s, kiosk))));
   useKeyboardAssist();
   return null;
 }

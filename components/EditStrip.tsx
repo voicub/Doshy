@@ -3,6 +3,7 @@ import {
   ArmchairIcon, ArrowCounterClockwiseIcon, ArrowUUpLeftIcon, ArrowUUpRightIcon, BuildingsIcon, CheckIcon, CursorIcon, DownloadSimpleIcon, FilePlusIcon, FlowArrowIcon, GlobeHemisphereEastIcon,
   ListMagnifyingGlassIcon, MapTrifoldIcon, PaintBucketIcon, SlidersHorizontalIcon, StackIcon, UploadSimpleIcon, XIcon, ArrowClockwiseIcon, type Icon,
 } from "@phosphor-icons/react";
+import { ImageSquareIcon, SunHorizonIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CATALOG } from "@/lib/catalog";
 import { touchHint } from "@/lib/editHints";
@@ -23,6 +24,8 @@ type Props = {
   browser: boolean; onBrowser: () => void; onAreas: () => void;
   building: boolean; onBuilding: () => void;
   site: boolean; onSite: () => void;
+  daylight: boolean; onDaylight: () => void;
+  trace: boolean; onTrace: () => void;
   newPlan: boolean; onNewPlan: () => void;
   /** Whether a left-hand panel (entities, building, ...) is open, and how to close all of them. */
   left: boolean; onCloseLeft: () => void;
@@ -50,10 +53,10 @@ function useWindowSize() {
   return size;
 }
 
-/** Plan mode only: the "Done" that finishes a wall or a garden path (no Esc key on a touchscreen). */
+/** Plan mode only: the "Done" that finishes a wall or a garden line (no Esc key on a touchscreen). */
 function PlanDone() {
   const tool = useStore((s) => s.tool);
-  if (tool !== "wall" && tool !== "garden") return null;
+  if (tool !== "wall" && tool !== "lines" && tool !== "ruler" && tool !== "annotate") return null;
   return <Btn label="Done" icon={CheckIcon} primary onClick={() => window.dispatchEvent(new CustomEvent("housey:finish-draw"))} />;
 }
 
@@ -87,8 +90,9 @@ function PlanFiles() {
   const setPlan = useStore((s) => s.setPlan);
   const importPlan = async (f: File) => {
     try {
-      setPlan(await readPlanFile(f));
-      setError(null);
+      let note: string | null = null; // why the plan opened without its floor plan picture, if it did
+      setPlan(await readPlanFile(f, (n) => (note = n)));
+      setError(note);
     } catch (e) {
       setError(`Invalid plan file: ${errorMessage(e)}`);
     }
@@ -105,7 +109,7 @@ function PlanFiles() {
 }
 
 /** Plan mode's tools: the drawing tools, then building, surroundings, new plan and the file actions. */
-function PlanTools({ building, onBuilding, site, onSite, newPlan, onNewPlan }: Pick<Props, "building" | "onBuilding" | "site" | "onSite" | "newPlan" | "onNewPlan">) {
+function PlanTools({ building, onBuilding, site, onSite, daylight, onDaylight, trace, onTrace, newPlan, onNewPlan }: Pick<Props, "building" | "onBuilding" | "site" | "onSite" | "daylight" | "onDaylight" | "trace" | "onTrace" | "newPlan" | "onNewPlan">) {
   const tool = useStore((s) => s.tool);
   const setTool = useStore((s) => s.setTool);
   return (
@@ -120,7 +124,9 @@ function PlanTools({ building, onBuilding, site, onSite, newPlan, onNewPlan }: P
       <i className="es-sep" aria-hidden />
       <Btn label="Building and levels" icon={BuildingsIcon} active={building} onClick={onBuilding} />
       <Btn label="Surroundings" icon={GlobeHemisphereEastIcon} active={site} onClick={onSite} />
-      <Btn label="New plan" icon={FilePlusIcon} active={newPlan} onClick={onNewPlan} />
+      <Btn label="Sunlight" icon={SunHorizonIcon} active={daylight} onClick={onDaylight} />
+      <Btn label="Trace image" icon={ImageSquareIcon} active={trace} onClick={onTrace} />
+      <Btn label="Templates" icon={FilePlusIcon} active={newPlan} onClick={onNewPlan} />
       <PlanFiles />
     </>
   );
@@ -180,7 +186,7 @@ function useOnePanelRules({ on, catalog, left, onCloseLeft }: PanelRules) {
   useEffect(() => {
     if (on) useEditUi.getState().set({ inspectorOpen: false });
   }, [on, sel?.type, sel?.id, view]);
-  const autoPanel = tool === "paint" || (tool === "garden" && view === "plan");
+  const autoPanel = tool === "paint" || ((tool === "garden" || tool === "lines") && view === "plan");
   const inspectorShown = !!sel && (view === "ha" || inspectorOpen);
   useEffect(() => {
     if (!on || !(catalog || left)) return;
@@ -224,7 +230,7 @@ export default function EditStrip(p: Props) {
   const quick = itemSel && tool === "select";
   const text = touchHint({ view, tool, placingLabel: placing ? CATALOG[tool.slice(4)]?.label : undefined, selected: !!sel, gesture: gesture?.mode ?? null, connect, passThrough: pass });
   const middle: ReactNode =
-    view === "plan" ? <PlanTools building={p.building} onBuilding={p.onBuilding} site={p.site} onSite={p.onSite} newPlan={p.newPlan} onNewPlan={p.onNewPlan} />
+    view === "plan" ? <PlanTools building={p.building} onBuilding={p.onBuilding} site={p.site} onSite={p.onSite} daylight={p.daylight} onDaylight={p.onDaylight} trace={p.trace} onTrace={p.onTrace} newPlan={p.newPlan} onNewPlan={p.onNewPlan} />
     : view === "ha" ? <HaTools browser={p.browser} onBrowser={p.onBrowser} onAreas={p.onAreas} />
     : placing ? <PlaceBar />
     : quick ? <QuickToolbar docked />

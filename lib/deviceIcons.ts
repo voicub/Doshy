@@ -1,5 +1,6 @@
 // Custom icon of a linked device (`item.params.icon`): the small round marker drawn over it in the Live view. The list is curated (plain names, search words);
 // components/ui/deviceIcons.ts maps each id to its drawing. Pure: the node test runner loads this file directly.
+import { mdiName } from "./mdi.ts";
 
 type DeviceIcon = { id: string; label: string; words: string };
 
@@ -100,6 +101,8 @@ const BY_ID = new Map(DEVICE_ICONS.map((i) => [i.id, i]));
 export const iconLabel = (id: unknown): string | undefined => (typeof id === "string" ? BY_ID.get(id)?.label : undefined);
 /** The picked icon id of an item's params, when it is one we know (a stale or hand-edited value counts as none). */
 export const iconOf = (params: Record<string, number | string | boolean> | undefined): string | undefined => (typeof params?.icon === "string" && BY_ID.has(params.icon) ? params.icon : undefined);
+/** The Material Design icon a manual choice names (`params.icon` = `mdi:lamp` gives `lamp`), or undefined. Kept apart from `iconOf`: those draw from the dashboard's own set. */
+export const mdiOf = (params: Record<string, number | string | boolean> | undefined): string | undefined => mdiName(params?.icon) ?? undefined;
 
 /** Icons matching what was typed: every word must appear in the name or the search words (case-insensitive); name matches first. */
 export function searchIcons(query: string): readonly DeviceIcon[] {
@@ -112,6 +115,6 @@ export function searchIcons(query: string): readonly DeviceIcon[] {
 /** The params with the icon set (or removed with `undefined`), every other key kept. */
 export function withIcon(params: Record<string, number | string | boolean> | undefined, icon: string | undefined): Record<string, number | string | boolean> | undefined {
   const rest = Object.fromEntries(Object.entries(params ?? {}).filter(([k]) => k !== "icon"));
-  const next = icon && BY_ID.has(icon) ? { ...rest, icon } : rest;
+  const next = icon && (BY_ID.has(icon) || mdiName(icon)) ? { ...rest, icon } : rest;
   return Object.keys(next).length ? next : undefined;
 }

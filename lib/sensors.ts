@@ -1,6 +1,7 @@
 // Pure sensor classifier (no React, no store): turns a Home Assistant entity into a kind, label, icon, state colour, formatted value
-// and animation. The node test runner loads this file directly, so imports are type-only. Rendering: components/scene/SensorFx.tsx.
+// and animation. Pure helpers keep this usable by the node test runner. Rendering: components/scene/SensorFx.tsx.
 import type { HAState } from "./ha.ts";
+import { isPressureEntity, toHpa } from "./pressure.ts";
 
 type SensorAnim = "none" | "pulse" | "radar" | "shake" | "drip" | "blink";
 /** Keys of the icon set SensorFx maps to Phosphor icons. */
@@ -110,7 +111,7 @@ export const uvBand = (v: number) => (v < 3 ? "low" : v < 6 ? "moderate" : v < 8
 const NUMERIC: Record<string, Numeric> = {
   temperature: { label: "Temperature", icon: "temp", color: (v, u) => ramp(toC(v, u), [[8, BLUE], [20, "#8fe3d0"], [24, "#c8e88a"], [30, ORANGE], [36, RED]]) },
   humidity: { label: "Humidity", icon: "humidity", color: (v) => ramp(v, [[0, "#6f8396"], [40, "#5fa8e0"], [100, "#1f8fff"]]) },
-  pressure: { label: "Pressure", icon: "pressure", color: (v) => (v > 800 && v < 1000 ? AMBER : CYAN) },
+  pressure: { label: "Pressure", icon: "pressure", color: (v, u) => { const h = toHpa(v, u ?? "hPa"); return h !== undefined && h > 800 && h < 1000 ? AMBER : CYAN; } },
   illuminance: { label: "Light level", icon: "lux", color: (v) => ramp(Math.log10(Math.max(1, v)), [[0, "#3b4a66"], [1.5, "#7f8fb0"], [2.7, "#ffe9a8"], [4, "#fff6cf"]]) },
   uv: { label: "UV", icon: "uv", color: (v) => ramp(v, [[0, GREEN], [2, GREEN], [3, YELLOW], [5, YELLOW], [6, ORANGE], [7, ORANGE], [8, RED], [10, RED], [11, VIOLET]]), text: (v) => `UV ${fmtNum(v)} ${uvBand(v)}` },
   irradiance: { label: "Sun power", icon: "uv", color: (v) => ramp(v, [[0, "#6b7a8a"], [400, YELLOW], [800, ORANGE], [1200, RED]]) },
@@ -154,6 +155,7 @@ const NAME_CLASS: [RegExp, string][] = [
 
 /** The sensor class of a numeric `sensor.*`: its device_class, else its unit, else its name. */
 export function numericClass(e: Ent): string {
+  if (isPressureEntity(e)) return "pressure";
   const dc = e.attributes.device_class;
   if (dc) {
     const k = CLASS_ALIAS[dc] ?? dc;

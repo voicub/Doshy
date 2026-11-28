@@ -12,6 +12,7 @@ import MonoLabel from "./MonoLabel";
 import { patchState, runService, type CurtainTarget, type ServiceData } from "./serviceActions";
 import { useDismiss } from "./useDismiss";
 import "./curtainCard.css";
+import DeviceGlyph from "./DeviceGlyph";
 
 const WIDTH = 320;
 const SLIDER_PAUSE_MS = 350;
@@ -100,7 +101,7 @@ function Layer({ layer, entity, st, itemId, note, error, setError, children }: L
   return (
     <section className="cc-layer" aria-label={name} data-layer={layer} data-item={itemId}>
       <div className="dc-state">
-        <MonoLabel>{name}</MonoLabel>
+        <MonoLabel><DeviceGlyph itemId={itemId} entity={entity} /> {name}</MonoLabel>
         <span className={`t-val ${bad ? "warn" : ""}`}>{words}</span>
       </div>
       <small className="cc-entity">{st?.attributes.friendly_name ?? entity}</small>

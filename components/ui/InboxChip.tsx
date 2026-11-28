@@ -5,6 +5,7 @@ import { updatesAvailable } from "@/lib/haUpdates";
 import { useStore } from "@/lib/store";
 import { freshCount, useInbox } from "./inboxStore";
 import { DEVICE_EVENT } from "./serviceActions";
+import { openMaintenance } from "./maintenanceUi";
 import "./inbox.css";
 
 const POLL_MS = 30_000;
@@ -52,6 +53,7 @@ export function InboxToast() {
       <button
         className="inbox-toast-main"
         onClick={() => {
+          if (toast.id.startsWith("maintenance:")) { openMaintenance(); useInbox.getState().clearToast(); return; }
           if (!toast.entity) return useInbox.getState().openTab("notifications");
           window.dispatchEvent(new CustomEvent(DEVICE_EVENT, { detail: { entity: toast.entity } })); // an appliance toast opens the appliance card
           useInbox.getState().clearToast();

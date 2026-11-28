@@ -130,3 +130,12 @@ test("imported model size: native metres, or 1 m on the longest side when absurd
   assert.deepEqual(startSize({ x: 100, y: 200, z: 50 }), { w: 0.5, d: 0.25, h: 1 });
   assert.deepEqual(lockedSize({ w: 1, d: 0.5, h: 2 }, "h", 1), { w: 0.5, d: 0.25, h: 1 });
 });
+
+test("a piece's pack tag is kept when valid and scrubbed otherwise; pieces without one still load", () => {
+  const base = { kind: "my_a_ab12", name: "A", parts: [box(0, 0.5, 0, 1, 1, 1)] };
+  assert.equal(cleanPiece(base)?.pack, undefined);
+  const good = cleanPiece({ ...base, pack: { id: "pk_x1", name: "<b>Set</b>", author: "Ada", licence: "", at: 5, evil: 1 } });
+  assert.deepEqual(good?.pack, { id: "pk_x1", name: "b Set /b", author: "Ada", at: 5 });
+  for (const bad of [{ name: "x" }, { id: "../x", name: "x" }, "pack", 5, null, []]) assert.equal(cleanPiece({ ...base, pack: bad })?.pack, undefined);
+  assert.equal(cleanPiece({ ...base, pack: { id: "pk_x1", name: "y".repeat(500) } })?.pack?.name.length, 120);
+});

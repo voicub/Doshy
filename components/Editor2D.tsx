@@ -10,9 +10,11 @@ import { OPENING_SNAP_DIST } from "./plan/planPoint";
 import { PlanCorner } from "./plan/PlanBits";
 import PlanLayers from "./plan/PlanLayers";
 import SiteAlignBar from "./plan/SiteAlignBar";
+import TraceBar from "./plan/TraceBar";
 import SiteUnderlay from "./plan/SiteUnderlay";
 import TitleBlock from "./plan/TitleBlock";
-import { groundCancel, groundFinishPath, useGroundDraft } from "./plan/groundTool";
+import { groundSettle, useGroundDraft } from "./plan/groundTool";
+import { linesCancel, linesFinish, useLinesDraft } from "./plan/linesTool";
 import { useSiteAlign } from "./ui/siteAlign";
 import type { PointerEnv } from "./plan/pointerEnv";
 import { useGesture } from "./plan/useGesture";
@@ -26,9 +28,9 @@ import "./plan/compactPlan.css";
 const TINY_U = 62; // on small screens one screen-constant unit is this many css px, so type stays readable at any zoom
 const TOUCH_SCALE = 1.7; // handle size multiplier on touchscreens
 const FINGER_WALL_REACH_PX = 30; // how far from a wall a finger's tap still lands on it
-const IDLE_ACTIONS: PlanActions = { finish: () => undefined, fit: () => undefined, finishPath: () => undefined };
+const IDLE_ACTIONS: PlanActions = { finish: () => undefined, fit: () => undefined, finishLine: () => undefined };
 
-/** Plan mode: the floor plan as a blueprint, drawn with the select, wall, room, opening, pillar, paint, garden and stairs tools. */
+/** Plan mode: the floor plan as a blueprint, drawn with the select, wall, room, opening, pillar, paint, garden, garden lines and stairs tools. */
 export default function Editor2D() {
   const full = useStore((s) => s.plan);
   const sel = useStore((s) => s.sel);
@@ -44,8 +46,9 @@ export default function Editor2D() {
   const tiny = vp !== "regular"; // "compact" screens: the tiny and small classes (800x480, 1024x600, phones)
   const live = useRef<PlanActions>(IDLE_ACTIONS); // what the keys, the edit strip and the view ask of the editor; always the latest render's
 
-  const gdBusy = useGroundDraft((s) => !!(s.rect || s.grab || s.path.length));
-  const gestureActive = !!g.drag || !!g.roomStart || !!g.wallStart || !!g.voidStart || gdBusy;
+  const gdBusy = useGroundDraft((s) => !!(s.rect || s.grab));
+  const lineBusy = useLinesDraft((s) => s.points.length > 0);
+  const gestureActive = !!g.drag || !!g.roomStart || !!g.wallStart || !!g.voidStart || gdBusy || lineBusy;
   const { view, setView, viewRef, autoFrame, size, free, fit } = usePlanView({ svg, live, activeLevel, tiny, sel, gestureActive, dragActive: !!g.drag });
   const vb = rectOf(view, size.w / size.h);
   const px = vb.w / size.w; // one screen pixel, in metres
@@ -58,12 +61,13 @@ export default function Editor2D() {
   const env: PointerEnv = { svg, tool, activeLevel, px, reach, g, point, viewRef, autoFrame, setView };
   const pointer = usePlanPointer(env);
   const camera = usePlanCamera({ svg, viewRef, autoFrame, setView, onPinchStart: g.finish });
-  live.current = { finish: g.finish, fit, finishPath: () => groundFinishPath({ begin: g.begin, end: g.end }) };
+  live.current = { finish: g.finish, fit, finishLine: () => linesFinish({ begin: g.begin, end: g.end }) };
   usePlanKeys(live, g.wallStartRef, g.setSpace, g.setWallStart);
 
   useEffect(() => {
     g.setWallStart(null);
-    groundCancel();
+    groundSettle();
+    linesCancel();
     if (tool.startsWith("add:")) useStore.getState().setTool("select"); // furniture is placed in the Furniture view
   }, [tool]);
   useEffect(() => {
@@ -91,7 +95,7 @@ export default function Editor2D() {
       onPointerCancelCapture={camera.touchUp}
       onMouseDown={(e) => e.button === 1 && e.preventDefault()}
       onPointerDown={pointer.down}
-      onDoubleClick={() => tool === "garden" && live.current.finishPath()}
+      onDoubleClick={() => tool === "lines" && live.current.finishLine()}
       onPointerMove={pointer.move}
       onPointerUp={pointer.up}
       onPointerCancel={g.finish}
@@ -101,7 +105,7 @@ export default function Editor2D() {
         e.preventDefault();
         if (camera.isTouching()) return; // a long press is not a right click: it must not end the wall
         g.setWallStart(null);
-        live.current.finishPath();
+        live.current.finishLine();
       }}
     >
       <SiteUnderlay />
@@ -110,6 +114,7 @@ export default function Editor2D() {
     </svg>
     <PlanCorner onFit={fit} dims={showDims} onDims={() => setShowDims((v) => !v)} />
     {align && <SiteAlignBar />}
+    <TraceBar />
     {!tiny && <TitleBlock plan={plan} level={level} levelNo={levelNo} px={px} bearing={full.bearing ?? 0} />}
     </>
   );

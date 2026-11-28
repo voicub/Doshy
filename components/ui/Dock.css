@@ -8,7 +8,7 @@
 .dock .kbd { margin: 0 4px 0 6px; height: 28px; transition: color 0.15s, border-color 0.15s; }
 .dock .kbd:hover { color: var(--accent); border-color: var(--accent); }
 .dock-hint { position: absolute; left: 50%; bottom: calc(82px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: min(640px, calc(100vw - 32px)); padding: 7px 14px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.4; }
-.dock-hint.err { color: var(--err-text); border-color: rgba(255, 106, 61, 0.45); }
+.dock-hint.err { color: var(--err-text); border-color: rgb(var(--bad-rgb) / 0.45); }
 .dock-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 .seg.modes button { position: relative; display: inline-flex; align-items: center; gap: 7px; }
 .seg.modes button svg { flex: none; }

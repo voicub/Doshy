@@ -8,7 +8,7 @@ type Props = { def: Def; sx?: number; sz?: number; color?: string; glowFill?: st
 function CarTop({ spec, color }: { spec: CarSpec; color?: string }) {
   const v = carTopView(spec);
   const path = (pts: [number, number][]) => `M${pts.map(([x, z]) => `${x.toFixed(3)} ${z.toFixed(3)}`).join("L")}Z`;
-  const stroke = { stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.012 };
+  const stroke = { stroke: "var(--shade-40)", strokeWidth: 0.012 };
   return (
     <g>
       {v.wheels.map(([x, z, w, d], i) => (
@@ -32,7 +32,7 @@ export default function TopDown({ def, sx = 1, sz = 1, color, glowFill }: Props)
     <g transform={`scale(${sx} ${sz})`}>
       {parts.map((p, i) => {
         const fill = p.glow && glowFill ? glowFill : p.m && color ? color : p.c;
-        const common = { fill, stroke: "rgba(0,0,0,0.4)", strokeWidth: 0.012 };
+        const common = { fill, stroke: "var(--shade-40)", strokeWidth: 0.012 };
         const turned = (a?: number) => a !== undefined && Math.abs(Math.abs(a) - Math.PI / 2) < 0.01;
         // a cylinder lying on its side (wheel, exhaust tip) is a rectangle seen from above, not a circle
         if (p.shape === "cyl" && (turned(p.r?.[2]) || turned(p.r?.[0]))) {
@@ -61,7 +61,7 @@ function Canopy({ p, fill, stroke, strokeWidth }: { p: Part; fill: string; strok
       {LOBES.map(([lx, lz, r], i) => (
         <ellipse key={i} cx={x + lx * w} cy={z + lz * d} rx={r * w * 0.5} ry={r * d * 0.5} fill={fill} fillOpacity={i === 5 ? 0.55 : 0.8} stroke="none" />
       ))}
-      {h > 1.5 && <circle cx={x} cy={z} r={Math.min(w, d) * 0.05} fill="rgba(0,0,0,0.45)" stroke="none" />}
+      {h > 1.5 && <circle cx={x} cy={z} r={Math.min(w, d) * 0.05} fill="var(--shade-45)" stroke="none" />}
     </g>
   );
 }

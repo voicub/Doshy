@@ -9,9 +9,10 @@ const unitBox = () => (unit ??= new BoxGeometry(1, 1, 1));
 const dummy = new Object3D();
 
 /** Many boxes of one colour in a single draw call. Static decoration: never picked. */
-export default function BoxInstances({ boxes, color, roughness = 0.9, metalness = 0, shadow = true }: { boxes: BoxSpec[]; color: string; roughness?: number; metalness?: number; shadow?: boolean }) {
+export default function BoxInstances({ boxes, color, roughness = 0.9, metalness = 0, shadow = true, opacity = 1 }: { boxes: BoxSpec[]; color: string; roughness?: number; metalness?: number; shadow?: boolean; opacity?: number }) {
   const mesh = useRef<InstancedMesh>(null);
-  const material = useMemo(() => new MeshStandardMaterial({ color, roughness, metalness }), [color, roughness, metalness]);
+  // see-through boxes (glass panes) neither write depth nor cast shadows: they must not hide what is behind them
+  const material = useMemo(() => new MeshStandardMaterial({ color, roughness, metalness, ...(opacity < 1 ? { transparent: true, opacity, depthWrite: false } : {}) }), [color, roughness, metalness, opacity]);
   useEffect(() => () => material.dispose(), [material]);
   useLayoutEffect(() => {
     const m = mesh.current;

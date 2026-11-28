@@ -1,7 +1,9 @@
 import { elevationOf, levelIdOf } from "./levels.ts";
 import { FLOORS } from "./materials.ts";
 import type { Brush } from "./materials.ts";
-import type { FloorKind, GroundArea, GroundEdge, GroundPath, Plan, Pt } from "./types.ts";
+import { setGroundMaterial } from "./planMaterials.ts";
+import { lineLength, pointAtLength, smoothLine } from "./lineGeometry.ts";
+import type { FloorKind, GroundArea, GroundEdge, GroundPath, PavementSides, Plan, Pt, RoadMarks } from "./types.ts";
 
 // ---- what the ground is made of ---------------------------------------------------------------------------------------------
 
@@ -12,7 +14,7 @@ export const PATH_LIFT = 0.016;
 const ROOM_FLOOR_TOP = 0.06;
 export const MIN_AREA_SIDE = 0.3;
 export const MIN_PATH_WIDTH = 0.3;
-export const MAX_PATH_WIDTH = 6;
+export const MAX_PATH_WIDTH = 12;
 /** A garden path, pond or patio smaller than this in either direction is not drawn (the pointer only twitched). */
 export const MIN_DRAW = 0.3;
 
@@ -69,12 +71,48 @@ export function pointInArea(a: Pick<GroundArea, "x" | "y" | "w" | "h" | "rot">, 
 /** Points with consecutive duplicates removed (a double click leaves two equal ones). */
 export const cleanPoints = (pts: Pt[]): Pt[] => pts.filter((p, i) => i === 0 || Math.hypot(p.x - pts[i - 1].x, p.y - pts[i - 1].y) > 1e-6);
 
-export function pathLength(p: Pick<GroundPath, "points">): number {
-  const pts = cleanPoints(p.points);
-  let len = 0;
-  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-  return len;
+/**
+ * THE line of a path: its control points with repeats removed, run through a smooth curve when `smooth` is set. Every outline, length, hit test, label, marking and
+ * stone follows this, never the raw control points (those only carry the grips).
+ */
+export const pathLine = (p: Pick<GroundPath, "points" | "smooth">): Pt[] => (p.smooth ? smoothLine(p.points) : cleanPoints(p.points));
+
+export function pathLength(p: Pick<GroundPath, "points" | "smooth">): number {
+  return lineLength(pathLine(p));
 }
+
+/** Width of a road's pavement (m) when it has not been set. */
+export const DEFAULT_PAVEMENT_WIDTH = 1.8;
+const MARKS: readonly RoadMarks[] = ["none", "dashed", "solid", "edges", "double"];
+const PAVEMENTS: readonly PavementSides[] = ["none", "left", "right", "both"];
+/** The lane markings of a path, tolerating a missing or unknown value from an older or newer save: none. */
+export const marksOf = (p: Pick<GroundPath, "marks">): RoadMarks => (p.marks && MARKS.includes(p.marks) ? p.marks : "none");
+/** Which sides of a road have a pavement: none when unset. left / right are seen walking from the first point to the last (plan y down). */
+export const pavementOf = (p: Pick<GroundPath, "pavement">): PavementSides => (p.pavement && PAVEMENTS.includes(p.pavement) ? p.pavement : "none");
+export const pavementWidthOf = (p: Pick<GroundPath, "pavementWidth">): number => (p.pavementWidth !== undefined && p.pavementWidth > 0 ? p.pavementWidth : DEFAULT_PAVEMENT_WIDTH);
+
+/** The same path walked the other way: points reversed, a left pavement becomes the right one (it stays on the same side of the road). */
+export function reversedPath(p: GroundPath): GroundPath {
+  const flip = { left: "right", right: "left", both: "both", none: "none" } as const;
+  return { ...p, points: [...p.points].reverse(), ...(p.pavement ? { pavement: flip[pavementOf(p)] } : {}) };
+}
+
+/** The control points with one more in the middle of the longest segment (the "Add point" button); the same points when there is no segment. */
+export function insertPathPoint(p: GroundPath): Pt[] {
+  const pts = cleanPoints(p.points);
+  let at = -1;
+  let longest = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (l > longest) [at, longest] = [i, l];
+  }
+  if (at < 0) return pts;
+  const [a, b] = [pts[at - 1], pts[at]];
+  return [...pts.slice(0, at), { x: r3((a.x + b.x) / 2), y: r3((a.y + b.y) / 2) }, ...pts.slice(at)];
+}
+
+/** The control points without point `index`; a path never goes below two points (the same points then). */
+export const dropPathPoint = (p: GroundPath, index: number): Pt[] => (p.points.length <= 2 ? p.points : p.points.filter((_, i) => i !== index));
 
 /** Distance from `p` to the segment a-b. */
 export function distToSegment(p: Pt, a: Pt, b: Pt): number {
@@ -84,12 +122,25 @@ export function distToSegment(p: Pt, a: Pt, b: Pt): number {
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
-/** Is `p` on the path (within half its width of the line, round at the ends and bends)? */
-export function pointInPath(path: Pick<GroundPath, "points" | "width">, p: Pt): boolean {
-  const pts = cleanPoints(path.points);
-  if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y) <= path.width / 2;
-  for (let i = 1; i < pts.length; i++) if (distToSegment(p, pts[i - 1], pts[i]) <= path.width / 2) return true;
-  return false;
+/**
+ * Is `p` on the path (within half its width of its line, round at the ends and bends) or on one of its pavements (the band beside the road, on a side that has one)?
+ * Plants never grow through a pavement and the plan picks it with the road.
+ */
+export function pointInPath(path: Pick<GroundPath, "points" | "width" | "smooth" | "pavement" | "pavementWidth">, p: Pt): boolean {
+  const pts = pathLine(path);
+  const half = path.width / 2;
+  if (pts.length === 1) return Math.hypot(p.x - pts[0].x, p.y - pts[0].y) <= half;
+  let [best, at] = [Infinity, 1];
+  for (let i = 1; i < pts.length; i++) {
+    const d = distToSegment(p, pts[i - 1], pts[i]);
+    if (d <= half) return true;
+    if (d < best) [best, at] = [d, i];
+  }
+  const sides = pavementOf(path);
+  if (sides === "none" || best > half + pavementWidthOf(path) || pts.length < 2) return false;
+  const [a, b] = [pts[at - 1], pts[at]];
+  const left = (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x) > 0; // the left of travel is (dy, -dx): see offsetLine
+  return sides === "both" || sides === (left ? "left" : "right");
 }
 
 /** Steps an eighth of a turn each: how smooth the rounded joins and caps are. */
@@ -98,16 +149,10 @@ const ARC_STEP = Math.PI / 8;
 const rot2 = (v: Pt, a: number): Pt => ({ x: v.x * Math.cos(a) - v.y * Math.sin(a), y: v.x * Math.sin(a) + v.y * Math.cos(a) });
 
 /** The point half way along a path (where its label sits). */
-export function pathMidpoint(p: Pick<GroundPath, "points">): Pt {
-  const pts = cleanPoints(p.points);
-  if (pts.length < 2) return pts[0] ?? { x: 0, y: 0 };
-  let left = pathLength(p) / 2;
-  for (let i = 1; i < pts.length; i++) {
-    const l = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-    if (left <= l) return { x: pts[i - 1].x + ((pts[i].x - pts[i - 1].x) * left) / l, y: pts[i - 1].y + ((pts[i].y - pts[i - 1].y) * left) / l };
-    left -= l;
-  }
-  return pts[pts.length - 1];
+export function pathMidpoint(p: Pick<GroundPath, "points" | "smooth">): Pt {
+  const pts = pathLine(p);
+  const mid = pointAtLength(pts, lineLength(pts) / 2);
+  return mid ? { x: mid.x, y: mid.y } : (pts[0] ?? { x: 0, y: 0 });
 }
 
 /**
@@ -167,9 +212,10 @@ function endCap(centre: Pt, from: Pt): Pt[] {
  * The outline of a path as one closed polygon: both sides offset by half the width, rounded on the outside of every bend and at both ends.
  * The inside of a bend takes the mitre point (kept inside the shorter neighbouring segment), so a path whose segments are longer than its width has a
  * simple outline. ponytail: segments shorter than the width at a sharp bend can make the outline cross itself; split such a bend into longer segments.
+ * `ends: "flat"` cuts the two ends square (a road runs on into the next piece or the edge of the plot); the default is round. It follows `pathLine`, so a smooth path is a smooth strip.
  */
-export function pathOutline(path: Pick<GroundPath, "points" | "width">): Pt[] {
-  const pts = cleanPoints(path.points);
+export function pathOutline(path: Pick<GroundPath, "points" | "width" | "smooth" | "ends">): Pt[] {
+  const pts = pathLine(path);
   const r = path.width / 2;
   if (pts.length === 0) return [];
   if (pts.length === 1) return Array.from({ length: 16 }, (_, k) => ({ x: pts[0].x + r * Math.cos((k * Math.PI) / 8), y: pts[0].y + r * Math.sin((k * Math.PI) / 8) }));
@@ -185,11 +231,12 @@ export function pathOutline(path: Pick<GroundPath, "points" | "width">): Pt[] {
   const end = pts[pts.length - 1];
   const nEnd = normalOf(dirs[dirs.length - 1]);
   const nStart = normalOf(dirs[0]);
+  const flat = path.ends === "flat";
   return [
     ...left,
-    ...endCap(end, { x: nEnd.x * r, y: nEnd.y * r }),
+    ...(flat ? [] : endCap(end, { x: nEnd.x * r, y: nEnd.y * r })),
     ...right.reverse(),
-    ...endCap(pts[0], { x: -nStart.x * r, y: -nStart.y * r }),
+    ...(flat ? [] : endCap(pts[0], { x: -nStart.x * r, y: -nStart.y * r })),
   ];
 }
 
@@ -297,7 +344,7 @@ export function groundBase(plan: Pick<Plan, "rooms" | "levels">, g: GroundArea |
 // ---- editing the plan ------------------------------------------------------------------------------------------------------
 
 export type NewArea = Pick<GroundArea, "x" | "y" | "w" | "h" | "kind"> & Partial<Pick<GroundArea, "rot" | "color" | "edge" | "name">>;
-export type NewPath = Pick<GroundPath, "points" | "width" | "kind"> & Partial<Pick<GroundPath, "color" | "edge" | "name">>;
+export type NewPath = Pick<GroundPath, "points" | "width" | "kind"> & Partial<Pick<GroundPath, "color" | "edge" | "name" | "ends" | "smooth" | "marks" | "pavement" | "pavementWidth" | "stones">>;
 
 /** Default name of a new area or path: its surface, numbered. */
 const nameFor = (kind: FloorKind, taken: (GroundArea | GroundPath)[]) => `${kind === "water" ? "Pond" : FLOORS[kind].label} ${taken.filter((g) => g.kind === kind).length + 1}`;
@@ -317,19 +364,20 @@ export function addPathTo(plan: Plan, p: NewPath, id: string): Plan {
 /** Move a path (every point) by dx, dy. */
 export const movePath = (p: GroundPath, dx: number, dy: number): Pt[] => p.points.map((q) => ({ x: r3(q.x + dx), y: r3(q.y + dy) }));
 
-/** The ground painted with a brush: its surface (if the brush lays a floor) and colour (absent colour = natural). A wall material is ignored; the same plan when nothing changes. */
+/** The ground painted with a brush: its surface (if the brush lays a floor) and colour (absent colour = natural), which also takes its Poly Haven texture off. A wall material is ignored; the same plan when nothing changes. */
 export function paintGround(plan: Plan, hit: GroundHit, brush: Brush): Plan {
   if (brush.material?.kind === "wall") return plan;
+  if (brush.floorMaterial) return setGroundMaterial(plan, hit, brush.floorMaterial);
   const key = hit.type === "path" ? "paths" : "ground";
   const list = (plan[key] ?? []) as (GroundArea | GroundPath)[];
   const g = list.find((x) => x.id === hit.id);
   if (!g) return plan;
   const kind = brush.material ? brush.material.id : groundKind(g);
   const color = brush.color && brush.color !== FLOORS[kind].color ? brush.color : undefined;
-  if (g.kind === kind && g.color === color) return plan;
+  if (g.kind === kind && g.color === color && !g.material) return plan;
   const next = list.map((x) => {
     if (x.id !== hit.id) return x;
-    const { color: _c, ...rest } = x;
+    const { color: _c, material: _m, ...rest } = x; // a Poly Haven texture (lib/planMaterials.ts) would hide the paint: painting takes it off, like it does for a floor
     return { ...rest, kind, ...(color ? { color } : {}) };
   });
   return { ...plan, [key]: next };
@@ -338,16 +386,16 @@ export function paintGround(plan: Plan, hit: GroundHit, brush: Brush): Plan {
 /** What the eyedropper picks up from a ground area or path. */
 export function sampleGround(plan: Plan, hit: GroundHit): Brush | null {
   const g = ((hit.type === "path" ? plan.paths : plan.ground) as (GroundArea | GroundPath)[] | undefined)?.find((x) => x.id === hit.id);
+  if (g?.material) return { material: null, color: g.material.avg, floorMaterial: g.material };
   return g ? { material: { kind: "floor", id: groundKind(g) }, color: g.color ?? null } : null;
 }
 
 // ---- one-click presets ---------------------------------------------------------------------------------------------------------
 
-export type GroundMode = "area" | "path" | "pond";
-export type GroundPreset = { id: string; label: string; mode: GroundMode; kind: FloorKind; edge: GroundEdge; /** A stamp: click to drop an area this big (metres). Absent for a path. */ size?: { w: number; h: number }; /** A path's width. */ width?: number };
+export type GroundMode = "area" | "pond";
+export type GroundPreset = { id: string; label: string; mode: GroundMode; kind: FloorKind; edge: GroundEdge; /** A stamp: click to drop an area this big (metres). */ size: { w: number; h: number } };
 export const GROUND_PRESETS: readonly GroundPreset[] = [
   { id: "patio", label: "Patio 3x4 m", mode: "area", kind: "pavers_grey", edge: "none", size: { w: 3, h: 4 } },
-  { id: "path", label: "Path 1 m", mode: "path", kind: "gravel", edge: "none", width: 1 },
   { id: "drive", label: "Driveway 3x6 m", mode: "area", kind: "concrete", edge: "none", size: { w: 3, h: 6 } },
   { id: "lawn", label: "Lawn", mode: "area", kind: "grass", edge: "none", size: { w: 4, h: 4 } },
   { id: "pond", label: "Pond 2x3 m", mode: "pond", kind: "water", edge: "kerb", size: { w: 2, h: 3 } },

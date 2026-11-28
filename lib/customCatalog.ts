@@ -1,4 +1,5 @@
 import type { Def, Part } from "./catalog.ts";
+import { isAssetId } from "./polyhaven.ts";
 import { isRecord } from "./guards.ts";
 import type { Item } from "./types.ts";
 
@@ -12,6 +13,8 @@ export const MY_PIECES = "My pieces";
 export const MAX_PARTS = 120;
 export const MAX_MODEL_BYTES = 25 * 1024 * 1024; // the database refuses bigger files (lib/db/resources MAX_RESOURCE_BYTES)
 const MAX_NAME = 40;
+/** Longest pack name, author and licence note (a piece's own name stays at 40). */
+export const MAX_PACK_TEXT = 120;
 const MIN_DIM = 0.01;
 const MAX_DIM = 30;
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -32,7 +35,19 @@ export type CustomPiece = {
   light?: Def["light"];
   wall?: true;
   at: number;
+  /** The furniture pack this piece came from (lib/pieceShare.ts); lets a pack be removed as a whole. Pieces made here have none. */
+  pack?: PiecePack;
+  /** A model taken from Poly Haven: kept on the piece itself (a pack file cannot claim a pack tag, but it keeps this) so the credit list survives sharing. */
+  source?: PieceSource;
+  /** Extra words the catalog search matches (for a Poly Haven model: its categories and tags). */
+  tags?: string;
 };
+
+/** Where an imported piece came from. `id` is made on this device at import (the same file imported twice is two groups); the rest is what the pack's author wrote. */
+export type PiecePack = { id: string; name: string; author?: string; licence?: string; at: number };
+
+/** Which Poly Haven asset a piece was made from; `authors` is already joined ("A, B"). */
+export type PieceSource = { type: "polyhaven"; id: string; name: string; authors?: string };
 
 /** One imported 3D model as it travels inside an exported plan. */
 export type BundleModel = { id: string; ext: "glb" | "gltf"; b64: string };
@@ -40,16 +55,22 @@ export type Bundle = { pieces: CustomPiece[]; models: BundleModel[] };
 
 const isCustomKind = (kind: string) => kind.startsWith(PREFIX);
 
-/** Plain text only: no markup, no control characters, one line, bounded. Used for every name that comes from the user or a file. */
-export function cleanName(raw: unknown, fallback = "My piece"): string {
+/** Plain text only: no markup, no control characters, one line, at most `max` characters. */
+export function cleanText(raw: unknown, max: number, fallback = ""): string {
   const s = String(raw ?? "")
     .replace(/[\u0000-\u001f\u007f<>`"\\]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, MAX_NAME)
+    .slice(0, max)
     .trim();
   return s || fallback;
 }
+
+/** Plain text only: no markup, no control characters, one line, bounded. Used for every name that comes from the user or a file. */
+export const cleanName = (raw: unknown, fallback = "My piece"): string => cleanText(raw, MAX_NAME, fallback);
+
+/** Whether `v` is usable as a model file id (also the id regex of kinds). */
+export const isModelId = (v: unknown): v is string => typeof v === "string" && ID.test(v);
 
 const slug = (name: string) =>
   cleanName(name, "piece")
@@ -136,6 +157,21 @@ function cleanPart(raw: unknown): Part | null {
   return p;
 }
 
+/** Checks the pack tag of a stored piece; undefined when it is missing or not usable (the piece then simply belongs to no pack). */
+function cleanPack(raw: unknown): PiecePack | undefined {
+  if (!isRecord(raw) || !isModelId(raw.id)) return undefined;
+  const author = cleanText(raw.author, MAX_PACK_TEXT);
+  const licence = cleanText(raw.licence, MAX_PACK_TEXT);
+  return { id: raw.id, name: cleanText(raw.name, MAX_PACK_TEXT, "Furniture pack"), ...(author ? { author } : {}), ...(licence ? { licence } : {}), at: num(raw.at, 0, 1e15, 0) };
+}
+
+/** Checks the Poly Haven source of a stored piece; undefined when missing or unusable. The id ends up in a link, so it must be a real asset id. */
+function cleanSource(raw: unknown): PieceSource | undefined {
+  if (!isRecord(raw) || raw.type !== "polyhaven" || !isAssetId(raw.id)) return undefined;
+  const authors = cleanText(raw.authors, MAX_PACK_TEXT);
+  return { type: "polyhaven", id: raw.id, name: cleanText(raw.name, MAX_PACK_TEXT, raw.id), ...(authors ? { authors } : {}) };
+}
+
 /** Checks and cleans a piece read from storage or from an imported plan; null when it cannot be trusted. */
 export function cleanPiece(raw: unknown): CustomPiece | null {
   if (!isRecord(raw)) return null;
@@ -161,6 +197,12 @@ export function cleanPiece(raw: unknown): CustomPiece | null {
   const lt = isRecord(o.light) ? o.light : undefined;
   if (lt && typeof lt.color === "string" && HEX.test(lt.color)) piece.light = { y: num(lt.y, 0, MAX_DIM, piece.h * 0.8), color: lt.color, ...(lt.k !== undefined ? { k: num(lt.k, 0, 5, 1) } : {}) };
   if (o.wall === true) piece.wall = true;
+  const pack = cleanPack(o.pack);
+  if (pack) piece.pack = pack;
+  const source = cleanSource(o.source);
+  if (source) piece.source = source;
+  const tags = cleanText(o.tags, MAX_PACK_TEXT);
+  if (tags) piece.tags = tags;
   return piece;
 }
 
@@ -181,6 +223,7 @@ function defOf(piece: CustomPiece): Def {
     ...(piece.light ? { light: piece.light } : {}),
     ...(piece.wall ? { wall: true as const } : {}),
     ...(piece.model ? { model: { id: piece.model.id } } : {}),
+    ...(piece.tags ? { tags: piece.tags } : {}),
   };
   defs.set(piece, def);
   return def;

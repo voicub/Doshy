@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CATALOG, KINDS } from "@/lib/catalog";
 import { searchKinds, sizeClass, type SizeClass } from "@/lib/catalogSearch";
+import { scrollParent } from "@/lib/scrollParent";
+import { useVp } from "@/lib/useVp";
 import type { CatalogGroups, CatalogMode } from "./CatalogChips";
 
 const PAGE = 36; // cards mounted at first, and added each time the end of the list comes within a screen: 1100 cards at once cost ~0.4 s of main-thread time to open the drawer
@@ -17,12 +19,10 @@ type Args = {
   mineKinds: string[];
   favs: string[];
   recent: string[];
-  /** The scrolling card grid, the root of the "load more" observer. */
-  grid: RefObject<HTMLDivElement | null>;
 };
 
 /** The kinds the catalog shows for the current search and filters, how many of them are mounted (paged as you scroll), and which card holds the arrow-key focus. */
-export function useCatalogList({ needle, mode, group, cat, body, size, groups, mineKinds, favs, recent, grid }: Args) {
+export function useCatalogList({ needle, mode, group, cat, body, size, groups, mineKinds, favs, recent }: Args) {
   const kinds = useMemo(() => {
     let list: string[];
     if (needle) list = searchKinds(CATALOG, [...KINDS, ...mineKinds], needle);
@@ -46,13 +46,15 @@ export function useCatalogList({ needle, mode, group, cat, body, size, groups, m
   const [shown, setShown] = useState(PAGE);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => setShown(PAGE), [kinds]);
+  const { vp } = useVp();
   useEffect(() => {
     const el = end.current;
     if (!el || shown >= kinds.length) return;
-    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setShown((n) => n + PAGE), { root: grid.current, rootMargin: "800px" });
+    // the root is whatever scrolls the cards: the grid on a desktop, the whole sheet on a compact screen (see scrollParent). `vp` re-runs this when the layout changes between the two.
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setShown((n) => n + PAGE), { root: scrollParent(el), rootMargin: "800px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [shown, kinds.length, grid]);
+  }, [shown, kinds.length, vp]);
 
   return { kinds, shown, end, rove, setRove };
 }

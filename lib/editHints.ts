@@ -25,7 +25,10 @@ const PLAN: Record<string, string> = {
   pillar: "Pick a shape, then tap where the pillar stands.",
   paint: "Pick a material and colour, then tap walls and rooms.",
   stairwell: "Drag a rectangle where the stairs go up through the floor.",
-  garden: "Pick a surface, then drag an area or tap along a path. Press Done to finish.",
+  garden: "Pick a surface, then drag a patio, lawn or pond.",
+  lines: "Pick a kind, then tap points on the plan. Press Done to finish.",
+  ruler: "Tap the first point, then the second. The distance appears on the plan.",
+  annotate: "Pick a note, arrow, dimension or zone, then tap the plan. Tap one to edit it.",
 };
 
 /** One short sentence for the current tool, selection and gesture. */

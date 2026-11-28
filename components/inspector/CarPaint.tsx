@@ -6,6 +6,7 @@ import { PLATE_MAX, PLATE_STYLES, plateOf, sanitizePlate, type PlateStyle } from
 import { drawPlate, plateCanvasSize } from "@/lib/plateDraw";
 import type { Item } from "@/lib/types";
 import CarRealModel from "./CarRealModel";
+import PlateFitPanel from "./PlateFitPanel";
 import { ColorPicker, Group } from "./shared";
 import "./carPaint.css";
 import "./carPlate.css";
@@ -84,9 +85,10 @@ export default function CarPaint({ item, set }: { item: Item; set: Setter }) {
   const value = item.color ?? factory;
   const name = CAR_COLORS.find((c) => c.c === value.toLowerCase())?.name ?? "Custom colour";
   const finish = finishOf(item.params, value);
+  const car = CATALOG[item.kind]?.car;
   return (
     <>
-      {CATALOG[item.kind]?.car && <CarRealModel spec={CATALOG[item.kind].car!} />}
+      {car && <CarRealModel spec={car} />}
       <Group label="Paint">
         <div className="car-paint">
           <ColorPicker value={value} swatches={CAR_COLORS} onChange={(c) => set({ color: c })} />
@@ -106,6 +108,7 @@ export default function CarPaint({ item, set }: { item: Item; set: Setter }) {
         </div>
       </Group>
       <PlateField item={item} set={set} />
+      {car && <PlateFitPanel item={item} spec={car} set={set} />}
     </>
   );
 }

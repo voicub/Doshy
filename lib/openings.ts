@@ -117,6 +117,21 @@ export const FRAME_COLORS: { label: string; color: string }[] = [
   { label: "Red", color: "#8e2f2a" },
 ];
 
+export const FRAME_LIGHT = "#e8e4dc"; // painted white frames (doors, French doors, passages)
+export const FRAME_DARK = "#3a3d44"; // dark window frames and patio doors
+const LEAF_WOOD = "#8a6a4a";
+
+/** What a frame is drawn in when the user picked no colour: one entry per style, so the swatches, the free picker and the 3D scene agree on it. */
+const DEFAULT_FRAME: Record<OpeningStyle, string> = {
+  single: FRAME_LIGHT, double: FRAME_LIGHT, slidingGlass: FRAME_DARK, pocket: LEAF_WOOD, french: FRAME_LIGHT, arch: FRAME_LIGHT, passage: FRAME_LIGHT,
+  garageSectional: "#d9d6cf", garageRoller: "#9aa0a8", sidelight: FRAME_LIGHT, folding: FRAME_DARK, gate: "#f4f1ea", wicket: "#4a5d46",
+  casement: FRAME_DARK, twin: FRAME_DARK, picture: FRAME_DARK, sliding: FRAME_DARK, tiltTurn: FRAME_DARK, bay: FRAME_DARK, arched: FRAME_DARK, round: FRAME_DARK,
+  highWindow: FRAME_DARK, glassBlock: "#c9c5bd", shopfront: FRAME_DARK,
+};
+
+/** The colour of an opening's frame: the one the user chose, else its style's own. Glass, handles, sills and reveals keep colours of their own. */
+export const frameColor = (o: { type: OpeningType; style?: OpeningStyle; color?: string }): string => o.color ?? DEFAULT_FRAME[styleOf(o)];
+
 /**
  * Which way a wall's room side points: +1 = local +z (plan normal (-uy, ux)), -1 = the other. Mirrors what the 3D scene uses so the plan symbol
  * and the model agree (a bay window sticks out the opposite way). `plan` must hold the opening's level only.

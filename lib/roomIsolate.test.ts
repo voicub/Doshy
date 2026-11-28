@@ -118,6 +118,22 @@ test("a wall that divides the zone itself is cut, and roles are cached per zone"
   assert.equal(wallRoles(plan, both), wallRoles(plan, both));
 });
 
+test("walls follow the camera: turn it to the other corner and the near and far sides swap", () => {
+  const a = zoneOf(plan, "A", false)!;
+  const role = (id: string, az: number) => wallRole(plan, a, plan.walls.find((w) => w.id === id)!, az);
+  assert.equal(role("n", 45), "tall");
+  assert.equal(role("n", 225), "cut");
+  assert.equal(role("mid", 225), "tall", "the shared wall east of A is the far side from the west");
+  assert.equal(role("w", 135), "tall", "from the north-east the west wall is still behind the room");
+  assert.equal(role("n", 135), "cut");
+  assert.equal(role("s", 225), "hide", "other rooms' walls go whichever way we look");
+  assert.equal(role("fence", 225), "keep");
+  assert.equal(wallRoles(plan, a, 225).get("n"), "cut");
+  assert.equal(wallRoles(plan, a, 225), wallRoles(plan, a, 225), "cached per azimuth");
+  assert.equal(wallRoles(plan, a, 45).get("n"), "tall", "and recomputed when the azimuth changes");
+  assert.equal(wallRole(plan, a, plan.walls.find((w) => w.id === "n")!), "tall", "the isometric default");
+});
+
 test("isolation state: off outside the live view, stable identity while nothing changes", () => {
   const s = { plan, isolatedRoom: "A", isolateOpen: true, view: "live" };
   assert.equal(isolationOf({ ...s, view: "plan" }), undefined);

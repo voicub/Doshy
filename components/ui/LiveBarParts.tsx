@@ -1,9 +1,14 @@
 "use client";
+import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { initials, sinceLabel, type HouseLive, type Line, type RoomLive } from "@/lib/live";
+import { colorOf, prefsOf } from "@/lib/presence";
+import { usePresence } from "@/lib/presenceStore";
 import type { Room } from "@/lib/types";
 import LiveNumber from "./LiveNumber";
 import MonoLabel from "./MonoLabel";
+import { usePeopleUi } from "./peopleUi";
 import Sparkline from "./Sparkline";
+import "./people.css";
 
 /** A flat series draws as an empty trace instead of a line glued to the bottom. */
 const moving = (l?: Line) => (l && l.v.length > 1 && Math.max(...l.v) > Math.min(...l.v) ? l : undefined);
@@ -60,14 +65,25 @@ export function ClimatePair({ house }: { house: HouseLive }) {
 }
 
 export function PeopleRow({ persons }: { persons: HouseLive["persons"] }) {
+  const prefs = usePresence((s) => s.people);
   return (
-    <div className="lb-people" role="list" aria-label="People">
+    <div className="lb-people">
       <MonoLabel>People</MonoLabel>
-      {persons.map((p) => (
-        <span key={p.entity} role="listitem" className={`lb-person ${p.home ? "" : "away"}`} title={`${p.name}: ${p.home ? "home" : "away"}`} aria-label={`${p.name}: ${p.home ? "home" : "away"}`}>
-          {initials(p.name)}
-        </span>
-      ))}
+      <span className="lb-chips" role="list" aria-label="People">
+        {persons.map((p) => {
+          const pf = prefsOf({ people: prefs }, p.entity);
+          const state = p.home ? "home" : "away";
+          return (
+            <span key={p.entity} role="listitem" className={`lb-person ${p.home ? "" : "away"} ${pf.enabled ? "tinted" : ""}`} style={{ ["--pc" as string]: colorOf(p.entity, pf) }} title={`${p.name}: ${state}`} aria-label={`${p.name}: ${state}`}>
+              {pf.letter ?? initials(p.name)}
+              {!p.home && <small className="lb-away">away</small>}
+            </span>
+          );
+        })}
+      </span>
+      <button type="button" className="lb-edit" aria-label="Choose who shows up in the home" title="Choose who shows up in the home" onClick={() => usePeopleUi.getState().setOpen(true)}>
+        <PencilSimpleIcon size={13} aria-hidden />
+      </button>
     </div>
   );
 }

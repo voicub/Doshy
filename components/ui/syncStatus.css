@@ -8,17 +8,17 @@
 @keyframes sync-blink { 50% { opacity: 0.25; } }
 @media (max-width: 560px) { .sync { left: 20px; top: calc(var(--top) + 44px); } }
 
-.sync-toast { position: absolute; top: calc(var(--top) + 44px); left: 50%; transform: translateX(-50%); z-index: 55; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: rgba(6, 9, 12, 0.94); font-size: 12px; max-width: calc(100vw - 32px); --l: 6px; }
+.sync-toast { position: absolute; top: calc(var(--top) + 44px); left: 50%; transform: translateX(-50%); z-index: 55; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: var(--panel); font-size: 12px; max-width: calc(100vw - 32px); --l: 6px; }
 .sync-toast span { color: var(--text); }
 .sync-toast .btn { height: 28px; }
 @media (pointer: coarse) { .sync-toast .btn { min-height: 44px; } }
 
 /* the banner for a plan this device kept, and the two-versions choice */
-.sync-banner { position: absolute; top: calc(var(--top) + 44px); left: 50%; transform: translateX(-50%); z-index: 56; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: rgba(6, 9, 12, 0.96); border-color: var(--accent); font-size: 12px; max-width: calc(100vw - 32px); flex-wrap: wrap; --l: 6px; }
+.sync-banner { position: absolute; top: calc(var(--top) + 44px); left: 50%; transform: translateX(-50%); z-index: 56; display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: rgb(var(--panel-rgb) / 0.96); border-color: var(--accent); font-size: 12px; max-width: calc(100vw - 32px); flex-wrap: wrap; --l: 6px; }
 .sync-banner .btn { height: 28px; }
 .sync-choice { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 14px; max-width: min(520px, calc(100vw - 32px)); }
 .sync-choice strong { font: 500 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .sync-choice p { margin: 0; color: var(--text); line-height: 1.4; }
 .sync-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.sync-confirm { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; border: 1px solid rgba(255, 106, 61, 0.45); border-radius: var(--r); }
+.sync-confirm { display: flex; flex-direction: column; gap: 8px; padding: 8px 10px; border: 1px solid rgb(var(--bad-rgb) / 0.45); border-radius: var(--r); }
 @media (pointer: coarse) { .sync-banner .btn, .sync-choice .btn { min-height: 44px; } }

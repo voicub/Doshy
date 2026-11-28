@@ -16,6 +16,7 @@ import type { SensorIcon, SensorInfo } from "@/lib/sensors";
 import { glowTexture } from "@/lib/textures";
 import type { Item } from "@/lib/types";
 import { useReducedMotion } from "./motion";
+import DeviceGlyph from "../ui/DeviceGlyph";
 import { useNow } from "../useNow";
 import { Marker } from "./DeclutterLayer";
 import Stream, { type StreamDrive, type StreamShape } from "./Stream";
@@ -118,26 +119,26 @@ export default function SensorFx({ item, def, elev, info }: { item: Item; def: D
       {anim === "blink" && <Halo pos={pos} color={color} mode="blink" reduced={reduced} />}
       {anim === "shake" && <Halo pos={pos} color={color} mode="steady" reduced={reduced} />}
       {anim === "drip" && !reduced && <Drip pos={pos} color={color} />}
-      <SensorMarker id={`${item.id}:s`} position={[0, Math.min(item.h + elev, 2.4) + BADGE_LIFT, 0]} info={info} />
+      <SensorMarker id={`${item.id}:s`} position={[0, Math.min(item.h + elev, 2.4) + BADGE_LIFT, 0]} info={info} item={item} />
     </>
   );
 }
 
 /** A sensor's badge as a declutter marker: alerts and anything detecting stay in full, a calm reading may shrink to a status dot. */
-function SensorMarker({ id, position, info }: { id: string; position: [number, number, number]; info: SensorInfo }) {
+function SensorMarker({ id, position, info, item }: { id: string; position: [number, number, number]; info: SensorInfo; item: Item }) {
   const calm = !info.alert && !(info.active && info.num === undefined);
   return (
     <Marker id={id} kind="sensor" position={position} alert={info.alert} dot={calm ? info.color : undefined} label={`${info.label}: ${info.value}`}>
-      <SensorBadge info={info} />
+      <SensorBadge info={info} item={item} />
     </Marker>
   );
 }
 
-function SensorBadge({ info }: { info: SensorInfo }) {
+function SensorBadge({ info, item }: { info: SensorInfo; item: Item }) {
   const Glyph = info.unavailable ? OFFLINE_ICON : ICONS[info.icon];
   return (
     <div className={`sfx-badge ${info.alert ? "alert" : ""} ${info.active ? "on" : ""}`} data-anim={info.anim} style={{ ["--sc" as string]: info.color }} title={`${info.label}: ${info.value}`}>
-      <Glyph size={13} weight={info.active || info.alert ? "fill" : "regular"} aria-hidden />
+      <DeviceGlyph item={item} size={13} fallback={<Glyph size={13} weight={info.active || info.alert ? "fill" : "regular"} aria-hidden />} />
       <span className="sfx-val">{info.value}</span>
     </div>
   );
@@ -149,7 +150,7 @@ function RunBadge({ run }: { run: RunLive }) {
   const now = useNow(run.status.state === "running" ? 1000 : 15_000, live); // ticks between the 3 s state polls
   const { title, sub } = runLabel(run.family, run.status, run.watts, now);
   return (
-    <div className={`sfx-badge run ${run.status.state}`} style={{ ["--sc" as string]: run.status.state === "finished" ? "#43d17a" : "#5ad7ff" }} aria-live="off">
+    <div className={`sfx-badge run ${run.status.state}`} style={{ ["--sc" as string]: run.status.state === "finished" ? "var(--lg-43d17a)" : "var(--accent)" }} aria-live="off">
       <span className="sfx-val">{title}</span>
       {sub && <small>{sub}</small>}
     </div>
@@ -183,7 +184,7 @@ export function RunFx({ item, elev, run }: { item: Item; elev: number; run: RunL
   return (
     <>
       {run.steam && !reduced && <Steam item={item} elev={elev} running={run.running} />}
-      <Marker id={`${item.id}:run`} kind="run" position={[0, Math.min(item.h + elev, 2.4) + BADGE_LIFT + 0.32, 0]} dot={run.status.state === "running" || run.status.state === "finished" ? undefined : "#8a98a3"} label="Appliance">
+      <Marker id={`${item.id}:run`} kind="run" position={[0, Math.min(item.h + elev, 2.4) + BADGE_LIFT + 0.32, 0]} dot={run.status.state === "running" || run.status.state === "finished" ? undefined : "var(--lg-8a98a3)"} label="Appliance">
         <RunBadge run={run} />
       </Marker>
     </>
@@ -196,7 +197,7 @@ export function SensorStub({ item }: { item: Item }) {
   if (!info) return null;
   return (
     <group position={[item.x, 0, item.y]}>
-      <SensorMarker id={`${item.id}:s`} position={[0, Math.min(item.h + (item.elev ?? 0), WALL_CUT_H) + BADGE_LIFT, 0]} info={info} />
+      <SensorMarker id={`${item.id}:s`} position={[0, Math.min(item.h + (item.elev ?? 0), WALL_CUT_H) + BADGE_LIFT, 0]} info={info} item={item} />
     </group>
   );
 }

@@ -255,3 +255,18 @@ test("the eyedropper picks up a floor or a wall face as a brush that paints the 
   assert.deepEqual(sampleHit(plan, { type: "wall", id: "n", face: "B" }), { material: { kind: "wall", id: "redbrick" }, color: null });
   assert.equal(sampleHit(plan, { type: "wall", id: "gone", face: "A" }), null);
 });
+
+test("the paint bucket paints a pillar with the brush's colour (the column in a facade wins over the wall behind it) and the eyedropper reads it back", () => {
+  const base = house();
+  const plan: Plan = { ...base, items: [...base.items, { id: "col", kind: "column", x: 2, y: 0, rot: 0, w: 0.4, d: 0.4, h: 2.58 }] }; // on the north wall
+  const hit = pickSurface(plan, { x: 2, y: 0 }, 0.12);
+  assert.deepEqual(hit, { type: "pillar", id: "col" });
+  const beside = pickSurface(plan, { x: 3, y: 0 }, 0.12);
+  assert.ok(beside?.type === "wall" && beside.id === "n", "beside it the wall is picked as before");
+  const painted = paintHit(plan, hit!, brush(null, "#3a3d44"));
+  assert.equal(painted.items.find((i) => i.id === "col")!.color, "#3a3d44");
+  assert.equal(wallOf(painted, "n").color, wallOf(plan, "n").color, "the wall is left alone");
+  assert.deepEqual(sampleHit(painted, hit!), { material: null, color: "#3a3d44" });
+  assert.ok(!("color" in paintHit(painted, hit!, brush(null, null)).items.find((i) => i.id === "col")!), "a natural brush takes the paint off again");
+  assert.equal(paintHit(plan, hit!, brush(null, null)), plan, "nothing to change, no undo step");
+});

@@ -1,6 +1,7 @@
 // Display settings for small and always-on screens (Raspberry Pi wall display, phone): interface size, wake lock, screensaver. Pure; the node test runner loads this file directly.
 // The layout choice (auto / compact / regular) lives in lib/viewport.ts; the store that persists the rest is lib/displayStore.ts.
 import { isRecord } from "./guards.ts";
+import { isPressurePref, type PressurePref } from "./pressure.ts";
 
 /** Window events: the screensaver started or stopped (`detail: { idle: boolean }`, for the 3D view to pause drawing); asking to open the Display settings; asking for the screensaver now / for waking it. */
 export const IDLE_EVENT = "housey:idle";
@@ -49,8 +50,12 @@ export type DisplaySettings = {
   /** Minutes; null = follow the default: 15 in a kiosk, off elsewhere. */
   saver: number | null;
   style: SaverStyle;
+  /** Entering a room turns the camera to the side that shows the room best (lib/roomView.ts). Off = it only centres and zooms. */
+  faceRoom: boolean;
+  /** The unit air pressure is shown in: "auto" = the unit Home Assistant's entity reports in (lib/pressure.ts). */
+  pressureUnit: PressurePref;
 };
-export const DISPLAY_DEFAULTS: DisplaySettings = { size: "normal", wake: null, saver: null, style: "clock" };
+export const DISPLAY_DEFAULTS: DisplaySettings = { size: "normal", wake: null, saver: null, style: "clock", faceRoom: true, pressureUnit: "auto" };
 
 /** Keeps only valid values from whatever was stored; anything else falls back to the default. */
 export function cleanDisplay(raw: unknown): DisplaySettings {
@@ -61,6 +66,8 @@ export function cleanDisplay(raw: unknown): DisplaySettings {
     wake: typeof r.wake === "boolean" ? r.wake : null,
     saver,
     style: SAVER_STYLES.includes(r.style as SaverStyle) ? (r.style as SaverStyle) : DISPLAY_DEFAULTS.style,
+    faceRoom: typeof r.faceRoom === "boolean" ? r.faceRoom : DISPLAY_DEFAULTS.faceRoom,
+    pressureUnit: isPressurePref(r.pressureUnit) ? r.pressureUnit : DISPLAY_DEFAULTS.pressureUnit,
   };
 }
 

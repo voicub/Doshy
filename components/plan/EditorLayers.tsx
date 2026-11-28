@@ -9,11 +9,12 @@ import { Dim } from "./PlanBits";
 import { areaLabel } from "./Dimensions";
 import { hitOf } from "./hit";
 import { ACCENT, CYAN_LINE, HALO, INK, MONO } from "./planStyle";
+import { useRoomAround } from "./MeasureLabels";
 
 /** Is this the selected thing? */
 export const isSelected = (sel: Sel, type: SelType, id: string) => sel?.type === type && sel.id === id;
 
-const LABEL = "#e8f1f7";
+const LABEL = "var(--text)";
 const haloOf = (u: number) => ({ ...HALO, strokeWidth: HALO.strokeWidth * u });
 const sizeText = (w: number, h: number) => `${w.toFixed(2)} x ${h.toFixed(2)}`;
 
@@ -36,11 +37,11 @@ export function RoomFloors({ rooms, sel, u, onDown }: { rooms: Room[]; sel: Sel;
 /** The level below: hairline walls and room outlines at 25 percent, so walls line up floor to floor. */
 export function LevelBelow({ below, name, vb, u }: { below: Plan; name: string; vb: { x: number; y: number; h: number }; u: number }) {
   return (
-    <g opacity={0.25} pointerEvents="none" fill="none" stroke="#cfeaf5" strokeWidth={0.03 * u}>
+    <g opacity={0.25} pointerEvents="none" fill="none" stroke="var(--plan-line)" strokeWidth={0.03 * u}>
       {below.rooms.map((r) => <rect key={r.id} x={r.x} y={r.y} width={r.w} height={r.h} strokeDasharray={`${0.12 * u} ${0.08 * u}`} />)}
       {below.walls.map((w) => <line key={w.id} x1={w.a.x} y1={w.a.y} x2={w.b.x} y2={w.b.y} strokeWidth={WALL_T * 1.4} strokeLinecap="square" />)}
-      {below.rooms.filter((r) => !r.parent).map((r) => <text key={`t${r.id}`} x={r.x + r.w / 2} y={r.y + r.h / 2} textAnchor="middle" fontSize={0.22 * u} fill="#cfeaf5" stroke="none" style={MONO}>{r.name}</text>)}
-      <text x={vb.x + 0.2 * u} y={vb.y + vb.h - 0.3 * u} fontSize={0.22 * u} fill="#cfeaf5" stroke="none" style={MONO}>{`UNDERLAY: ${name.toUpperCase()}`}</text>
+      {below.rooms.filter((r) => !r.parent).map((r) => <text key={`t${r.id}`} x={r.x + r.w / 2} y={r.y + r.h / 2} textAnchor="middle" fontSize={0.22 * u} fill="var(--plan-line)" stroke="none" style={MONO}>{r.name}</text>)}
+      <text x={vb.x + 0.2 * u} y={vb.y + vb.h - 0.3 * u} fontSize={0.22 * u} fill="var(--plan-line)" stroke="none" style={MONO}>{`UNDERLAY: ${name.toUpperCase()}`}</text>
     </g>
   );
 }
@@ -75,6 +76,7 @@ type ChipProps = Scale & { plan: Plan; sel: Sel; tool: string; tiny: boolean; sh
 /** Each room's name and size, with a move handle at its top-left corner. Threshold floor strips stay drawn and selectable, without a chip or handle. */
 export function RoomChips({ plan, sel, tool, tiny, showDims, u, px, touch, onGrab }: ChipProps) {
   const halo = haloOf(u);
+  const around = useRoomAround(); // "Show room areas": the way round joins the area in each room's label
   return plan.rooms.filter((r) => !(r.parent && r.w * r.h < 0.5)).map((r) => {
     const on = isSelected(sel, "room", r.id);
     const s = 22 * px * touch; // the room's move handle: a square at its top-left corner, with the name beside it
@@ -88,7 +90,8 @@ export function RoomChips({ plan, sel, tool, tiny, showDims, u, px, touch, onGra
       <g key={r.id}>
         <g pointerEvents="none">
           <text x={lx} y={y1} fontSize={(tiny ? 0.2 : 0.26) * u} fill={LABEL} style={{ ...MONO, textTransform: "uppercase", letterSpacing: tiny ? "0.06em" : "0.14em", ...halo }}>{r.name}</text>
-          {(!tiny || showDims || on) && <text x={lx} y={y2} fontSize={(tiny ? 0.2 : 0.21) * u} fill={ACCENT} style={{ ...MONO, ...halo }}>{`${sizeText(r.w, r.h)}  ${areaLabel(plan, r)}`}</text>}
+          {(!tiny || showDims || on || around(plan, r)) && <text x={lx} y={y2} fontSize={(tiny ? 0.2 : 0.21) * u} fill={ACCENT} style={{ ...MONO, ...halo }}>{`${sizeText(r.w, r.h)}  ${areaLabel(plan, r)}`}</text>}
+          {around(plan, r) && <text x={lx} y={y2 + (y2 - y1)} fontSize={(tiny ? 0.2 : 0.21) * u} fill={ACCENT} style={{ ...MONO, ...halo }}>{around(plan, r)}</text>}
         </g>
         {grip && (
           <g onPointerDown={(e) => onGrab(e, r)} style={{ cursor: "move" }}>

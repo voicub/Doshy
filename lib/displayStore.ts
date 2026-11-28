@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { appliedScale, cleanDisplay, DISPLAY_DEFAULTS, effectiveSize, type DisplaySettings, type SaverStyle, type UiSize } from "./display";
+import type { PressurePref } from "./pressure";
 import type { WakeStatus } from "./wakeLock";
 import { LAYOUT_KEY, type LayoutChoice } from "./viewport";
 
@@ -15,6 +16,8 @@ type DisplayState = DisplaySettings & {
   setWake: (on: boolean) => void;
   setSaver: (minutes: number) => void;
   setStyle: (style: SaverStyle) => void;
+  setFaceRoom: (on: boolean) => void;
+  setPressureUnit: (unit: PressurePref) => void;
   reset: () => void;
 };
 
@@ -28,13 +31,15 @@ export const useDisplay = create<DisplayState>()(
       setWake: (wake) => set({ wake }),
       setSaver: (saver) => set({ saver }),
       setStyle: (style) => set({ style }),
+      setFaceRoom: (faceRoom) => set({ faceRoom }),
+      setPressureUnit: (pressureUnit) => set({ pressureUnit }),
       reset: () => set({ ...DISPLAY_DEFAULTS }),
     }),
     {
       name: "housey-display",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ size: s.size, wake: s.wake, saver: s.saver, style: s.style }),
+      partialize: (s) => ({ size: s.size, wake: s.wake, saver: s.saver, style: s.style, faceRoom: s.faceRoom, pressureUnit: s.pressureUnit }),
       merge: (stored, current) => ({ ...current, ...cleanDisplay(stored) }),
     },
   ),

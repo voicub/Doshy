@@ -1,9 +1,11 @@
 // Which procedural PBR texture (components/scene/pbr.ts) dresses each wall style and floor kind, how many metres one tile covers and how strong its relief is.
-// A style missing here keeps today's flat voxel texture at every quality tier (glass, fences, hedges, lawn, water, sand, gravel...).
+// A style missing here keeps today's flat voxel texture at every quality tier (glass, fences, hedges, artificial turf's cousins...).
+import type { PbrKind } from "./materialsPbr.ts";
+import type { TileOpts } from "./pbrTiles.ts";
 import type { FloorKind, WallStyle } from "./types.ts";
 
-type ShellTex = "plaster" | "brick" | "tile" | "woodfloor" | "wood" | "concrete" | "stone" | "carpet" | "paving" | "cobble" | "flagstone";
-type ShellOpts = { cols?: number; rows?: number; stagger?: boolean; plankW?: number; formwork?: boolean };
+type ShellTex = PbrKind;
+type ShellOpts = Omit<TileOpts, "normal" | "seed">;
 export type Surface = {
   kind: ShellTex;
   /** Metres one texture tile covers (what the uvs divide by). */
@@ -33,6 +35,7 @@ export const WALL_SURFACE: Partial<Record<WallStyle, Surface>> = {
   stripes: s("plaster", 1, { bump: 0.3, stripes: true }),
   wall_stone: s("stone", 1.2),
   wall_brick_low: s("brick", 0.9),
+  wall_block: s("concrete", 1.2, { opts: { formwork: true } }), // seams every half tile read as block courses
 };
 
 export const FLOOR_SURFACE: Partial<Record<FloorKind, Surface>> = {
@@ -41,7 +44,7 @@ export const FLOOR_SURFACE: Partial<Record<FloorKind, Surface>> = {
   darkwood: s("woodfloor", 1.2, { opts: { plankW: 0.12, stagger: true } }),
   laminate: s("woodfloor", 1.2, { opts: { plankW: 0.2, stagger: true }, bump: 0.6 }),
   herringbone: s("woodfloor", 1.2, { opts: { plankW: 0.075, stagger: true } }),
-  deck: s("woodfloor", 1.2, { opts: { plankW: 0.12, stagger: true }, bump: 1.3 }),
+  deck: s("woodfloor", 1.2, { opts: { plankW: 0.12, stagger: true, weathered: true }, bump: 1.3 }),
   tile: s("tile", 0.6, { opts: { cols: 2, rows: 2 } }),
   tilelarge: s("tile", 1.2, { opts: { cols: 2, rows: 2 } }),
   mosaic: s("tile", 0.4, { opts: { cols: 8, rows: 8 }, bump: 0.7 }),
@@ -49,7 +52,7 @@ export const FLOOR_SURFACE: Partial<Record<FloorKind, Surface>> = {
   slate: s("tile", 1.2, { opts: { cols: 3, rows: 3 } }),
   vinyl: s("tile", 0.6, { opts: { cols: 2, rows: 2 }, bump: 0.4 }),
   terrazzo: s("stone", 1.2, { bump: 0.4 }),
-  slabs: s("flagstone", 0.8),
+  slabs: s("slabs", 1.6),
   flagstone: s("flagstone", 0.8),
   cobble: s("cobble", 0.8),
   paving: s("paving", 0.8),
@@ -60,4 +63,14 @@ export const FLOOR_SURFACE: Partial<Record<FloorKind, Surface>> = {
   concrete: s("concrete", 2),
   polished: s("concrete", 2, { bump: 0.2 }),
   carpet: s("carpet", 1),
+  // the garden: ground areas, paths and terrace rooms (Balanced and up; Eco keeps the flat voxel textures)
+  grass: s("lawn", 2.4),
+  turf: s("lawn", 2.4, { bump: 0.45 }),
+  gravel: s("gravel", 1.2),
+  sand: s("sand", 1.6),
+  soil: s("soil", 1.2),
+  mulch: s("mulch", 1.2),
+  asphalt: s("asphalt", 2),
+  water: s("water", 3.2),
+  rubber: s("rubber", 0.6, { bump: 0.5 }),
 };

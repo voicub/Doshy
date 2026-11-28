@@ -351,8 +351,8 @@ export const MIN_LEVEL_HEIGHT = 2.2;
 export const MAX_LEVEL_HEIGHT = 4.5;
 const clampLevelHeight = (h: number) => Math.min(MAX_LEVEL_HEIGHT, Math.max(MIN_LEVEL_HEIGHT, Number.isFinite(h) ? h : DEFAULT_LEVEL_HEIGHT));
 
-/** The user's flat: first level of a building, raised one metre above the ground ("parter inalt"). */
-const defaultLevels = (): Level[] => [{ id: GROUND_ID, name: "Parter inalt", elevation: RAISED_FLOOR, height: DEFAULT_LEVEL_HEIGHT }];
+/** The user's flat: first level of a building, a ground floor raised one metre above the ground. */
+const defaultLevels = (): Level[] => [{ id: GROUND_ID, name: "Ground floor", elevation: RAISED_FLOOR, height: DEFAULT_LEVEL_HEIGHT }];
 
 /** A plan with a building and at least one level (plans saved before levels existed get an apartment on a raised ground floor). Same object when already complete. */
 export function withDefaultLevels(plan: Plan): Plan {

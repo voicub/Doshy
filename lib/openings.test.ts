@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { OPENING_STYLES, STYLES_OF, chipOf, inwardSign, openOpenings, openingRooms, restyle, styleOf, styleSize, swings } from "./openings.ts";
+import { FRAME_COLORS, FRAME_DARK, FRAME_LIGHT, OPENING_STYLES, STYLES_OF, chipOf, frameColor, inwardSign, openOpenings, openingRooms, restyle, styleOf, styleSize, swings } from "./openings.ts";
 import { WALL_H } from "./geometry.ts";
 import { snapTarget } from "./climate.ts";
 import type { HAState } from "./ha.ts";
@@ -89,4 +89,23 @@ test("a bay window sticks out away from the room: inwardSign points to the room 
   // the north wall runs west to east; the room is south of it (+y), which is local +z
   assert.equal(inwardSign(p, p.walls[0], 0.25), 1);
   assert.equal(inwardSign(p, { ...p.walls[0], a: p.walls[0].b, b: p.walls[0].a }, 0.75), -1);
+});
+
+test("the frame colour is the one the user chose for every style, else the style's own", () => {
+  const anthracite = FRAME_COLORS.find((c) => c.label === "Anthracite")!.color;
+  for (const type of ["door", "window"] as const)
+    for (const style of STYLES_OF[type]) {
+      assert.equal(frameColor({ type, style, color: anthracite }), anthracite, style);
+      assert.match(frameColor({ type, style }), /^#[0-9a-f]{6}$/i, `${style} has a default`);
+    }
+  // what saved plans were drawn with before the colour was resolved in one place
+  assert.equal(frameColor({ type: "window" }), FRAME_DARK, "a plain window frame is dark");
+  assert.equal(frameColor({ type: "door" }), FRAME_LIGHT, "a plain door frame is light");
+  assert.equal(frameColor({ type: "door", style: "slidingGlass" }), FRAME_DARK);
+  assert.equal(frameColor({ type: "window", style: "glassBlock" }), "#c9c5bd");
+});
+
+test("a style that does not belong to the opening's type falls back to the type's plain look, colour kept", () => {
+  assert.equal(frameColor({ type: "window", style: "single" }), frameColor({ type: "window" }));
+  assert.equal(frameColor({ type: "window", style: "single", color: "#123456" }), "#123456");
 });

@@ -54,7 +54,7 @@ export function itemPointerProps(p: PointerIn): ItemPointerProps {
       e.nativeEvent.preventDefault();
       gesture.menu(e.nativeEvent.clientX, e.nativeEvent.clientY);
     },
-    onPointerDown: (e) => gesture.start(e.nativeEvent.clientX, e.nativeEvent.clientY),
+    onPointerDown: (e) => gesture.start(e.nativeEvent.clientX, e.nativeEvent.clientY, e.nativeEvent.pointerType),
     onPointerUp: gesture.cancel,
     onPointerOver: () => (canToggle || curtainCard || opensCard) && (document.body.style.cursor = "pointer"),
     onPointerOut: () => {

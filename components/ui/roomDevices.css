@@ -1,22 +1,22 @@
 /* Room device sheet (RoomDevices.tsx) and the rail's "Devices" button */
-.hud.rd { background: rgba(6, 9, 12, 0.94); }
+.hud.rd { background: var(--panel); }
 .app .rd { position: absolute; z-index: 46; right: calc(20px + env(safe-area-inset-right, 0px)); top: calc(var(--top) + 52px); width: 340px; max-height: calc(100vh - var(--top) - 160px); display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; animation: slide-in-r 0.3s var(--ease); }
 .rd-empty { margin: 0; padding: 10px 2px; font-size: 13px; line-height: 1.45; color: var(--muted); }
-.rd-list { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.25); }
+.rd-list { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-25); }
 .rd-list ul { list-style: none; margin: 0; padding: 0; }
-.rd-group { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 0; padding: 9px 10px 7px; background: #0a1218; border-bottom: 1px solid var(--accent-line); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.rd-group { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; margin: 0; padding: 9px 10px 7px; background: var(--panel-2); border-bottom: 1px solid var(--accent-line); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
 .rd-group span { color: var(--muted); font-variant-numeric: tabular-nums; }
-.rd-row { display: flex; align-items: center; min-height: 44px; border-bottom: 1px solid rgba(90, 215, 255, 0.07); }
+.rd-row { display: flex; align-items: center; min-height: 44px; border-bottom: 1px solid rgb(var(--line-rgb) / 0.07); }
 .rd-row:hover { background: var(--accent-soft); }
 .rd-main { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 10px; text-align: left; color: var(--text); }
 .rd-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
 .rd-val { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 11px/1 var(--mono); letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums; }
 .rd-val.on { color: var(--accent); }
-.rd-row[data-alert] .rd-name, .rd-row[data-alert] .rd-val { color: #ff7a45; }
-.rd-row[data-alert] { box-shadow: inset 2px 0 0 #ff7a45; }
+.rd-row[data-alert] .rd-name, .rd-row[data-alert] .rd-val { color: var(--lg-ff7a45); }
+.rd-row[data-alert] { box-shadow: inset 2px 0 0 var(--lg-ff7a45); }
 .rd-sw, .rd-info { flex: none; display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); }
 .rd-info:hover { color: var(--accent); }
-.rd-sw i { position: relative; width: 34px; height: 18px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.4); transition: background 0.15s, border-color 0.15s; }
+.rd-sw i { position: relative; width: 34px; height: 18px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-40); transition: background 0.15s, border-color 0.15s; }
 .rd-sw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 1px; background: var(--muted); transition: transform 0.15s var(--ease), background 0.15s; }
 .rd-sw[aria-checked="true"] i { border-color: var(--accent); background: var(--accent-soft); }
 .rd-sw[aria-checked="true"] i::after { background: var(--accent); transform: translateX(16px); }
@@ -27,7 +27,7 @@
 .rail-row { display: flex; align-items: stretch; gap: 2px; }
 .rail-row .rail-item { flex: 1; min-width: 0; width: auto; }
 .rail-dev { flex: none; display: grid; place-items: center; width: 28px; border: 1px solid transparent; border-radius: var(--r); color: var(--muted); transition: color 0.15s, background 0.15s, border-color 0.15s; }
-.rail-dev:hover { color: var(--accent); background: rgba(6, 9, 12, 0.5); border-color: var(--accent-line); }
+.rail-dev:hover { color: var(--accent); background: rgb(var(--panel-rgb) / calc(0.5 * var(--panel-k))); border-color: var(--accent-line); }
 
 @media (max-width: 900px) {
   .app .rd { left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); top: auto; width: auto; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); max-height: 52vh; animation-name: slide-in; }

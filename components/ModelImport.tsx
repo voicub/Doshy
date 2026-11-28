@@ -1,6 +1,8 @@
 "use client";
 import { LockSimpleIcon, LockSimpleOpenIcon, UploadSimpleIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { creditLine, PH_CREDIT, type PhItem } from "@/lib/polyhaven";
+import { isHeavy, modelDetail, packOf, phPieceName, sourceOf, tagsOf } from "@/lib/polyhavenPiece";
 import { cleanPiece, lockedSize, MAX_MODEL_BYTES, newKind, type CustomPiece } from "@/lib/customCatalog";
 import { useCustom } from "@/lib/customStore";
 import { errorMessage } from "@/lib/guards";
@@ -79,10 +81,17 @@ function ModelForm({ m, lock, onLock }: FormProps) {
  * The file is read right here in the browser and kept in this browser's storage; nothing is uploaded.
  * With `piece` it edits the name and size of a model piece imported earlier.
  */
-export default function ModelImport({ piece, onClose }: { piece?: CustomPiece; onClose: (placeKind?: string) => void }) {
+export default function ModelImport({ piece, source, onClose }: { piece?: CustomPiece; source?: { item: PhItem; file: File }; onClose: (placeKind?: string) => void }) {
   const m = useModelSource(piece);
   const { src, busy, err, big, name, dims, thumb } = m;
   const [lock, setLock] = useState(true);
+  const { read, setName } = m;
+  // a model from Poly Haven goes through the same reading as a picked file; only the name is Poly Haven's own
+  useEffect(() => {
+    if (!source) return;
+    void read(source.file).then(() => setName(phPieceName(source.item)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, for the file the dialog was opened with
+  }, [source]);
 
   const save = async () => {
     m.setErr(null);
@@ -101,16 +110,24 @@ export default function ModelImport({ piece, onClose }: { piece?: CustomPiece; o
     }
     primeModel(id, src.tpl);
     m.own.current = null;
-    const made = cleanPiece({ kind: newKind(name), name, ...dims, model: { id, ext: src.ext, bytes: src.bytes }, ...(thumb ? { thumb } : {}), at: Date.now() });
+    const made = cleanPiece({
+      kind: newKind(name),
+      name,
+      ...dims,
+      model: { id, ext: src.ext, bytes: src.bytes },
+      ...(thumb ? { thumb } : {}),
+      ...(source ? { source: sourceOf(source.item), pack: packOf(source.item, `m_${uid()}`, Date.now()), tags: tagsOf(source.item) } : {}),
+      at: Date.now(),
+    });
     if (!made) return m.setErr("Could not make a piece from this model.");
     store.add([made]);
     onClose(made.kind);
   };
 
   return (
-    <PieceDialog title={piece ? "Edit your model" : "Import a 3D model"} onClose={() => onClose()}>
+    <PieceDialog title={piece ? "Edit your model" : source ? "Import from Poly Haven" : "Import a 3D model"} onClose={() => onClose()}>
       <div className="pi-body">
-        {!src && !piece && <DropZone busy={busy} onFile={(f) => void m.read(f)} />}
+        {!src && !piece && !(source && !err && !big) && <DropZone busy={busy} onFile={(f) => void m.read(f)} />}
         {big && (
           <div className="pi-warn" role="alert">
             <p>{`That file is ${mb(big.size)} MB. Models can be at most ${mb(MAX_MODEL_BYTES)} MB: bigger ones make the dashboard slow, especially on a tablet or phone. A smaller export (fewer polygons, smaller textures) works much better.`}</p>
@@ -122,6 +139,12 @@ export default function ModelImport({ piece, onClose }: { piece?: CustomPiece; o
         {err && <p className="field-note warn" role="alert">{err}</p>}
         {busy && (piece || src) && <p className="field-note" role="status">Reading the model...</p>}
         {(src || piece) && <ModelForm m={m} lock={lock} onLock={() => setLock((l) => !l)} />}
+        {source && src && (
+          <p className="field-note">
+            {creditLine(source.item)}. {PH_CREDIT}.
+            {isHeavy(source.item) && ` ${modelDetail(source.item)?.text ?? ""}`}
+          </p>
+        )}
       </div>
       <footer className="pb-foot">
         <span className="field-note">{src ? `File ${fileSize(src.bytes)}` : ""}</span>

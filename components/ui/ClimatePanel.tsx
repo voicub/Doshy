@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { climateIds, climateInfo, roomTemps, snapTarget } from "@/lib/climate";
 import type { ServiceCall } from "@/lib/ha";
 import { useAreas } from "@/lib/haAreas";
-import { findWeather } from "@/lib/sky";
+import { findWeather, useSkySettings } from "@/lib/sky";
 import { useStore } from "@/lib/store";
 import ClimateDial from "./ClimateDial";
 import { ChipSection, OutsideSection, RoomsSection } from "./ClimateSections";
@@ -11,6 +11,7 @@ import HudPanel from "./HudPanel";
 import { patchState, runService } from "./serviceActions";
 import { useSeries } from "./Sparkline";
 import "./ClimatePanel.css";
+import DeviceGlyph from "./DeviceGlyph";
 
 const DEBOUNCE_MS = 600;
 
@@ -53,7 +54,7 @@ export default function ClimatePanel({ onClose, entity }: { onClose: () => void;
     }, DEBOUNCE_MS);
   };
 
-  const wx = findWeather(states)?.attributes;
+  const wx = findWeather(states, useSkySettings((s) => s.weatherEntity))?.attributes; // the same entity the sky follows
   const rooms = useMemo(() => roomTemps(plan, states, entityArea, areas), [plan, states, entityArea, areas]);
   const trends = useSeries(useMemo(() => rooms.map((r) => r.entity), [rooms]), 6);
   const hvacModes = a?.hvac_modes ?? [];
@@ -65,7 +66,7 @@ export default function ClimatePanel({ onClose, entity }: { onClose: () => void;
         {ids.length > 1 && (
           <div className="eb-chips" role="group" aria-label="Thermostat">
             {ids.map((c) => (
-              <button key={c} className="eb-chip" aria-pressed={c === id} onClick={() => setPicked(c)}>{states[c].attributes.friendly_name?.replace(/^House thermostat\s*/i, "") || c.split(".")[1].replace(/_/g, " ")}</button>
+              <button key={c} className="eb-chip" aria-pressed={c === id} onClick={() => setPicked(c)}><DeviceGlyph entity={c} /> {states[c].attributes.friendly_name?.replace(/^House thermostat\s*/i, "") || c.split(".")[1].replace(/_/g, " ")}</button>
             ))}
           </div>
         )}
@@ -73,6 +74,7 @@ export default function ClimatePanel({ onClose, entity }: { onClose: () => void;
           <p className="empty">{ids.length === 0 && Object.keys(states).length ? "No thermostat in Home Assistant." : "Waiting for Home Assistant."}</p>
         ) : (
           <>
+            {ids.length === 1 && <div aria-hidden><DeviceGlyph entity={id} size={20} /></div>}
             <ClimateDial name={info.name} current={info.current} action={info.action} target={target} min={min} max={max} step={step} isOff={st.state === "off"} onCommit={commit} />
             <p className="field-note" role="status">
               {error ? <span className="warn">{error}</span> : draft != null ? "Applying..." : `Range ${min} to ${max} C. Arrow keys ${step} C, Shift 0.5 C.`}

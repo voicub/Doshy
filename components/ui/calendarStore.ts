@@ -7,6 +7,7 @@ import {
 } from "@/lib/calendar";
 import { callService } from "@/lib/ha";
 import { errorMessage } from "@/lib/guards";
+import { haFetch, onHomeChange } from "@/lib/haHome";
 import { REQUEST_TIMEOUT_MS, within } from "@/lib/requestTimeout";
 
 export type HaCalendar = { entity_id: string; name: string };
@@ -41,7 +42,7 @@ const remember = (key: string, value: string) => {
 };
 
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
+  const res = await (url.startsWith("/api/ha/") ? haFetch : fetch)(url, { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
 }
@@ -215,7 +216,7 @@ export const useCalendar = create<Calendar>()((set, get) => {
         } else {
           const body = deleteBody(ev, scope);
           if (!body) return "That event cannot be deleted from here.";
-          const res = await fetch("/api/ha/calendar/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: within(REQUEST_TIMEOUT_MS) });
+          const res = await haFetch("/api/ha/calendar/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: within(REQUEST_TIMEOUT_MS) });
           if (!res.ok) return await failure(res);
         }
       } catch {
@@ -225,4 +226,13 @@ export const useCalendar = create<Calendar>()((set, get) => {
       return null;
     },
   };
+});
+
+// Another home on screen: its calendars and events are not this home's. (The dashboard's own calendar is the same for every home; it is simply read again with the rest.)
+onHomeChange(() => {
+  seq++; // an answer still on its way is from the old home
+  upSeq++;
+  useCalendar.setState({ calendars: [], events: [], upcoming: [], failed: [], loaded: false, loading: false, haKnown: true });
+  void useCalendar.getState().loadUpcoming(true);
+  if (useCalendar.getState().open) void useCalendar.getState().refresh(true);
 });

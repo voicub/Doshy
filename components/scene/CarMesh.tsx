@@ -1,13 +1,14 @@
 "use client";
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import type { CanvasTexture } from "three";
 import { buildCar } from "@/lib/carGeometry";
-import { LAYERS, type Layer, type PlateMount } from "@/lib/carSurf";
+import { LAYERS, type Layer } from "@/lib/carSurf";
 import type { CarSpec, Finish } from "@/lib/cars";
-import { plateSize, type PlateStyle } from "@/lib/plate";
-import { AWAY_OPACITY, geometryOf, makeMaterials } from "./carMaterials";
-import { acquirePlate, releasePlate } from "./plateTexture";
+import { fitsOfModel, holderStays, plateModelKey, resolvePlateFits, type PlateFits } from "@/lib/plateFit";
+import { usePlateFits } from "@/lib/plateFitStore";
+import type { PlateEnd, PlateStyle } from "@/lib/plate";
+import { geometryOf, makeMaterials } from "./carMaterials";
+import CarPlate from "./CarPlate";
 import CarModelMesh, { type RealState } from "./CarModelMesh";
 import { useCarModels } from "@/lib/carModelStore";
 import "@/lib/carAutoWatch"; // starts the "fetch a real model when I place a car" watcher
@@ -17,34 +18,22 @@ import "@/lib/carAutoWatch"; // starts the "fetch a real model when I place a ca
 
 const LAMP_BOOST = 2.0; // >1 so the bloom pass picks lit lamps up
 const TAIL_BOOST = 1.3;
-const PLATE_T = 0.006;
 const CASTS: Layer[] = ["paint", "black"];
 const LOD_LOW_ZOOM = 26; // camera zoom is pixels per metre: below this a car is under ~110 px long
 const LOD_HIGH_ZOOM = 32;
 const LOD_EVERY = 20; // frames between checks
 
-function Plate({ mount, text, style, ghost }: { mount: PlateMount; text: string; style: PlateStyle; ghost: boolean }) {
-  const [tex, setTex] = useState<CanvasTexture | null>(null);
-  useEffect(() => {
-    setTex(acquirePlate(text, style, mount.end));
-    return () => releasePlate(text, style, mount.end);
-  }, [text, style, mount.end]);
-  const [w, h] = plateSize(style, mount.end);
-  return (
-    <mesh position={mount.p} rotation={mount.rot} receiveShadow>
-      <boxGeometry args={[w, h, PLATE_T]} />
-      <meshStandardMaterial map={tex} color={tex ? "#ffffff" : "#e6e6e2"} roughness={0.45} metalness={0} transparent={ghost} opacity={ghost ? AWAY_OPACITY : 1} depthWrite={!ghost} />
-    </mesh>
-  );
-}
+/** `fits`: the plate placement the car carries itself (lib/plateFit.ts; CarMesh adds what was remembered for the model); `editing`: the end whose plate is outlined while the inspector adjusts it. */
+type CarProps = { spec: CarSpec; color?: string; finish: Finish; level: RefObject<number>; ghost: boolean; plate: { text: string; style: PlateStyle }; fits: PlateFits; editing: PlateEnd | null };
 
-type CarProps = { spec: CarSpec; color?: string; finish: Finish; level: RefObject<number>; ghost: boolean; plate: { text: string; style: PlateStyle } };
-
-function ProceduralCar({ spec, color, finish, level, ghost, plate }: CarProps) {
+function ProceduralCar({ spec, color, finish, level, ghost, plate, fits, editing }: CarProps) {
   // far away (zoomed out: a car is only a hundred pixels long) the decimated mesh is plenty; checked a few times a second, with hysteresis
   const [low, setLow] = useState(false);
   const tick = useRef(0);
-  const geo = useMemo(() => buildCar(spec, low ? 1 : 0), [spec, low]);
+  // the dark holder behind a plate is part of the body mesh: it is left out (one rebuild, cached) once the plate is moved away from it
+  const front = holderStays(fits.front);
+  const rear = holderStays(fits.rear);
+  const geo = useMemo(() => buildCar(spec, low ? 1 : 0, { front, rear }), [spec, low, front, rear]);
   const geos = useMemo(() => LAYERS.map((l) => geometryOf(geo.layers[l])), [geo]); // parallel to LAYERS
   const paint = color ?? spec.color;
   const mats = useMemo(() => makeMaterials(paint, finish, ghost), [paint, finish, ghost]);
@@ -69,7 +58,7 @@ function ProceduralCar({ spec, color, finish, level, ghost, plate }: CarProps) {
         <mesh key={l} geometry={geos[i]} material={mats[l]} castShadow={!ghost && CASTS.includes(l)} receiveShadow dispose={null} />
       ))}
       {geo.plates.map((m) => (
-        <Plate key={m.end} mount={m} text={plate.text} style={plate.style} ghost={ghost} />
+        <CarPlate key={m.end} mount={m} fit={fits[m.end]} outline={editing === m.end} text={plate.text} style={plate.style} ghost={ghost} />
       ))}
     </group>
   );
@@ -79,15 +68,19 @@ function ProceduralCar({ spec, color, finish, level, ghost, plate }: CarProps) {
  * A catalogue car: the real model the user fitted to it (lib/carModelStore.ts) once that has loaded, the procedural bodywork otherwise
  * (no model chosen, still loading, or the file is not on this device or cannot be read: the plan never depends on it).
  */
-export default function CarMesh(props: CarProps) {
+export default function CarMesh({ fits, ...props }: CarProps) {
   const entry = useCarModels((s) => s.models[props.spec.id]);
+  const remembered = usePlateFits((s) => s.fits);
   const [real, setReal] = useState<{ resource: string; state: RealState } | null>(null);
   const onState = useCallback((state: RealState) => entry && setReal({ resource: entry.resource, state }), [entry]);
   const ready = !!entry && real?.resource === entry.resource && real.state === "ready";
+  // a model's remembered places belong to its own geometry: the built-in shape shown meanwhile has its own
+  const builtIn = resolvePlateFits(fits, fitsOfModel(remembered, plateModelKey(props.spec.id, undefined)));
+  const model = entry ? resolvePlateFits(fits, fitsOfModel(remembered, plateModelKey(props.spec.id, entry.resource))) : builtIn;
   return (
     <>
-      {!ready && <ProceduralCar {...props} />}
-      {entry && <CarModelMesh key={entry.resource} {...props} entry={entry} onState={onState} />}
+      {!ready && <ProceduralCar {...props} fits={builtIn} />}
+      {entry && <CarModelMesh key={entry.resource} {...props} fits={model} entry={entry} onState={onState} />}
     </>
   );
 }

@@ -104,14 +104,21 @@ export const markerInZone = (z: Zone, x: number, y: number, zz: number): boolean
 
 // ---- what stays, what goes --------------------------------------------------------------------------------------------------------------
 
+/** Which side of the footprint a wall is on, seen from a camera at some azimuth (see `wallFacing`). */
+export type WallFacing = "near" | "far" | "inner" | "hide" | "keep";
+
+/** A wall whose outward normal has less than this much of the camera's direction is seen edge-on: it hides nothing, so it counts as far (and stands). */
+const NEAR_DOT = 0.05;
+
 /**
- * How a wall looks in Room mode, for a camera on the (+x, +z) side (the Rig keeps the orbit within 40 degrees of it):
- * - "tall": borders the footprint on the far side, full height.
- * - "cut": borders it on the near side (cut away so you can see in), or divides the footprint itself.
+ * Where a wall is, for a camera at `azimuth` degrees (round y from +z; the default isometric camera looks from the (+x, +z) corner):
+ * - "far": borders the footprint on the side away from the camera (or edge-on to it).
+ * - "near": borders it on the camera's side.
+ * - "inner": divides the footprint itself.
  * - "hide": belongs to another room or storey.
- * - "keep": a garden fence or low wall: outside the building, untouched.
+ * - "keep": a garden fence or low wall: outside the building.
  */
-export function wallRole(plan: Plan, z: Zone, wall: Wall): WallRole {
+export function wallFacing(plan: Plan, z: Zone, wall: Wall, azimuth = DEFAULT_AZIMUTH): WallFacing {
   if (isFence(wall.style)) return "keep";
   if (levelIdOf(plan, wall) !== z.level) return "hide";
   const dx = wall.b.x - wall.a.x;
@@ -120,6 +127,8 @@ export function wallRole(plan: Plan, z: Zone, wall: Wall): WallRole {
   if (len < 1e-6) return "hide";
   const nx = -dy / len;
   const ny = dx / len;
+  const az = (azimuth * Math.PI) / 180;
+  const toCamera = nx * Math.sin(az) + ny * Math.cos(az); // the camera's direction along the wall's normal
   const n = Math.max(1, Math.ceil(len / SAMPLE));
   let near = 0;
   let far = 0;
@@ -133,21 +142,33 @@ export function wallRole(plan: Plan, z: Zone, wall: Wall): WallRole {
     if (a && b) inner += len / n;
     else if (a !== b) {
       const sign = a ? -1 : 1; // the outward normal: away from the side that is inside
-      if (sign * (nx + ny) > 0) near += len / n;
+      if (sign * toCamera > NEAR_DOT) near += len / n;
       else far += len / n;
     }
   }
-  if (near + far >= MIN_TOUCH) return near >= far ? "cut" : "tall";
-  return inner >= MIN_TOUCH ? "cut" : "hide";
+  if (near + far >= MIN_TOUCH) return near >= far ? "near" : "far";
+  return inner >= MIN_TOUCH ? "inner" : "hide";
 }
 
-const roleCache = new WeakMap<Zone, { plan: Plan; roles: Map<string, WallRole> }>();
-/** Role of every wall of the plan for this zone. Cached per zone and plan (the 3D walls each ask once per change). */
-export function wallRoles(plan: Plan, z: Zone): Map<string, WallRole> {
+/**
+ * How a wall looks in Room mode for a camera at `azimuth`:
+ * - "tall": borders the footprint on the far side, full height.
+ * - "cut": borders it on the near side (cut away so you can see in), or divides the footprint itself.
+ * - "hide": belongs to another room or storey.
+ * - "keep": a garden fence or low wall: outside the building, untouched.
+ */
+export function wallRole(plan: Plan, z: Zone, wall: Wall, azimuth = DEFAULT_AZIMUTH): WallRole {
+  const f = wallFacing(plan, z, wall, azimuth);
+  return f === "far" ? "tall" : f === "near" || f === "inner" ? "cut" : f;
+}
+
+const roleCache = new WeakMap<Zone, { plan: Plan; azimuth: number; roles: Map<string, WallRole> }>();
+/** Role of every wall of the plan for this zone seen from `azimuth`. Cached per zone, plan and azimuth (the 3D walls each ask once per change). */
+export function wallRoles(plan: Plan, z: Zone, azimuth = DEFAULT_AZIMUTH): Map<string, WallRole> {
   const hit = roleCache.get(z);
-  if (hit && hit.plan === plan) return hit.roles;
-  const roles = new Map(plan.walls.map((w) => [w.id, wallRole(plan, z, w)] as const));
-  roleCache.set(z, { plan, roles });
+  if (hit && hit.plan === plan && hit.azimuth === azimuth) return hit.roles;
+  const roles = new Map(plan.walls.map((w) => [w.id, wallRole(plan, z, w, azimuth)] as const));
+  roleCache.set(z, { plan, azimuth, roles });
   return roles;
 }
 
@@ -230,9 +251,9 @@ export function viewAxes(azimuth: number, elevation: number): ViewAxes {
   };
 }
 
-type Inset = { left: number; right: number; top: number; bottom: number };
+export type Inset = { left: number; right: number; top: number; bottom: number };
 type FrameOpts = { pad: number; yLow: number; yHigh: number; minZoom: number; maxZoom: number; axes: ViewAxes; inset?: Inset };
-type Framing = { target: V3; zoom: number };
+export type Framing = { target: V3; zoom: number };
 
 const dot = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 

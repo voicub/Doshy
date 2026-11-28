@@ -12,7 +12,9 @@ test("a drag in progress gives a different hint per gesture", () => {
 });
 
 test("every plan tool has a hint and an unknown tool falls back to select", () => {
-  for (const t of ["select", "wall", "room", "door", "window", "pillar", "paint", "stairwell", "garden"]) assert.ok(touchHint({ view: "plan", tool: t, selected: false }).length > 0);
+  const select = touchHint({ view: "plan", tool: "select", selected: false });
+  for (const t of ["select", "wall", "room", "door", "window", "pillar", "paint", "stairwell", "garden", "lines", "ruler", "annotate"]) assert.ok(touchHint({ view: "plan", tool: t, selected: false }).length > 0);
+  for (const t of ["ruler", "annotate"]) assert.notEqual(touchHint({ view: "plan", tool: t, selected: false }), select); // their own sentence, not the fallback
   assert.equal(touchHint({ view: "plan", tool: "nope", selected: false }), touchHint({ view: "plan", tool: "select", selected: false }));
 });
 

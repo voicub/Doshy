@@ -1,7 +1,7 @@
 "use client";
 import { useFrame } from "@react-three/fiber";
 import { useLayoutEffect, useMemo } from "react";
-import { foliageLook, levelOfFoliage } from "@/lib/vegetation";
+import { foliageLook, foliageLookAt, levelOfFoliage } from "@/lib/vegetation";
 import { useKnobs } from "@/lib/quality";
 import { keepAlive } from "@/lib/framePacer";
 import { windBend } from "@/lib/wind";
@@ -21,11 +21,13 @@ const CALM_STIR = 0.03; // bend in dead calm so crowns are never perfectly froze
 export default function FoliageDriver() {
   const garden = useStore((s) => s.environment) === "garden";
   const reduced = useReducedMotion();
-  const { season, mix: rawMix } = useSky().season;
-  const mix = Math.round(rawMix * 100) / 100;
-  const look = useMemo(() => (garden ? foliageLook(season, mix) : foliageLook("summer", 0)), [garden, season, mix]);
-  useLayoutEffect(() => applyFoliageLook(look), [look]);
+  const { year } = useSky();
   const k = useKnobs();
+  const level = levelOfFoliage(k.foliage);
+  // the year only moves by the day (and snow by the weather's temperature): a key of its numbers, so the 30 s sky refresh re-applies nothing
+  const key = `${year.phase}|${year.palette.season}${year.palette.mix}|${year.leafy}|${year.blossom}|${Math.round(year.snow * 20)}`;
+  const look = useMemo(() => (garden ? foliageLookAt(year, level) : foliageLook("summer", 0)), [garden, level, key]);
+  useLayoutEffect(() => applyFoliageLook(look), [look]);
   FOLIAGE.uWindOsc.value = reduced || !k.ambient ? 0 : 1;
   FOLIAGE.uDetail.value = levelOfFoliage(k.foliage) > 0 ? 1 : 0;
   const sway = k.ambient; // a calm tier keeps every plant still, so a still scene needs no frames

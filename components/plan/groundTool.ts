@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { clamp } from "@/lib/mathUtil";
-import { MIN_DRAW, MAX_PATH_WIDTH, MIN_PATH_WIDTH, cleanPoints, movePath, resizeArea, rotationToward, type Corner } from "@/lib/ground";
+import { MIN_DRAW, movePath, resizeArea, rotationToward, type Corner } from "@/lib/ground";
 import { useStore } from "@/lib/store";
 import type { GroundArea, GroundPath, Pt } from "@/lib/types";
 import { useGroundUi } from "./groundUi";
@@ -14,9 +13,9 @@ export type GrabSpec =
 /** A grab once the pointer has started it: the spec plus where the pointer went down. */
 type Grab = GrabSpec & { start: Pt };
 
-/** What the Garden tool is in the middle of (never saved, never undone): a rectangle being dragged, a path being clicked out, a handle being grabbed. */
-type Draft = { rect: Pt | null; path: Pt[]; grab: Grab | null; set: (p: Partial<Pick<Draft, "rect" | "path" | "grab">>) => void };
-export const useGroundDraft = create<Draft>((set) => ({ rect: null, path: [], grab: null, set }));
+/** What the Garden tool is in the middle of (never saved, never undone): a rectangle being dragged, a handle being grabbed. */
+type Draft = { rect: Pt | null; grab: Grab | null; set: (p: Partial<Pick<Draft, "rect" | "grab">>) => void };
+export const useGroundDraft = create<Draft>((set) => ({ rect: null, grab: null, set }));
 
 /** What the plan editor hands the tool for one pointer event. `at` is the snapped plan point, `raw` the exact one. */
 export type GroundCtx = { at: Pt; raw: Pt; shift: boolean; alt: boolean; capture: () => void; begin: () => void; end: () => void };
@@ -31,14 +30,10 @@ function once(c: Pick<GroundCtx, "begin" | "end">, fn: () => void) {
   c.end();
 }
 
-/** Pointer down with the Garden tool: start a rectangle (or drop a preset stamp on release), or add a point to the path. */
+/** Pointer down with the Garden tool: start a rectangle (or drop a preset stamp on release). */
 export function groundDown(c: GroundCtx) {
-  const ui = useGroundUi.getState();
-  if (ui.mode === "path") draft().set({ path: [...draft().path, c.at] });
-  else {
-    c.capture();
-    draft().set({ rect: c.at });
-  }
+  c.capture();
+  draft().set({ rect: c.at });
 }
 
 /** Pointer up with a rectangle in progress: the area it spans, or the preset stamp centred where the pointer went down. */
@@ -55,19 +50,7 @@ export function groundUp(c: GroundCtx) {
   else if (size) once(c, () => useStore.getState().addGround({ ...base, x: round(rect.x - size.w / 2), y: round(rect.y - size.h / 2), ...size }));
 }
 
-/** Finish the path being drawn (double-click, Enter, Esc, right click): kept when it has two distinct points, dropped otherwise. */
-export function groundFinishPath(c: Pick<GroundCtx, "begin" | "end">) {
-  const pts = cleanPoints(draft().path);
-  draft().set({ path: [] });
-  if (pts.length < 2) return;
-  const ui = useGroundUi.getState();
-  once(c, () => useStore.getState().addPath({ points: pts, width: clamp(ui.width, MIN_PATH_WIDTH, MAX_PATH_WIDTH), kind: ui.kind, edge: ui.edge === "none" ? undefined : ui.edge }));
-}
-
-/** Drop whatever is half drawn (the tool was left). */
-export const groundCancel = () => draft().set({ rect: null, path: [], grab: null });
-
-/** The pointer was released or the gesture ended: a half-dragged rectangle or handle is over, a path in progress stays. */
+/** The pointer was released, the gesture ended or the tool was left: a half-dragged rectangle or handle is over. */
 export const groundSettle = () => draft().set({ rect: null, grab: null });
 
 /** Grab a selected area or path (its body to move, a corner to resize, the knob to turn, a bend to move). One undo step for the whole drag. */

@@ -7,6 +7,7 @@ import { LAYERS, Surf, mirrored, type Ctx, type Layer, type PlateMount } from ".
 import { glasshouse, mirrorsAndWipers, openBody, roofFittings, sideTrim } from "./carTrim.ts";
 import { archLiner, spokeCount, wheel } from "./carWheels.ts";
 import type { CarSpec } from "./cars.ts";
+import type { PlateEnd } from "./plate.ts";
 
 // A car as merged procedural geometry: one mesh per material (paint, glass, chrome, black plastic and rubber, lamps, tail lamps).
 // The body is a loft of cross-sections along the length (lib/carFrame.ts), with the wheel arches cut into it; glass, lights and trim
@@ -62,15 +63,21 @@ function loft(f: Frame, q: 0 | 1, paint: Mesh): { surf: Surf; body: Box } {
 
 const cache = new Map<string, CarGeo>();
 
-/** Build (or fetch) the geometry of one car. lod 0 is the normal mesh; lod 1 is a decimated one for far-away cars. */
-export function buildCar(spec: CarSpec, lod: 0 | 1 = 0): CarGeo {
-  const key = `${JSON.stringify(spec)}|${lod}`;
+export type Holders = Record<PlateEnd, boolean>;
+const ALL_HOLDERS: Holders = { front: true, rear: true };
+
+/**
+ * Build (or fetch) the geometry of one car. lod 0 is the normal mesh; lod 1 is a decimated one for far-away cars. `holders` leaves out the dark plate
+ * holder of an end where the owner moved the plate away from it (lib/plateFit.ts).
+ */
+export function buildCar(spec: CarSpec, lod: 0 | 1 = 0, holders: Holders = ALL_HOLDERS): CarGeo {
+  const key = `${JSON.stringify(spec)}|${lod}|${holders.front ? "f" : ""}${holders.rear ? "r" : ""}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const f = makeFrame(designFor(spec));
   const m = Object.fromEntries(LAYERS.map((l) => [l, new Mesh()])) as Record<Layer, Mesh>;
   const { surf, body } = loft(f, lod, m.paint);
-  const c: Ctx = { f, q: lod, surf, ...m, plates: [], info: { exhausts: 0, spokes: spokeCount(f) } };
+  const c: Ctx = { f, q: lod, surf, ...m, plates: [], holders, info: { exhausts: 0, spokes: spokeCount(f) } };
   glasshouse(c);
   roofFittings(c);
   mirrorsAndWipers(c);

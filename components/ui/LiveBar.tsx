@@ -8,6 +8,7 @@ import { useHouseDay, useHouseLive, useLiveHistory, useLiveRooms } from "@/lib/u
 import { LaundryRow } from "./LaundryChip";
 import { ClimatePair, CollapsedSummary, PeopleRow, PowerBlock, RoomTiles } from "./LiveBarParts";
 import MonoLabel from "./MonoLabel";
+import { PressureRow } from "./PressureBits";
 import "./live.css";
 
 /** Whole-flat live HUD: power with a 5-minute trace, indoor / outside climate, people, and a tile per room that has sensors. `sheet`: the compact layout's "house now" card (always open, closed with its X). */
@@ -44,6 +45,7 @@ export default function LiveBar({ sheet }: { sheet?: () => void } = {}) {
         <>
           <PowerBlock house={house} history={history.house} todayKwh={todayKwh} peak={peak} />
           <ClimatePair house={house} />
+          <PressureRow />
           {house.persons.length > 0 && <PeopleRow persons={house.persons} />}
           <LaundryRow />
           {tiles.length > 0 && <RoomTiles tiles={tiles} rooms={rooms} history={history} />}

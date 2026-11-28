@@ -2,11 +2,11 @@
 .mat-groups { display: flex; flex-direction: column; gap: 10px; }
 .mat-group { display: flex; flex-direction: column; gap: 6px; }
 .mat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.mat { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 3px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.25); color: var(--muted); transition: color 0.15s, border-color 0.15s, background 0.15s; }
-.mat:hover { color: var(--text); border-color: rgba(90, 215, 255, 0.45); }
+.mat { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 3px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-25); color: var(--muted); transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.mat:hover { color: var(--text); border-color: var(--border-strong); }
 .mat[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-.mat-pic { display: block; height: 32px; border-radius: 1px; background-size: 100% 100%; background-blend-mode: multiply; image-rendering: pixelated; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
-.mat-pic.glass { box-shadow: inset 0 0 0 2px #2a2d33, inset 0 0 0 3px rgba(255, 255, 255, 0.2); }
+.mat-pic { display: block; height: 32px; border-radius: 1px; background-size: 100% 100%; background-blend-mode: multiply; image-rendering: pixelated; box-shadow: inset 0 0 0 1px rgb(var(--fg-rgb) / 0.14); }
+.mat-pic.glass { box-shadow: inset 0 0 0 2px var(--lg-2a2d33), inset 0 0 0 3px rgb(var(--fg-rgb) / 0.2); }
 .mat > span { display: grid; place-items: center; min-height: 20px; font: 500 8px/1.15 var(--mono); letter-spacing: 0.01em; text-transform: uppercase; overflow-wrap: normal; word-break: normal; }
 
 .col-field { display: flex; flex-direction: column; gap: 8px; }

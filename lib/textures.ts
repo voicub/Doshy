@@ -288,8 +288,51 @@ const PAINTERS: Record<TexKind, Painter> = {
     }
   },
   fence_panel: planks(8, 205, 30, 110),
+  fence_slat: planks(6, 215, 25, 120),
+  fence_bar(g) {
+    rect(g, 0, 0, SIZE, SIZE, 235);
+    for (let col = 0; col < 8; col++) rect(g, col * 8 + 3, 0, 2, SIZE, 90);
+    rect(g, 0, 4, SIZE, 4, 90);
+    rect(g, 0, SIZE - 8, SIZE, 4, 90);
+  },
+  fence_iron(g) {
+    rect(g, 0, 0, SIZE, SIZE, 235);
+    for (let col = 0; col < 8; col++) {
+      rect(g, col * 8 + 3, 8, 2, SIZE - 8, 90);
+      rect(g, col * 8 + 2, 2, 4, 6, 90); // spear tip
+    }
+    rect(g, 0, 20, SIZE, 3, 90);
+    rect(g, 0, SIZE - 14, SIZE, 3, 90);
+  },
+  fence_glass(g) {
+    rect(g, 0, 0, SIZE, SIZE, 240);
+    rect(g, 2, 2, SIZE - 4, SIZE - 4, 252);
+    for (let i = 0; i < 6; i++) rect(g, 10 + i * 6, 6 + i * 6, 14, 2, 255); // a glint
+  },
   wall_stone: stones([16, 22, 18], [2, 3], 150, 80, 70),
   wall_brick_low: bricks(165, 195, 55),
+  wall_block(g, r) {
+    rect(g, 0, 0, SIZE, SIZE, 150);
+    for (let row = 0; row < 3; row++) {
+      const off = row % 2 ? 22 : 0;
+      for (let col = -1; col < 2; col++) rect(g, col * 43 + off + 1, row * 21 + 1, 41, 19, 205 + r() * 25);
+    }
+  },
+  fence_rail(g) {
+    rect(g, 0, 0, SIZE, SIZE, 120);
+    for (const y of [6, 26, 46]) rect(g, 0, y, SIZE, 10, 225);
+  },
+  fence_electric(g) {
+    rect(g, 0, 0, SIZE, SIZE, 235);
+    for (const y of [10, 30, 50]) rect(g, 0, y, SIZE, 2, 110);
+  },
+  fence_bamboo(g, r) {
+    rect(g, 0, 0, SIZE, SIZE, 120);
+    for (let col = 0; col < 8; col++) {
+      rect(g, col * 8 + 1, 0, 6, SIZE, 205 + r() * 30);
+      rect(g, col * 8 + 1, 12 + r() * 40, 6, 2, 150); // a node
+    }
+  },
   hedge(g, r) {
     pixels(g, () => 110 + r() * 90);
     chips(g, r, 110, 3, 40, 60);

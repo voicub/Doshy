@@ -1,8 +1,17 @@
 // Procedural, seamlessly tiling surface patterns for the PBR textures (components/scene/pbr.ts uploads them). Pure and deterministic: a recipe turns a point
-// (u, v in 0..1, one tile) into a height, a brightness and a roughness; a job fills a whole tile in time slices (so a 512 px texture never blocks a frame for long),
-// then derives the normal map from the heights and rescales colour and roughness to the shared means (ALBEDO_MEAN, ROUGH_MEAN) so the part colour stays the albedo.
-// Every noise is periodic (a whole number of cells per tile), so tiles meet at their edges. Row y = v (row 0 is v = 0, "up" in texture space).
+// (u, v in 0..1, one tile) into a height, a brightness, a roughness and optionally a warm/cool hue shift; a job fills a whole tile in time slices (so a 512 px
+// texture never blocks a frame for long), then derives the normal map from the heights and rescales colour and roughness to the shared means (ALBEDO_MEAN,
+// ROUGH_MEAN) so the part colour stays the albedo. Every noise is periodic (a whole number of cells per tile), so tiles meet at their edges. Row y = v (row 0 is
+// v = 0, "up" in texture space). The ground and weathered-outdoor recipes live in pbrGround.ts.
 import { ALBEDO_MEAN, ROUGH_MEAN, type PbrKind } from "./materialsPbr.ts";
+import { clamp, fbm, frac, hash, step, vnoise, worley, wrap } from "./pbrNoise.ts";
+import { asphalt, cobble, deck, flagstone, gravel, lawn, mulch, paving, sand, slabs, soil, water, weatherConcrete } from "./pbrGround.ts";
+
+/** How far the warm/cool hue shift pushes red and blue apart at full strength (+-10 %): the colour map stays within a few percent of grey. */
+export const HUE_GAIN = 0.1;
+
+/** RGB multipliers of a warm (w > 0, red up, blue down) or cool (w < 0) shift, w in -1..1. */
+export const hueTilt = (w: number): [number, number, number] => [1 + HUE_GAIN * w, 1, 1 - HUE_GAIN * w];
 
 export type TileOpts = {
   /** Normal map wanted (the roughness and colour maps are always made). */
@@ -15,70 +24,21 @@ export type TileOpts = {
   plankW?: number;
   /** concrete: panel seams every half tile. */
   formwork?: boolean;
+  /** concrete: outdoor slab (mottled, stained, fine aggregate). Without it the output is the plain indoor concrete. */
+  outdoor?: boolean;
+  /** woodfloor: outdoor deck boards (silver-grey fibres, ~6 mm gaps between boards, per-board tone and hue, end-grain checks). Without it the indoor floor, unchanged. */
+  weathered?: boolean;
   seed?: number;
 };
 
-// ---- noise ------------------------------------------------------------------------------------------------------------
-
-const hash = (x: number, y: number, s: number): number => {
-  let h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1274126177);
-  h = Math.imul(h ^ (h >>> 13), 1103515245);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-};
-const smooth = (t: number) => t * t * (3 - 2 * t);
-const quintic = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
-const clamp = (x: number, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
-const step = (a: number, b: number, x: number) => smooth(clamp((x - a) / (b - a)));
-const wrap = (i: number, n: number) => ((i % n) + n) % n;
-const frac = (x: number) => x - Math.floor(x);
-
-/** Value noise 0..1 with `fx` x `fy` lattice cells per tile (periodic). */
-export function vnoise(u: number, v: number, fx: number, fy: number, s: number): number {
-  const x = u * fx, y = v * fy;
-  const x0 = Math.floor(x), y0 = Math.floor(y);
-  const tx = quintic(x - x0), ty = quintic(y - y0);
-  const xa = wrap(x0, fx), xb = wrap(x0 + 1, fx), ya = wrap(y0, fy), yb = wrap(y0 + 1, fy);
-  const a = hash(xa, ya, s), b = hash(xb, ya, s), c = hash(xa, yb, s), d = hash(xb, yb, s);
-  return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
-}
-
-/** Fractal noise 0..1: `oct` octaves, each twice as fine and half as strong. */
-export function fbm(u: number, v: number, fx: number, fy: number, oct: number, s: number): number {
-  let sum = 0, amp = 1, tot = 0;
-  for (let o = 0; o < oct; o++) {
-    sum += amp * vnoise(u, v, fx << o, fy << o, s + o * 31);
-    tot += amp;
-    amp *= 0.5;
-  }
-  return sum / tot;
-}
-
-/** Cellular noise with n x n jittered cells per tile: distance (in cell units) to the nearest and second nearest point, and a random 0..1 for the nearest cell. */
-function worley(u: number, v: number, n: number, s: number, out: Float64Array) {
-  const x = u * n, y = v * n;
-  const cx = Math.floor(x), cy = Math.floor(y);
-  let f1 = 9, f2 = 9, id = 0;
-  for (let j = -1; j <= 1; j++)
-    for (let i = -1; i <= 1; i++) {
-      const gx = cx + i, gy = cy + j;
-      const wx = wrap(gx, n), wy = wrap(gy, n);
-      const px = gx + 0.15 + 0.7 * hash(wx, wy, s), py = gy + 0.15 + 0.7 * hash(wx, wy, s + 17);
-      const d = Math.hypot(px - x, py - y);
-      if (d < f1) {
-        f2 = f1;
-        f1 = d;
-        id = hash(wx, wy, s + 53);
-      } else if (d < f2) f2 = d;
-    }
-  out[0] = f1;
-  out[1] = f2;
-  out[2] = id;
-}
+// The tests import the noise from here; it lives in pbrNoise.ts so pbrGround.ts can share it without a circular import.
+export { fbm, vnoise };
 
 // ---- recipes ----------------------------------------------------------------------------------------------------------
-// out[0] = height 0..1, out[1] = brightness (relative: rescaled to the mean afterwards), out[2] = roughness (relative likewise).
+// out[0] = height 0..1, out[1] = brightness (relative: rescaled to the mean afterwards), out[2] = roughness (relative likewise), out[3] (optional, the job resets it
+// to 0 before every pixel) = warm/cool hue shift -1..1 (the job subtracts its mean, so a recipe never moves the average tint).
 
-type Px = (u: number, v: number, out: Float64Array) => void;
+export type Px = (u: number, v: number, out: Float64Array) => void;
 const W = new Float64Array(3); // scratch for worley
 
 /** Wood grain along u: growth rings, fine fibres and open pores. `vv` may be any real (the planks of a floor sample their own stretch). */
@@ -109,9 +69,10 @@ const noisy = (fx: number, hAmp: number, aAmp: number, rAmp: number, s: number):
 };
 
 /** Builds a kind's point sampler from its seed `s`, the tile options and the texture size. */
-type Maker = (s: number, o: TileOpts, size: number) => Px;
+export type Maker = (s: number, o: TileOpts, size: number) => Px;
 
-const woodFloor: Maker = (s, o) => {
+const woodFloor: Maker = (s, o, size) => {
+  if (o.weathered) return deck(s, o, size);
   const rows = Math.max(2, Math.round(1.2 / (o.plankW ?? 0.14)));
   const stagger = o.stagger !== false;
   return (u, v, out) => {
@@ -196,7 +157,7 @@ const foam: Maker = (s) => (u, v, out) => {
 };
 
 const concrete: Maker = (s, o, size) => {
-  const form = !!o.formwork;
+  const form = !!o.formwork, outdoor = !!o.outdoor;
   return (u, v, out) => {
     const base = fbm(u, v, 4, 4, 5, s), pore = step(0.9, 0.97, vnoise(u, v, 90, 90, s + 3));
     let seam = 0;
@@ -208,6 +169,7 @@ const concrete: Maker = (s, o, size) => {
     out[0] = 0.55 + (base - 0.5) * 0.3 - 0.45 * pore - 0.4 * seam;
     out[1] = 0.9 + (base - 0.5) * 0.2 - 0.35 * pore - 0.3 * seam;
     out[2] = 0.9 + (base - 0.5) * 0.1;
+    if (outdoor) weatherConcrete(u, v, s, size, out);
   };
 };
 
@@ -266,32 +228,6 @@ const carpet: Maker = (s) => (u, v, out) => {
   out[2] = 1;
 };
 
-const paving: Maker = (s) => (u, v, out) => {
-  const n = 3, x = u * n, y = v * n, i = Math.floor(x), j = Math.floor(y);
-  const d = Math.min(Math.min(x - i, i + 1 - x), Math.min(y - j, j + 1 - y)) * 0.8 / n;
-  const joint = 1 - step(0.004, 0.008, d);
-  const tone = hash(wrap(i, n), wrap(j, n), s) - 0.5, g = fbm(u, v, 40, 40, 3, s + 1) - 0.5;
-  out[0] = (0.8 + g * 0.3) * (1 - joint) + 0.3 * joint;
-  out[1] = (0.9 + tone * 0.15 + g * 0.12) * (1 - joint) + 0.55 * joint;
-  out[2] = 0.9 * (1 - joint) + joint;
-};
-
-/** Irregular stones separated by a gap: cobbles are domed, flagstones flat. */
-const stones = (cobble: boolean): Maker => (s) => {
-  const cells = cobble ? 8 : 4;
-  const gap = cobble ? 0.12 : 0.07;
-  return (u, v, out) => {
-    worley(u, v, cells, s, W);
-    const edge = W[1] - W[0];
-    const joint = 1 - step(gap * 0.5, gap * 1.4, edge);
-    const dome = cobble ? step(0, 0.6, edge) : 0.85;
-    const g = fbm(u, v, 36, 36, 3, s + 1) - 0.5;
-    out[0] = (0.35 + 0.55 * dome + g * 0.15) * (1 - joint) + 0.1 * joint;
-    out[1] = (0.85 + (W[2] - 0.5) * 0.3 + g * 0.14) * (1 - joint) + 0.5 * joint;
-    out[2] = 0.9 * (1 - joint) + joint;
-  };
-};
-
 const MAKERS: Record<PbrKind, Maker> = {
   wood: (s) => (u, v, out) => woodAt(u, v, s, out),
   woodfloor: woodFloor,
@@ -312,19 +248,36 @@ const MAKERS: Record<PbrKind, Maker> = {
   leaf,
   carpet,
   paving,
-  cobble: stones(true),
-  flagstone: stones(false),
+  cobble,
+  flagstone,
+  lawn,
+  gravel,
+  soil,
+  sand,
+  mulch,
+  asphalt,
+  water,
+  slabs,
 };
 
 const recipe = (kind: PbrKind, o: TileOpts, size: number): Px => MAKERS[kind]((o.seed ?? 0) * 101 + KIND_SEED[kind], o, size);
 
-const KIND_SEED: Record<PbrKind, number> = { wood: 1, fabric: 2, leather: 3, metal: 4, plastic: 5, ceramic: 6, stone: 7, paint: 8, rubber: 9, foam: 10, plaster: 11, brick: 12, tile: 13, woodfloor: 14, concrete: 15, bark: 16, leaf: 17, carpet: 18, paving: 19, cobble: 20, flagstone: 21 };
+const KIND_SEED: Record<PbrKind, number> = { wood: 1, fabric: 2, leather: 3, metal: 4, plastic: 5, ceramic: 6, stone: 7, paint: 8, rubber: 9, foam: 10, plaster: 11, brick: 12, tile: 13, woodfloor: 14, concrete: 15, bark: 16, leaf: 17, carpet: 18, paving: 19, cobble: 20, flagstone: 21, lawn: 22, gravel: 23, soil: 24, sand: 25, mulch: 26, asphalt: 27, water: 28, slabs: 29 };
 
 /** How strong the normal map's relief is (bigger = deeper grain, weave, mortar). */
-const BUMP: Record<PbrKind, number> = { wood: 5, fabric: 9, leather: 8, metal: 4, plastic: 3, ceramic: 2, stone: 5, paint: 3, rubber: 4, foam: 6, plaster: 2.5, brick: 9, tile: 10, woodfloor: 6, concrete: 6, bark: 12, leaf: 7, carpet: 5, paving: 9, cobble: 12, flagstone: 10 };
+const BUMP: Record<PbrKind, number> = { wood: 5, fabric: 9, leather: 8, metal: 4, plastic: 3, ceramic: 2, stone: 5, paint: 3, rubber: 4, foam: 6, plaster: 2.5, brick: 9, tile: 10, woodfloor: 6, concrete: 6, bark: 12, leaf: 7, carpet: 5, paving: 9, cobble: 12, flagstone: 10, lawn: 7, gravel: 9, soil: 8, sand: 4, mulch: 9, asphalt: 5, water: 6, slabs: 7 };
 
-/** Kinds whose detail is fine noise: more than 512 px adds nothing, so their textures are never larger. */
-export const NOISE_ONLY: readonly PbrKind[] = ["plastic", "ceramic", "stone", "paint", "plaster", "rubber", "foam", "concrete", "carpet", "metal", "leather"];
+/**
+ * Ground kinds whose BUMP is written for a 512 px tile and scaled with the size: their features have a fixed size in metres, so a bigger texture needs a
+ * proportionally bigger per-pixel height step to keep the same slope (and a smaller one softens the relief that a coarse texture cannot resolve anyway).
+ */
+const RELIEF_BY_SIZE: readonly PbrKind[] = ["paving", "cobble", "flagstone", "lawn", "gravel", "soil", "sand", "mulch", "asphalt", "water", "slabs"];
+
+/**
+ * Kinds whose detail more than 512 px adds nothing to, so their textures are never larger: fine noise, and ground whose tile is metres wide (a lawn's 2.4 m tile at 512 px is
+ * 4.7 mm a pixel, finer than the screen resolves even at the closest zoom: 1024 px would only cost four times the memory and a second of generation).
+ */
+export const NOISE_ONLY: readonly PbrKind[] = ["plastic", "ceramic", "stone", "paint", "plaster", "rubber", "foam", "concrete", "carpet", "metal", "leather", "soil", "sand", "asphalt", "water", "lawn", "gravel", "mulch", "slabs"];
 
 // ---- the job ----------------------------------------------------------------------------------------------------------
 
@@ -343,11 +296,14 @@ export type TileJob = {
   run(budgetMs: number, now: () => number): boolean;
 };
 
-/** Greyscale albedo and roughness bytes for one row, after the mean rescale. */
-function shadeColourRow(a: Float32Array, r: Float32Array, ka: number, kr: number, albedo: Uint8Array, rough: Uint8Array, row: number, size: number) {
+/** Colour map and roughness bytes for one row, after the mean rescale: grey, tilted warm/cool by the (mean-free) hue shift `w` where the recipe made one. */
+function shadeColourRow(a: Float32Array, r: Float32Array, w: Float32Array | null, ka: number, kr: number, kw: number, albedo: Uint8Array, rough: Uint8Array, row: number, size: number) {
   for (let i = row * size, end = i + size; i < end; i++) {
-    const av = clamp(a[i] * ka) * 255, rv = clamp(r[i] * kr) * 255, o = i * 4;
-    albedo[o] = albedo[o + 1] = albedo[o + 2] = av;
+    const grey = a[i] * ka, rv = clamp(r[i] * kr) * 255, o = i * 4;
+    const [tr, tg, tb] = hueTilt(w ? clamp(w[i] + kw, -1, 1) : 0);
+    albedo[o] = clamp(grey * tr) * 255;
+    albedo[o + 1] = clamp(grey * tg) * 255;
+    albedo[o + 2] = clamp(grey * tb) * 255;
     rough[o] = rough[o + 1] = rough[o + 2] = rv;
     albedo[o + 3] = rough[o + 3] = 255;
   }
@@ -375,19 +331,22 @@ export function createTileJob(kind: PbrKind, size: number, opts: TileOpts = {}):
   const rough = new Uint8Array(n * 4);
   const normal = new Uint8Array(n * 4);
   const a = new Float32Array(n), r = new Float32Array(n);
-  const out = new Float64Array(3);
+  const out = new Float64Array(4);
+  let hue: Float32Array | null = null; // only the recipes that shift the hue pay for it
+  const bump = BUMP[kind] * (RELIEF_BY_SIZE.includes(kind) ? size / 512 : 1);
   let wantN = !!opts.normal;
   let stage: "sample" | "finish" | "normal" | "idle" = "sample";
   let colourDone = false;
   let normalFilled = false;
   let row = 0;
-  let sumA = 0, sumR = 0;
+  let sumA = 0, sumR = 0, sumW = 0;
   const isIdle = () => stage === "idle";
 
   const sample = () => {
     for (let k = 0; k < 4 && row < size; k++, row++) {
       const v = (row + 0.5) / size;
       for (let x = 0; x < size; x++) {
+        out[3] = 0;
         px((x + 0.5) / size, v, out);
         const i = row * size + x;
         height[i] = out[0];
@@ -395,6 +354,11 @@ export function createTileJob(kind: PbrKind, size: number, opts: TileOpts = {}):
         r[i] = out[2];
         sumA += out[1];
         sumR += out[2];
+        if (out[3] !== 0 || hue) {
+          hue ??= new Float32Array(n);
+          hue[i] = out[3];
+          sumW += out[3];
+        }
       }
     }
     if (row >= size) {
@@ -402,20 +366,20 @@ export function createTileJob(kind: PbrKind, size: number, opts: TileOpts = {}):
       row = 0;
     }
   };
-  let ka = 1, kr = 1;
+  let ka = 1, kr = 1, kw = 0;
   const finish = () => {
     if (row === 0) {
       ka = ALBEDO_MEAN / (sumA / n);
       kr = ROUGH_MEAN / (sumR / n);
+      kw = -sumW / n; // the recipe's hue is relative: its average is no tint, the material colour stays the average colour
     }
-    for (let k = 0; k < 32 && row < size; k++, row++) shadeColourRow(a, r, ka, kr, albedo, rough, row, size);
+    for (let k = 0; k < 32 && row < size; k++, row++) shadeColourRow(a, r, hue, ka, kr, kw, albedo, rough, row, size);
     if (row < size) return;
     colourDone = true;
     row = 0;
     stage = wantN ? "normal" : "idle";
   };
   const relief = () => {
-    const bump = BUMP[kind];
     for (let k = 0; k < 16 && row < size; k++, row++) writeNormalRow(height, normal, row, size, bump);
     if (row >= size) {
       normalFilled = true;

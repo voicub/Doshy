@@ -3,7 +3,7 @@
 
 /* ---------- the "linked to" row + Choose / Unlink buttons (the Link sheet) ---------- */
 .ep-current { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--accent-soft); }
-.ep-current.none { background: rgba(0, 0, 0, 0.3); color: var(--muted); }
+.ep-current.none { background: var(--shade-30); color: var(--muted); }
 .ep-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ep-main b { font-size: 15px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ep-main small { font: 400 12px/1.2 var(--mono); letter-spacing: 0.02em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -14,11 +14,11 @@
 .ep-btns .btn { flex: 1 1 130px; justify-content: center; }
 
 /* ---------- the full-screen entity picker ---------- */
-.ep-full { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; box-sizing: border-box; background: #070b0f; color: var(--text); font-size: 14px; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+.ep-full { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; box-sizing: border-box; background: var(--sunken); color: var(--text); font-size: 14px; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
 .ep-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--accent-line); }
 .ep-back { flex: none; display: flex; align-items: center; gap: 6px; height: 44px; min-width: 44px; padding: 0 12px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
 .ep-back:active { background: var(--accent-soft); }
-.ep-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(0, 0, 0, 0.4); color: var(--muted); }
+.ep-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-40); color: var(--muted); }
 .ep-search:focus-within { border-color: var(--accent); color: var(--accent); }
 .ep-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 16px; }
 .ep-chips { flex: none; display: flex; gap: 6px; padding: 6px 8px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--accent-line); }
@@ -27,8 +27,8 @@
 .ep-chip[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
 .ep-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .ep-list ul { list-style: none; margin: 0; padding: 0; }
-.ep-sec { position: sticky; top: 0; z-index: 1; margin: 0; padding: 10px 12px 8px; background: #0a1218; border-bottom: 1px solid var(--accent-line); font: 500 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
-.ep-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(90, 215, 255, 0.08); }
+.ep-sec { position: sticky; top: 0; z-index: 1; margin: 0; padding: 10px 12px 8px; background: var(--panel-2); border-bottom: 1px solid var(--accent-line); font: 500 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.ep-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--accent-soft); }
 .ep-row:active { background: var(--accent-soft); }
 .ep-row[aria-current] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .ep-row > svg { flex: none; color: var(--muted); }

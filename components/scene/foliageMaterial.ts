@@ -35,6 +35,8 @@ export const FOLIAGE = {
   uMush: { value: 0 },
   uLitterShare: { value: 0 },
   uSnow: { value: 0 },
+  /** 0.55..1 how thick the lawn's grass tufts stand (thin after winter): the share of tufts kept besides the snow's thinning */
+  uGrow: { value: 1 },
   /** 1 on the denser foliage tiers: bark relief and leaf translucency (set by FoliageDriver) */
   uDetail: { value: 0 },
 };
@@ -49,7 +51,7 @@ uniform vec4 iRand;
 #endif
 uniform float uTime, uWindBend, uWindPhase, uWindOsc;
 uniform vec2 uWindDir;
-uniform float uLeafy, uBloom, uBlossom, uFruit, uMush, uLitterShare, uSnow;
+uniform float uLeafy, uBloom, uBlossom, uFruit, uMush, uLitterShare, uSnow, uGrow;
 // 0 bark 1 broadleaf 2 conifer 3 blossom 4 fruit 5 grass 6 bush 7 flower 8 rock/soil 9 litter 10 hedge 11 stem 12 mushroom 13 patch 14 bloom
 float vegKeep(float k, float r) {
   if (k < 0.5) return 1.0;
@@ -57,7 +59,7 @@ float vegKeep(float k, float r) {
   if (k < 2.5) return 1.0;
   if (k < 3.5) return clamp((uBlossom - 0.8 * r) / 0.2, 0.0, 1.0);
   if (k < 4.5) return clamp((uFruit - 0.9 * r) / 0.2, 0.0, 1.0);
-  if (k < 5.5) return r < 1.0 - 0.4 * uSnow ? 1.0 : 0.0;
+  if (k < 5.5) return r < (1.0 - 0.4 * uSnow) * uGrow ? 1.0 : 0.0;
   if (k < 6.5) return 1.0;
   if (k < 7.5) return clamp((uBloom - 0.9 * r) / 0.2, 0.0, 1.0);
   if (k < 8.5) return 1.0;

@@ -1,13 +1,16 @@
 "use client";
-import { TrashIcon, WallIcon } from "@phosphor-icons/react";
+import { PersonSimpleWalkIcon, TrashIcon, WallIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { CATALOG } from "@/lib/catalog";
 import { WALL_H, WALL_T, wallLen } from "@/lib/geometry";
+import { isFence } from "@/lib/fences";
+import { GATE_KINDS, gateFor, type GateKind } from "@/lib/gates";
 import { doorSwingBlockers, hingeForHand, hingeHand, openingEnd, openingStart, outwardFacing, tFromEnd, tFromStart, wallSides } from "@/lib/planOps";
 import { HANDED, styleOf, styleSize, swings } from "@/lib/openings";
 import { useStore } from "@/lib/store";
 import { useShallow } from "zustand/react/shallow";
 import type { Item, Opening, OpeningType, Room, Wall } from "@/lib/types";
+import { walkHere } from "@/lib/walkStore";
 import HudPanel from "../ui/HudPanel";
 import MonoLabel from "../ui/MonoLabel";
 import VoidPanel from "./VoidPanel";
@@ -32,13 +35,34 @@ function WallPanel({ id }: { id: string }) {
   const w = plan.walls.find((x) => x.id === id);
   if (!w) return null;
   const len = wallLen(w);
+  // one undo step: addOpening commits once; the new opening is the last one in the plan
+  const addGate = (kind: GateKind) => {
+    const gate = gateFor(w, plan.openings, kind);
+    if (!gate) return;
+    useStore.getState().addOpening(gate);
+    const made = useStore.getState().plan.openings.at(-1);
+    if (made) useStore.getState().select({ type: "opening", id: made.id });
+  };
   return (
     <HudPanel title="Wall" meta={<><LevelTag plan={plan} entity={w} />{`${len.toFixed(2)} m`}</>} onClose={closeInspector} className="inspector">
       <div className="field">
         <NumField label="Length" unit="m" value={len} step={0.05} min={0.1} live={false} onChange={(v) => resizeWallTo(w.id, v)} />
-        <small className="field-note">Moves the far end along the wall. Thickness is fixed at {WALL_T * 100} cm.</small>
+        <small className="field-note">Moves the far end along the wall. Thickness is fixed at {Math.round((w.thickness ?? WALL_T) * 100)} cm.</small>
       </div>
       <WallLook wall={w} />
+      {isFence(w.style) && (
+        <Group label="Gate">
+          {(Object.keys(GATE_KINDS) as GateKind[]).map((k) => {
+            const room = gateFor(w, plan.openings, k) !== null;
+            return (
+              <button key={k} type="button" className="btn" disabled={!room} title={room ? undefined : "There is no free stretch of this fence wide enough for it."} onClick={() => addGate(k)}>
+                {GATE_KINDS[k].label}
+              </button>
+            );
+          })}
+          <small className="field-note">Cuts a swinging gate into the middle of the fence. You can move it and change its size afterwards.</small>
+        </Group>
+      )}
       <p className="hint">Drag to move; delete and redraw to resize.</p>
       <button className="btn danger" onClick={() => remove("wall", w.id)}><TrashIcon size={14} /> Delete</button>
     </HudPanel>
@@ -86,6 +110,7 @@ function RoomPanel({ id }: { id: string }) {
         </select>
       </label>
       <button className="btn ins-size" onClick={addWalls}><WallIcon size={14} /> Create walls around this room</button>
+      <button className="btn ins-size" onClick={() => walkHere(r.id)} title="Switch to the live view and walk through this room in first person"><PersonSimpleWalkIcon size={14} /> Walk here</button>
       {wallsMade !== null && <small className="field-note ins-size" role="status">{wallsMade ? `Added ${wallsMade} wall${wallsMade > 1 ? "s" : ""}.` : "Every edge already has a wall."}</small>}
       <button className="btn danger ins-del" onClick={() => remove("room", r.id)}><TrashIcon size={14} /> Delete</button>
     </HudPanel>
@@ -183,7 +208,7 @@ function OpeningFields({ o, wall }: { o: Opening; wall: Wall }) {
         <Segmented label="Opening type" value={o.type} options={OPENING_TYPES} onChange={(type) => patch("opening", o.id, { type, style: undefined })} />
       </Group>
       <Group label="Look">
-        <OpeningGallery type={o.type} value={{ width: o.width, height: o.height, sill: o.sill, style: o.style, color: o.color, tint: o.tint }} onChange={(p) => edit(p, size)}>
+        <OpeningGallery undoable type={o.type} value={{ width: o.width, height: o.height, sill: o.sill, style: o.style, color: o.color, tint: o.tint }} onChange={(p) => edit(p, size)}>
           <div className="grid3">
             <NumField label="Width" unit="m" value={o.width} min={0.2} invalid={flagged("width")} onChange={(width) => edit({ width }, size)} />
             <NumField label="Height" unit="m" value={o.height} min={0.2} invalid={flagged("height")} onChange={(height) => edit({ height }, size)} />

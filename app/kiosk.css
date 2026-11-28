@@ -2,9 +2,16 @@
 
 /* The page itself never scrolls, bounces or pulls to refresh; double-tap zoom is off everywhere. The 3D canvas owns every touch gesture (orbit, pan, pinch): `!important` because the canvas gets an inline `touch-action: auto` at run time (seen in the browser; likely three's OrbitControls), which would hand pinch and pan to the page. */
 html, body { overflow: hidden; overscroll-behavior: none; touch-action: manipulation; }
-/* No pinch zoom or double-tap zoom on the HUD either (panels still scroll with a finger). Sliders and dials set their own touch-action. */
-.chrome { touch-action: pan-x pan-y; }
+/* No pinch zoom or double-tap zoom on the HUD either (panels still scroll with a finger). Sliders and dials set their own touch-action. The modals (Display, the command palette, the piece and model dialogs, the full-screen entity picker) are not inside `.chrome`: left out, a two-finger touch page-zooms them and a kiosk with no keyboard cannot zoom back out. */
+:is(.chrome, .scrim, .dp-scrim, .pd-scrim, .ep-full) { touch-action: pan-x pan-y; }
 .stage canvas { touch-action: none !important; }
+
+/* Finger scroll surfaces: the scrolling body of a panel. (1) A swipe that reaches its end stops there: no chaining into the sheet behind it or the 3D view. Never put `overscroll-behavior` on a wrapper
+   with `overflow: hidden` (or on `*`): Chromium counts it as a scroll container, a swipe that starts on anything inside it stops at it with `contain`, and the real scroller further up never
+   moves (the catalog sheet went dead when its cards, which are `overflow: hidden` buttons, got it). (2) It is its own containing block: a visually hidden control (`.sr-only`, a file input) inside it
+   is positioned against the panel otherwise, and its static position far down the list grows the panel's own scroll range, so the panel scrolled as well as its body (two nested scrollers,
+   the outer one empty). Add a new panel body to this list. */
+:is(.dp-body, .disp-body, .cl-body, .cal-body, .inbox-body, .mp-body, .sp-body, .stats-body, .eb-scroll, .eb-map-list, .rd-list, .ep-list, .csheet-body, .pd-scroll, .cmf-side, .cmf-results, .pb-side, .pi-body, .palette-list, .ri-list, .entity-list, .ip-grid, .cards, .pm-body, .ps-list, .ppl-body, .scn-body, .am-body, .rt-body) { position: relative; overscroll-behavior: contain; }
 
 /* A long press must not select text or open a callout on a touch screen or a kiosk. Text fields stay selectable (copy and paste); give other text `class="selectable"` to allow selecting it. */
 html:is([data-coarse="1"], [data-kiosk="1"]) .app { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -12,13 +19,13 @@ html:is([data-coarse="1"], [data-kiosk="1"]) .app :is(input, textarea, [contente
 
 /* Press feedback: a finger covers the control, so it lights up while it is held (hover does not exist on a touch screen). */
 @media (pointer: coarse) {
-  :is(.chrome, .dp-scrim) :is(button, [role="button"], summary):not(:disabled):active { background-color: rgba(90, 215, 255, 0.22); transition-duration: 0s; }
+  :is(.chrome, .dp-scrim) :is(button, [role="button"], summary):not(:disabled):active { background-color: rgb(var(--accent-rgb) / 0.22); transition-duration: 0s; }
 }
 
 /* Interface size (Display settings). `--ui-scale` is on <html>; the HUD (not the 3D view) is zoomed. Inside a zoomed box vw / vh units are multiplied by the zoom too, so --vw / --vh give the
    unit that fits: use calc(100 * var(--vh)) instead of 100vh in HUD panels. At Normal nothing is applied, so the regular layout is untouched. */
 :root { --vw: 1vw; --vh: 1vh; }
-html[data-ui-size]:not([data-ui-size="normal"]) :is(.chrome, .hud.dp) { zoom: var(--ui-scale); --vw: calc(1vw / var(--ui-scale)); --vh: calc(1vh / var(--ui-scale)); }
+html[data-ui-size]:not([data-ui-size="normal"]) :is(.chrome, .hud.disp) { zoom: var(--ui-scale); --vw: calc(1vw / var(--ui-scale)); --vh: calc(1vh / var(--ui-scale)); }
 
 /* The screensaver covers the screen: the HUD under it is not drawn at all (its blurred glass panels are the costliest thing to paint on a Pi). */
 html[data-saver] .chrome { visibility: hidden; }
@@ -29,12 +36,12 @@ html[data-saver] .chrome { visibility: hidden; }
   .seg button:not([aria-pressed="true"]):hover, .tab:not(.active):hover { color: var(--muted); }
   .t-btn:not([aria-pressed="true"]):hover, .icon-btn:hover { color: var(--muted); background: none; }
   .btn:not(.primary):not(.danger):hover { border-color: var(--accent-line); color: var(--text); background: none; }
-  .btn.danger:hover { border-color: rgba(255, 106, 61, 0.35); background: none; }
+  .btn.danger:hover { border-color: rgb(var(--bad-rgb) / 0.35); background: none; }
   .preset:not([aria-pressed="true"]):hover, .eb-chip:not([aria-pressed="true"]):hover { color: var(--muted); border-color: var(--accent-line); }
-  .card:hover { border-color: var(--accent-line); background: rgba(255, 255, 255, 0.015); }
+  .card:hover { border-color: var(--accent-line); background: rgb(var(--fg-rgb) / 0.015); }
   .card:hover::after { content: none; }
   .swatch:hover { transform: none; }
-  .ring:not(.on):hover { transform: none; border-color: rgba(232, 241, 247, 0.38); }
+  .ring:not(.on):hover { transform: none; border-color: rgb(var(--text-rgb) / 0.38); }
   .ring.on:hover { transform: none; }
   .chip:not(:disabled):not(.lit):hover { border-color: var(--accent-line); }
 }

@@ -5,8 +5,20 @@ import { fenceParts } from "@/lib/fences";
 import type { Box } from "@/lib/geometry";
 import type { WallStyle } from "@/lib/types";
 import BoxInstances, { type BoxSpec } from "./BoxInstances";
+import { useKnobs } from "@/lib/quality";
 
-const WIRE_POST = "#5b6168";
+/** How a style's three draw calls are finished. Posts follow the wall colour unless `post` is set; `extra` is the second colour (finials, bindings). */
+type Look = { rough: number; metal: number; post?: string; postRough?: number; postMetal?: number; extra?: string; opacity?: number };
+const DEFAULT_LOOK: Look = { rough: 0.8, metal: 0 };
+const LOOKS: Partial<Record<WallStyle, Look>> = {
+  fence_wire: { rough: 0.45, metal: 0.6, post: "#5b6168", postRough: 0.5, postMetal: 0.5 },
+  fence_slat: { rough: 0.75, metal: 0, post: "#2f3338", postRough: 0.5, postMetal: 0.4 },
+  fence_bar: { rough: 0.45, metal: 0.6 },
+  fence_iron: { rough: 0.5, metal: 0.55 },
+  fence_glass: { rough: 0.05, metal: 0.1, post: "#9aa1a8", postRough: 0.35, postMetal: 0.7, opacity: 0.35 },
+  fence_electric: { rough: 0.6, metal: 0, post: "#4a4f55", postRough: 0.6 },
+  fence_bamboo: { rough: 0.7, metal: 0, extra: "#6f5f33" },
+};
 const LEAF_CELL = 0.25; // metres per leafy facet along the hedge
 
 /** Smooth-ish noise from position alone, so vertices that share a spot (box faces meet there) move together and the hedge has no cracks. */
@@ -51,25 +63,29 @@ function HedgeBlock({ box, len, t, color }: { box: Box; len: number; t: number; 
  * Inside the wall's local frame: x along the wall, centred on it.
  */
 export default function FenceMesh({ style, boxes, len, t, color }: { style: WallStyle; boxes: Box[]; len: number; t: number; color: string }) {
+  const coarse = useKnobs().detail === 0; // Eco: wider pitch and no finials or bindings
   const parts = useMemo(() => {
     const posts: BoxSpec[] = [];
     const fill: BoxSpec[] = [];
-    if (style === "hedge") return { posts, fill };
+    const extra: BoxSpec[] = [];
+    if (style === "hedge") return { posts, fill, extra };
     for (const b of boxes) {
       if (b.y0 > 0.01) continue;
-      const p = fenceParts(style, b.s0, b.s1, b.y1, t);
+      const p = fenceParts(style, b.s0, b.s1, b.y1, t, coarse);
       const at = ({ x, ...r }: (typeof p.posts)[number]): BoxSpec => ({ ...r, x: x - len / 2 });
       posts.push(...p.posts.map(at));
       fill.push(...p.fill.map(at));
+      extra.push(...p.extra.map(at));
     }
-    return { posts, fill };
-  }, [style, boxes, len, t]);
+    return { posts, fill, extra };
+  }, [style, boxes, len, t, coarse]);
   if (style === "hedge") return <>{boxes.map((b, i) => <HedgeBlock key={i} box={b} len={len} t={t} color={color} />)}</>;
-  const wire = style === "fence_wire";
+  const look = LOOKS[style] ?? DEFAULT_LOOK;
   return (
     <>
-      <BoxInstances boxes={parts.posts} color={wire ? WIRE_POST : color} roughness={wire ? 0.5 : 0.8} metalness={wire ? 0.5 : 0} />
-      <BoxInstances boxes={parts.fill} color={color} roughness={wire ? 0.45 : 0.8} metalness={wire ? 0.6 : 0} />
+      <BoxInstances boxes={parts.posts} color={look.post ?? color} roughness={look.postRough ?? look.rough} metalness={look.postMetal ?? look.metal} />
+      <BoxInstances boxes={parts.fill} color={color} roughness={look.rough} metalness={look.metal} opacity={look.opacity} shadow={!look.opacity} />
+      <BoxInstances boxes={parts.extra} color={look.extra ?? color} roughness={look.rough} metalness={look.metal} />
     </>
   );
 }

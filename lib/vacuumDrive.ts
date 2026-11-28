@@ -93,26 +93,35 @@ export function startDrive(w: World, mode: Mode, sinceMs: number, reduced = fals
   return base;
 }
 
+/** Drive the lap of `w` from where the robot stands: over free floor to the nearest waypoint, then on along the lap. */
+function startLap(d: Drive, w: World) {
+  const here = { x: d.x, y: d.y };
+  let k = 0;
+  let best = Infinity;
+  w.clean.pts.forEach((p, i) => {
+    const dist = Math.hypot(p.x - here.x, p.y - here.y);
+    if (dist < best) (best = dist), (k = i);
+  });
+  const tail = w.clean.pts.slice(k);
+  const lead = best > 0.05 ? via(w, here, tail[0]) : [];
+  d.route = makeRoute([here, ...lead, ...tail]);
+  d.kind = "clean";
+  d.s = 0;
+  d.k = 1;
+}
+
+/** The lap of the world changed (the vacuum reported another room to clean) while the robot is on it: carry on along the new one from where it stands. */
+export function retarget(d: Drive, w: World) {
+  if (d.mode === "cleaning" && d.kind === "clean") startLap(d, w);
+}
+
 /** Change of state: pick the route for the new mode, keeping the one in use when the robot is only pausing or finishing its way home. */
 function enter(d: Drive, w: World, mode: Mode) {
   const prev = d.mode;
   d.mode = mode;
   if (mode === "cleaning") {
     if (prev === "paused" && d.kind === "clean" && d.route) return;
-    const here = { x: d.x, y: d.y };
-    // rejoin the lap at its nearest waypoint
-    let k = 0;
-    let best = Infinity;
-    w.clean.pts.forEach((p, i) => {
-      const dist = Math.hypot(p.x - here.x, p.y - here.y);
-      if (dist < best) (best = dist), (k = i);
-    });
-    const tail = w.clean.pts.slice(k);
-    const lead = best > 0.05 ? via(w, here, tail[0]) : [];
-    d.route = makeRoute([here, ...lead, ...tail]);
-    d.kind = "clean";
-    d.s = 0;
-    d.k = 1;
+    startLap(d, w);
     return;
   }
   if (mode === "returning" || mode === "docked") {

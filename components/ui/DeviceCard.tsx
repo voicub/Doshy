@@ -11,6 +11,10 @@ import { patchState, runService, type DeviceTarget, type ServiceData } from "./s
 import { useDismiss } from "./useDismiss";
 import Sparkline, { useSeries } from "./Sparkline";
 import VacuumNote from "./VacuumNote";
+import MakeItButton from "./MakeItButton";
+import { isPressureEntity } from "@/lib/pressure";
+import PressureCard from "./PressureCard";
+import DeviceGlyph from "./DeviceGlyph";
 
 const COLOR_MODES = ["hs", "xy", "rgb", "rgbw", "rgbww"];
 const SWATCHES = ["#ffe2b5", "#ff4a3d", "#ff9d2e", "#ffe14a", "#4fe36f", "#2fd9d0", "#2f9bff", "#8a5cff", "#ff5fb0"];
@@ -176,8 +180,9 @@ export default function DeviceCard({ target, onClose, onClimate }: { target: Dev
   const st = useStore((s) => s.states[target.entity]);
   const [error, setError] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const pressure = !!st && isPressureEntity(st);
   const numeric = domainOf(target.entity) === "sensor" && st && Number.isFinite(Number(st.state));
-  const trend = useSeries(numeric ? [target.entity] : [], 6)[target.entity];
+  const trend = useSeries(numeric && !pressure ? [target.entity] : [], 6)[target.entity];
 
   useDismiss(root, onClose);
   useEffect(() => { setError(null); root.current?.querySelector<HTMLElement>("button, input")?.focus({ preventScroll: true }); }, [target.entity]);
@@ -200,7 +205,7 @@ export default function DeviceCard({ target, onClose, onClimate }: { target: Dev
   return (
     <div ref={root} className={`devcard ${style ? "" : "center"}`} style={style} role="dialog" aria-label={`Device ${st?.attributes.friendly_name ?? target.entity}`}>
       <HudPanel title={domain.replace(/_/g, " ")} meta={target.entity} onClose={onClose} className="dc">
-        <h2 className="hud-name">{st?.attributes.friendly_name ?? target.entity}</h2>
+        <h2 className="hud-name"><DeviceGlyph entity={target.entity} size={20} /> {st?.attributes.friendly_name ?? target.entity}</h2>
         {!st ? (
           <p className="field-note warn">Not reported by Home Assistant.</p>
         ) : (
@@ -210,8 +215,10 @@ export default function DeviceCard({ target, onClose, onClimate }: { target: Dev
               <small>{`changed ${ago(st.last_changed)}`}</small>
             </div>
             {domain === "vacuum" && <VacuumNote entity={target.entity} />}
+            {pressure && <PressureCard st={st} />}
             {trend && <div className="dc-trend"><MonoLabel>Last 6 h</MonoLabel><Sparkline line={trend} width={200} height={34} /></div>}
             {!bad && <Controls st={st} send={send} onClimate={onClimate} />}
+            {!bad && <MakeItButton entity={target.entity} onOpen={onClose} />}
           </>
         )}
         {error && <p className="field-note warn" role="alert">{error}</p>}

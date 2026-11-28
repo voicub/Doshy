@@ -20,7 +20,9 @@ test("stored settings are checked: bad values fall back to the defaults", () => 
   assert.deepEqual(cleanDisplay(undefined), DISPLAY_DEFAULTS);
   assert.deepEqual(cleanDisplay("x"), DISPLAY_DEFAULTS);
   assert.deepEqual(cleanDisplay({ size: "huge", wake: "yes", saver: -3, style: "disco" }), DISPLAY_DEFAULTS);
-  assert.deepEqual(cleanDisplay({ size: "large", wake: false, saver: 5, style: "dim" }), { size: "large", wake: false, saver: 5, style: "dim" });
+  assert.deepEqual(cleanDisplay({ size: "large", wake: false, saver: 5, style: "dim", faceRoom: false }), { size: "large", wake: false, saver: 5, style: "dim", faceRoom: false, pressureUnit: "auto" });
+  assert.equal(cleanDisplay({ size: "large" }).faceRoom, true, "settings saved before the room view turned the camera: on");
+  assert.equal(cleanDisplay({ faceRoom: "no" }).faceRoom, true);
   assert.equal(cleanDisplay({ saver: 99999 }).saver, 240, "capped");
   assert.equal(cleanDisplay({ saver: NaN }).saver, null);
 });

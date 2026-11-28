@@ -4,6 +4,7 @@ import { hashStr, rngOf } from "./mathUtil.ts";
 import { BUILDERS, type Broad, type Shrub, type Spruce } from "./vegSpecies.ts";
 import { PLANT_SPECIES } from "./vegPlants.ts";
 import { mixHex, nextSeason, seasonPalette, type Season } from "./season.ts";
+import type { YearLook } from "./seasonYear.ts";
 
 /**
  * Procedural organic vegetation: trees, shrubs, hedges, grasses and flowers built from tapered branch tubes, noise-displaced
@@ -153,6 +154,8 @@ export type FoliageLook = {
   /** fallen-leaf carpet share (a few in spring and summer, thick in autumn) */
   litterShare: number;
   snow: number;
+  /** how thick the lawn's grass tufts stand: 0.55 thin after winter .. 1 */
+  growth: number;
 };
 
 const LEAF: Record<Season, [string, string, string]> = {
@@ -171,9 +174,9 @@ const CONIFER: Record<Season, [string, string, string]> = {
 const BUSH_ALT: Record<Season, string> = { spring: "#9cd05a", summer: "#4f9a3a", autumn: "#cf6a28", winter: "#5f7f5e" };
 const mixList = <T extends string[]>(a: T, b: T, t: number) => a.map((c, i) => mixHex(c, b[i], t)) as T;
 
-/** The foliage look of `season` cross-faded `mix` of the way to the next season. */
-export function foliageLook(season: Season, mix: number): FoliageLook {
-  const p = seasonPalette(season, mix);
+/** The foliage look of `season` cross-faded `mix` of the way to the next season; `snow` is how much of winter lies as snow (see seasonPalette). */
+export function foliageLook(season: Season, mix: number, snow = 1): FoliageLook {
+  const p = seasonPalette(season, mix, snow);
   const nx = nextSeason(season);
   const w = (s: Season) => (s === season ? 1 - mix : 0) + (s === nx ? mix : 0);
   return {
@@ -192,5 +195,28 @@ export function foliageLook(season: Season, mix: number): FoliageLook {
     mushrooms: p.mushrooms,
     litterShare: 0.03 + 0.97 * p.mushrooms,
     snow: p.snow,
+    growth: 1,
+  };
+}
+
+/**
+ * The foliage look of a day of the year (see lib/seasonYear.ts), by foliage level (levelOfFoliage): level 0 (Eco, Light) changes tints only, the
+ * canopy is in leaf or bare; level 1 (Balanced) thins and fills the canopy leaf by leaf; level 2 and up (Detailed, Ultra) add blossom for the few
+ * weeks it is out and the leaves piling up on the ground. The lower levels keep the four-step garden's blossom and leaf litter.
+ */
+export function foliageLookAt(y: YearLook, level: Level): FoliageLook {
+  const look = foliageLook(y.palette.season, y.palette.mix, y.snow);
+  const leaf = mixList(LEAF[y.leaf.season], LEAF[y.leaf.next], y.leaf.mix);
+  const detailed = level >= 2;
+  // fallen leaves start the colour of the tree's and go brown with age; snow buries most of them
+  const litter = mixList(LEAF.autumn, LEAF.winter, y.pileAge);
+  return {
+    ...look,
+    leaf,
+    leafy: level >= 1 ? y.leafy : y.leafy >= 0.5 ? 1 : 0,
+    blossom: detailed ? y.blossom : look.blossom,
+    litter: detailed ? litter : look.litter,
+    litterShare: detailed ? 0.03 + 0.97 * y.pile * (1 - 0.8 * y.snow) : look.litterShare,
+    growth: level >= 1 ? y.growth : 1,
   };
 }

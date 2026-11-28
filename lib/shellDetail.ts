@@ -172,8 +172,8 @@ export function mergeMeshData(parts: readonly MeshData[]): MeshData {
 
 // ---- where trims go along a wall ----------------------------------------------------------------------------------------------
 
-/** An opening in a wall's own frame: s0..s1 metres along the wall, `sill` to `sill + height` above the floor. */
-export type Span = { s0: number; s1: number; sill: number; top: number; casing: boolean };
+/** An opening in a wall's own frame: s0..s1 metres along the wall, `sill` to `sill + height` above the floor. `color` = the frame colour the user chose: the casing is painted with it (absent = the wall trim's own paint). */
+export type Span = { s0: number; s1: number; sill: number; top: number; casing: boolean; color?: string };
 export type Run = { s0: number; s1: number };
 
 /** Styles that get a rectangular casing: arches, round and bay windows, garage doors, gates and floor-to-ceiling glass have their own surrounds. */
@@ -236,7 +236,7 @@ export function openingSpans(openings: readonly Opening[], len: number, top: num
   for (const o of openings) {
     const s0 = Math.max(0, o.t * len - o.width / 2);
     const s1 = Math.min(len, o.t * len + o.width / 2);
-    if (o.sill < top && s1 > s0) out.push({ s0, s1, sill: o.sill, top: Math.min(o.sill + o.height, top), casing: hasCasing(styleOf(o)) });
+    if (o.sill < top && s1 > s0) out.push({ s0, s1, sill: o.sill, top: Math.min(o.sill + o.height, top), casing: hasCasing(styleOf(o)), ...(o.color && { color: o.color }) });
   }
   return out;
 }
@@ -251,24 +251,37 @@ export function trimFaces(plan: Plan, wall: Wall): TrimFaces {
 
 type WallTrimInput = { len: number; t: number; height: number; top: number; spans: readonly Span[]; faces: TrimFaces; ground: boolean; crown: boolean };
 
+/** The casings of the openings whose frame the user painted, one mesh per colour (a wall has one or two colours, so this is one or two draw calls). */
+export type TintedTrim = { color: string; mesh: MeshData };
+
 /**
  * Every trim of one wall (`height` tall, cut at `top` in cut-away) in the wall's own frame as the scene draws it: x runs along the wall from -len/2 to len/2
  * (its middle is the origin, like the wall slab and its openings), y up from the floor, z across (the faces sit at +-t/2). `paint` = skirting, crown moulding
- * and casings (one painted colour), `base` = the dark base course of a ground-floor outside face; each null when there is nothing to draw.
+ * and the casings of unpainted openings (one painted colour), `tinted` = the casings of openings with a frame colour, grouped by that colour (the casing is part of the
+ * frame: an anthracite window must not sit in a white surround), `base` = the dark base course of a ground-floor outside face; each null / empty when there is nothing to draw.
  * A casing's lintel is left off when it would not fit under the wall's top.
  */
-export function wallTrims({ len, t, height, top, spans, faces, ground, crown }: WallTrimInput): { paint: MeshData | null; base: MeshData | null } {
-  const casings = (side: 1 | -1) => spans.filter((o) => o.casing).map((o) => casingAround(o, FLOOR_T, t, side, o.top + CASING_W <= top));
+export function wallTrims({ len, t, height, top, spans, faces, ground, crown }: WallTrimInput): { paint: MeshData | null; base: MeshData | null; tinted: TintedTrim[] } {
   const paint: MeshData[] = [];
+  const byColor = new Map<string, MeshData[]>();
+  const casings = (side: 1 | -1) => {
+    for (const o of spans) {
+      if (!o.casing) continue;
+      const mesh = casingAround(o, FLOOR_T, t, side, o.top + CASING_W <= top);
+      if (!o.color) paint.push(mesh);
+      else byColor.set(o.color, [...(byColor.get(o.color) ?? []), mesh]);
+    }
+  };
   for (const side of faces.inside) {
     paint.push(stripAlongWall(SKIRTING, runsAround(len, spans, FLOOR_T, FLOOR_T + SKIRT_H, CASING_W), FLOOR_T, t, side));
     if (crown) paint.push(stripAlongWall(CROWN, runsAround(len, spans, height - CROWN_H, height, CASING_W), height, t, side, true));
-    paint.push(...casings(side));
+    casings(side);
   }
-  if (faces.outside) paint.push(...casings(faces.outside));
+  if (faces.outside) casings(faces.outside);
   const base = ground && faces.outside ? [stripAlongWall(PLINTH, runsAround(len, spans, 0, PLINTH_H, CASING_W), 0, t, faces.outside)] : [];
   const centred = (parts: MeshData[]) => (parts.length ? shiftX(mergeMeshData(parts), -len / 2) : null);
-  return { paint: centred(paint), base: centred(base) };
+  const tinted = [...byColor].map(([color, parts]) => ({ color, mesh: shiftX(mergeMeshData(parts), -len / 2) })); // never empty: a colour is only added with its first casing
+  return { paint: centred(paint), base: centred(base), tinted };
 }
 
 // ---- texture coordinates in metres ---------------------------------------------------------------------------------------------

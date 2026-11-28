@@ -77,6 +77,19 @@ export function resizePillar(centre: Pt, rot: number, p: Pt, grid: number, round
   return round ? { w: side(Math.max(lx, ly)), d: side(Math.max(lx, ly)) } : { w: side(lx), d: side(ly) };
 }
 
+/** The pillar under plan point `p` (the one drawn last wins, `reach` metres of slack around its footprint): what the paint bucket lands on. `items` are one level's. */
+export function pillarAt(items: readonly Item[], p: Pt, reach = 0): Item | null {
+  for (const it of [...items].reverse()) {
+    if (!isPillar(it.kind)) continue;
+    const a = (it.rot * Math.PI) / 180;
+    const [dx, dy] = [p.x - it.x, p.y - it.y];
+    const [lx, ly] = [dx * Math.cos(a) + dy * Math.sin(a), -dx * Math.sin(a) + dy * Math.cos(a)];
+    const [hw, hd] = [it.w / 2 + reach, it.d / 2 + reach];
+    if (isRoundPillar(it.kind) ? (lx / hw) ** 2 + (ly / hd) ** 2 <= 1 : Math.abs(lx) <= hw && Math.abs(ly) <= hd) return it;
+  }
+  return null;
+}
+
 /** The plan with a pillar of `preset` added on `levelId` at `at`, as tall as the storey. */
 export function addPillar(plan: Plan, levelId: string, preset: PillarPreset, at: Pt, id: string): Plan {
   const def = CATALOG[preset.kind];

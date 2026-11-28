@@ -2,13 +2,13 @@
 .pick-tip, .pick-cycle { position: absolute; left: 0; top: 0; z-index: 2; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
 .pick-cycle { border-color: var(--accent); color: var(--accent); }
 .pick-cycle[hidden] { display: none; }
-.pick-chooser { position: absolute; left: 0; top: 0; z-index: 3; display: flex; flex-direction: column; min-width: 180px; max-width: 280px; max-height: 60%; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(6, 9, 12, 0.94); pointer-events: auto; }
+.pick-chooser { position: absolute; left: 0; top: 0; z-index: 3; display: flex; flex-direction: column; min-width: 180px; max-width: 280px; max-height: 60%; overflow-y: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--panel); pointer-events: auto; }
 .pick-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 10px; text-align: left; border-top: 1px solid var(--accent-line); color: var(--text); font: 500 11px/1.2 var(--mono); letter-spacing: 0.06em; }
 .pick-row:first-child { border-top: 0; }
 .pick-row small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 400 10px/1.2 var(--mono); letter-spacing: 0.04em; }
 .pick-row:hover, .pick-row:focus-visible { background: var(--accent-soft); outline: 0; box-shadow: inset 2px 0 0 var(--accent); }
 @media (pointer: coarse) { .pick-row { min-height: var(--touch); justify-content: center; } }
-@media (prefers-reduced-transparency: reduce) { .pick-chooser { background: #080c10; } }
+@media (prefers-reduced-transparency: reduce) { .pick-chooser { background: var(--panel-solid); } }
 
 /* compact screens (every data-vp but "regular"): readable labels, a 44 px hit area on every link mark, and the "what is here" list as big rows docked above the bottom bars */
 html:not([data-vp="regular"]) .edit-tag { padding: 4px 8px; font-size: 12px; letter-spacing: 0.04em; }
@@ -19,9 +19,9 @@ html:not([data-vp="regular"]) .pick-cycle { font-size: 12px; }
 html:not([data-vp="regular"]) .pick-chooser {
   left: 50%; top: auto; transform: translateX(-50%); bottom: calc(var(--dock-h, 56px) + var(--tools-h, 0px) + 46px); /* clear of the one-line hint the edit strip shows over the canvas */
   width: min(440px, calc(100% - 16px)); max-width: none; max-height: calc(100% - var(--strip-h, 44px) - var(--dock-h, 56px) - var(--tools-h, 0px) - 58px);
-  overscroll-behavior: contain; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  overscroll-behavior: contain; box-shadow: 0 6px 24px var(--shade-60);
 }
-html:not([data-vp="regular"]) .pick-chooser::before { content: "What is here? Tap one."; position: sticky; top: 0; z-index: 1; padding: 10px 12px 8px; background: #0a1218; border-bottom: 1px solid var(--accent-line); font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+html:not([data-vp="regular"]) .pick-chooser::before { content: "What is here? Tap one."; position: sticky; top: 0; z-index: 1; padding: 10px 12px 8px; background: var(--panel-2); border-bottom: 1px solid var(--accent-line); font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 html:not([data-vp="regular"]) .pick-row { min-height: 56px; padding: 8px 12px; justify-content: center; gap: 3px; font-size: 15px; font-weight: 600; letter-spacing: 0.02em; }
 html:not([data-vp="regular"]) .pick-row small { font-size: 12px; font-weight: 400; }
 html:not([data-vp="regular"]) .pick-row:first-child { border-top: 1px solid var(--accent-line); }

@@ -7,8 +7,11 @@ import {
 } from "@/lib/materials";
 import { useStore } from "@/lib/store";
 import type { Room, Wall } from "@/lib/types";
+import { setFloorMaterial, setWallFaceMaterials } from "@/lib/planMaterials";
 import { Group } from "./shared";
 import { ColourField, MaterialGrid } from "./PaintPanel";
+import FloorPhotoLook from "./FloorPhotoLook";
+import MaterialLook from "./MaterialLook";
 
 /** A wall's material and colour, one side at a time: Inside / Outside for a house wall, the two rooms for a partition. Shown as pictures, not drop-downs. */
 export function WallLook({ wall }: { wall: Wall }) {
@@ -41,6 +44,15 @@ export function WallLook({ wall }: { wall: Wall }) {
       <Group label="Material">
         <MaterialGrid kind="wall" value={look.style} tint={look.color ?? null} onPick={(id) => editPlan((p) => paintWallId(p, wall.id, target, { material: { kind: "wall", id }, color: look.color ?? null }))} />
       </Group>
+      {look.style !== "glass" && (
+        <Group label="Poly Haven texture">
+          <MaterialLook
+            use="wall"
+            current={target === "B" ? wall.materialB : wall.material}
+            apply={(p, ref) => setWallFaceMaterials(p, (target === "both" ? (["A", "B"] as const) : [target]).map((face) => ({ id: wall.id, face })), ref)}
+          />
+        </Group>
+      )}
       <Group label="Colour">
         <ColourField undoable value={look.color ?? null} reset="Natural" natural={WALLS[look.style].color} onChange={(color) => editPlan((p) => paintWallId(p, wall.id, target, { material: null, color }))} />
       </Group>
@@ -68,11 +80,22 @@ export function RoomLook({ room }: { room: Room }) {
       <Group label="Floor colour">
         <ColourField undoable value={custom} reset="Natural" natural={FLOORS[kind].color} onChange={(color) => editPlan((p) => paintFloor(p, room.id, { material: null, color }))} />
       </Group>
+      <Group label="Floor photo">
+        <FloorPhotoLook room={room} />
+      </Group>
+      <Group label="Floor texture">
+        <MaterialLook use="floor" current={room.floorMaterial} apply={(p, ref) => setFloorMaterial(p, room.id, ref)} />
+      </Group>
       {mine && wallLook && (
         <details className="look-fold">
           <summary>Walls around this room</summary>
           <MaterialGrid kind="wall" value={wallLook.style} tint={wallLook.color ?? null} onPick={(id) => editPlan((p) => paintRoomWalls(p, room.id, { material: { kind: "wall", id }, color: wallLook.color ?? null }))} />
           <ColourField undoable value={wallLook.color ?? null} reset="Natural" natural={WALLS[wallLook.style].color} onChange={(color) => editPlan((p) => paintRoomWalls(p, room.id, { material: null, color }))} />
+          <MaterialLook
+            use="wall"
+            current={mine.face === "A" ? mine.wall.material : mine.wall.materialB}
+            apply={(p, ref) => setWallFaceMaterials(p, roomWalls(p, room.id).map((w) => ({ id: w.wall.id, face: w.face })), ref)}
+          />
         </details>
       )}
     </>

@@ -2,12 +2,10 @@ import { Mesh } from "./carBuilder.ts";
 import { clamp, lerp, type V3 } from "./mathUtil.ts";
 import { type Ctx, type Pt, type YFn, contour, mirrored, oneSide, patch } from "./carSurf.ts";
 import { AMBER, BLACK, CHROME, GREY } from "./carTrim.ts";
-import { PLATE_HOLDER } from "./plate.ts";
+import { PLATE_HOLDER, PLATE_LIFT, plateRotation } from "./plate.ts";
 
 // The nose and the tail: headlights, grille, intake, fog lights, tail lights, bumper cladding, exhaust tips and the number-plate mounts.
 // What each one looks like comes from the resolved design (lib/carDesign.ts): grille type, lamp shape, daytime-running signature, tail-lamp shape.
-
-const PLATE_LIFT = 0.0072; // plate centre above the bumper surface (the 6 mm plate sits on a 3.5 mm holder)
 
 /** Underbody and top height at an end, their difference, and the half width where the rounding ends. */
 type End = { yb: number; yt: number; h: number; wN: number };
@@ -25,13 +23,13 @@ const ybAt = (c: Ctx): YFn => (_u, i) => c.surf.at(i, 0).p[1];
 /** Plate holder on the bumper plus the mount the 3D view hangs the plate texture on. */
 function plateMount(c: Ctx, front: boolean, yc: number, holderOn = true) {
   const holder = PLATE_HOLDER;
-  if (holderOn) mirrored(c, () => contour(c, c.black, front, 0, { x: holder[0] / 2 }, () => yc - holder[1] / 2, () => yc + holder[1] / 2, { off: 0.0035, color: BLACK }));
+  if (holderOn && c.holders[front ? "front" : "rear"]) mirrored(c, () => contour(c, c.black, front, 0, { x: holder[0] / 2 }, () => yc - holder[1] / 2, () => yc + holder[1] / 2, { off: 0.0035, color: BLACK }));
   const pp = c.surf.endAt(front, 0, yc);
   const ny = clamp(pp.n[1], -1, 1);
   c.plates.push({
     end: front ? "front" : "rear",
     p: [pp.p[0], pp.p[1] + pp.n[1] * PLATE_LIFT, pp.p[2] + pp.n[2] * PLATE_LIFT],
-    rot: front ? [-Math.asin(ny), 0, 0] : [Math.asin(ny), Math.PI, 0],
+    rot: plateRotation(front ? "front" : "rear", ny),
   });
 }
 

@@ -4,7 +4,7 @@ import { shellWalls } from "@/lib/fences";
 import type { Plan, Pt } from "@/lib/types";
 import { LINE, PAPER } from "./BlueprintPaper";
 
-const DIM = "#8fd0ff"; // dimension linework
+const DIM = "var(--lg-8fd0ff)"; // dimension linework
 const MONO = { fontFamily: "var(--font-geist-mono), ui-monospace, monospace", letterSpacing: "0.04em" } as const;
 const m2 = (n: number) => `${n.toFixed(2)}`;
 /** A label with a paper-coloured outline so it stays readable over the rulings and hatches. */

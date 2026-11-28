@@ -16,23 +16,23 @@
 .t-cond { max-width: 11ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-weight: 400; letter-spacing: 0.1em; }
 .t-forced { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 5px var(--accent); }
 .t-sun .t-val { color: var(--muted); }
-.t-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 168px; display: flex; flex-direction: column; padding: 4px; background: rgba(6, 9, 12, 0.94); animation: rise 0.15s var(--ease); }
+.t-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 168px; display: flex; flex-direction: column; padding: 4px; background: var(--panel); animation: rise 0.15s var(--ease); }
 .t-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; height: 28px; padding: 0 9px; border-radius: var(--r); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); text-align: left; }
 .t-item small { font-size: 9px; letter-spacing: 0.08em; text-transform: lowercase; opacity: 0.8; }
 .t-item:hover, .t-item:focus-visible { color: var(--text); background: var(--accent-soft); }
 .t-item[aria-checked="true"] { color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); background: var(--accent-soft); }
 .t-act { font: 500 10px/1 var(--mono); letter-spacing: 0.14em; color: var(--muted); }
 .t-climate { gap: 8px; height: 100%; padding: 0 10px; }
-.t-climate.heating .t-act { color: #ffb066; }
-.t-climate.heating svg { color: #ff9d2e; animation: warm 2.4s ease-in-out infinite; }
-@keyframes warm { 0%, 100% { filter: drop-shadow(0 0 0 rgba(255, 157, 46, 0)); } 50% { filter: drop-shadow(0 0 5px rgba(255, 157, 46, 0.9)); } }
+.t-climate.heating .t-act { color: var(--lg-ffb066); }
+.t-climate.heating svg { color: var(--lg-ff9d2e); animation: warm 2.4s ease-in-out infinite; }
+@keyframes warm { 0%, 100% { filter: drop-shadow(0 0 0 rgb(var(--lg-255-157-46) / 0)); } 50% { filter: drop-shadow(0 0 5px rgb(var(--lg-255-157-46) / 0.9)); } }
 /* The pulse fades a glow layer in and out (opacity runs on the compositor); animating box-shadow itself repaints the strip on every frame for as long as a window stays open. */
-.t-open { position: relative; gap: 10px; height: 100%; padding: 0 10px; color: var(--err-text); box-shadow: inset 0 0 0 1px rgba(255, 106, 61, 0.55); }
-.t-open::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 106, 61, 0.95), 0 0 12px rgba(255, 106, 61, 0.25); opacity: 0; animation: open-pulse 2s ease-in-out infinite; }
+.t-open { position: relative; gap: 10px; height: 100%; padding: 0 10px; color: var(--err-text); box-shadow: inset 0 0 0 1px rgb(var(--bad-rgb) / 0.55); }
+.t-open::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 1px rgb(var(--bad-rgb) / 0.95), 0 0 12px rgb(var(--bad-rgb) / 0.25); opacity: 0; animation: open-pulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .t-open::after { animation: none; opacity: 0.5; } }
 .t-open .t-val, .t-open .t-act { color: var(--err-text); }
-.t-open.rain .t-act { background: var(--err); padding: 3px 5px; border-radius: var(--r); color: #1a0903; font-weight: 600; }
-.t-open:hover { background: rgba(255, 106, 61, 0.12); }
+.t-open.rain .t-act { background: var(--err); padding: 3px 5px; border-radius: var(--r); color: var(--lg-1a0903); font-weight: 600; }
+.t-open:hover { background: rgb(var(--bad-rgb) / 0.12); }
 @keyframes open-pulse { 50% { opacity: 1; } }
 .t-openlist { min-width: 260px; }
 .t-openlist .t-item { height: auto; min-height: 30px; padding: 6px 9px; flex-direction: column; align-items: flex-start; gap: 4px; text-transform: none; letter-spacing: 0.04em; font-size: 11.5px; color: var(--text); }

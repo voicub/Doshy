@@ -155,6 +155,9 @@ const minutesSince = (since: number) => Math.max(0, Math.floor((Date.now() - sin
 
 const humidityDensity = (rh: number) => clamp(0.1 + ((rh - 35) / 40) * 0.9, 0.1, 1);
 
+/** Below this opacity a blended overlay is invisible (the same 0.003 as a lamp's floor pool, useItemFrame.ts). */
+const MIN_OVERLAY_OPACITY = 0.003;
+
 function Overlay({ room, color, opacity, additive }: { room: Room; color: Color; opacity: MutableRefObject<number>; additive?: boolean }) {
   const mat = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
@@ -162,6 +165,7 @@ function Overlay({ room, color, opacity, additive }: { room: Room; color: Color;
     if (!m) return;
     m.color.copy(color);
     m.opacity = opacity.current;
+    m.visible = m.opacity > MIN_OVERLAY_OPACITY; // an inactive layer is a full-room plane blended at zero: leave it out of the draw list
   });
   return (
     <mesh position={[room.x + room.w / 2, FLOOR_Y, room.y + room.h / 2]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2} raycast={() => null}>

@@ -222,9 +222,18 @@ export function mixHex(a: string, b: string, t: number): string {
 
 const mixList = <T extends string[]>(a: T, b: T, t: number) => a.map((c, i) => mixHex(c, b[i], t)) as T;
 
-/** The palette of `season` cross-faded `mix` of the way to the next season. */
-export function seasonPalette(season: Season, mix: number): SeasonPalette {
-  const a = PALETTE[season], b = PALETTE[nextSeason(season)];
+/** Bare winter without snow: a dull, damp lawn and dark branches (a mild winter, or the weeks before the first snow). */
+const WINTER_DRY: SeasonPalette = {
+  ground: "#7f8a60", mottle: "#3d4a2c",
+  grass: ["#8a8f62", "#7f855a", "#979c6e"],
+  canopy: ["#5a4a40", "#4a3f38", "#6a5a50"],
+  bush: "#4a5e45", hedge: "#3f5a44", trunk: "#3a2f2a",
+  flowers: ["#9a9a7a", "#9a9a7a", "#9a9a7a", "#9a9a7a"],
+  leaf: ["#7a6a55", "#6b5d4c", "#86755f"],
+  leafy: 0, bloom: 0, mushrooms: 0, snow: 0,
+};
+
+function mixPalette(a: SeasonPalette, b: SeasonPalette, mix: number): SeasonPalette {
   const n = (x: number, y: number) => x + (y - x) * mix;
   return {
     ground: mixHex(a.ground, b.ground, mix),
@@ -241,6 +250,15 @@ export function seasonPalette(season: Season, mix: number): SeasonPalette {
     mushrooms: n(a.mushrooms, b.mushrooms),
     snow: n(a.snow, b.snow),
   };
+}
+
+/**
+ * The palette of `season` cross-faded `mix` of the way to the next season. `snow` (0..1, default 1) is how much of winter is snow: the winter
+ * palette is white at 1 and a bare, damp lawn at 0, so a mild winter day is not shown under snow.
+ */
+export function seasonPalette(season: Season, mix: number, snow = 1): SeasonPalette {
+  const of = (s: Season) => (s === "winter" && snow < 1 ? mixPalette(WINTER_DRY, PALETTE.winter, snow) : PALETTE[s]);
+  return mixPalette(of(season), of(nextSeason(season)), mix);
 }
 
 /** Lawn tint for the ground plane (the Ground material multiplies it with the grass texture). */

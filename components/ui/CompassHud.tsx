@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { planDirOf, screenAngleOf, useCameraYaw } from "@/lib/cameraYaw";
 import { useStore } from "@/lib/store";
 import type { SkyState } from "@/lib/sky";
@@ -48,6 +48,25 @@ function BearingForm({ bearing, onClose }: { bearing: number; onClose: () => voi
   );
 }
 
+/** The ring's 72 ticks and the north tip in the ring's own frame (north at the top). They never change, so a turning camera rotates one <g> around them instead of rewriting 72 lines every frame. */
+const RingMarks = memo(function RingMarks() {
+  const ticks = Array.from({ length: 72 }, (_, i) => {
+    const deg = i * 5;
+    const major = deg % 45 === 0;
+    const a = at(deg, R);
+    const b = at(deg, R - (major ? 6 : deg % 15 === 0 ? 4 : 2.5));
+    return <line key={deg} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={major ? "ct major" : "ct"} />;
+  });
+  // north tip: a cyan triangle on the ring, base inside the tick band, apex outside
+  const tip = [at(-5, R - 1), at(5, R - 1), at(0, R + 6)];
+  return (
+    <>
+      {ticks}
+      <path d={`M ${tip.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" L ")} Z`} className="cn" />
+    </>
+  );
+});
+
 /** The rotating ring: ticks, north tip, cardinal letters, wind arrow, the sun at its azimuth and the fixed "forward" marker. */
 function CompassRing({ north, sky }: { north: number; sky: SkyState }) {
   const screenOf = (compass: number) => north + compass;
@@ -56,16 +75,6 @@ function CompassRing({ north, sky }: { north: number; sky: SkyState }) {
   const sun = at(screenOf(sky.azimuth), R + 8);
   const sunAlpha = 1 - 0.55 * sky.weather.cloud;
 
-  const ticks = Array.from({ length: 72 }, (_, i) => {
-    const deg = i * 5;
-    const major = deg % 45 === 0;
-    const a = at(screenOf(deg), R);
-    const b = at(screenOf(deg), R - (major ? 6 : deg % 15 === 0 ? 4 : 2.5));
-    return <line key={deg} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={major ? "ct major" : "ct"} />;
-  });
-  // north tip: a cyan triangle on the ring, base inside the tick band, apex outside
-  const tip = [at(north - 5, R - 1), at(north + 5, R - 1), at(north, R + 6)];
-  const tipPath = `M ${tip.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" L ")} Z`;
   const windFrom = sky.weather.windFrom;
   const wl = Math.min(1, sky.weather.wind / 14);
   const windA = windFrom ?? 0;
@@ -83,8 +92,7 @@ function CompassRing({ north, sky }: { north: number; sky: SkyState }) {
     <svg viewBox="-60 -60 120 120" width="116" height="116" aria-hidden>
       <circle r={R} className="cr" />
       <circle r={R - 17} className="cr inner" />
-      {ticks}
-      <path d={tipPath} className="cn" />
+      <g transform={`rotate(${north})`}><RingMarks /></g>
       {MAJOR.map((l) => {
         const p = at(screenOf(POINTS.indexOf(l) * 22.5), 31);
         return (

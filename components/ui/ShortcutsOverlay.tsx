@@ -15,6 +15,7 @@ const GROUPS: { title: string; rows: [string, string[]][] }[] = [
       ["Climate and thermostat", ["H"]],
       ["Statistics", ["S"]],
       ["Energy flows (solar, battery, grid, car)", ["N"]],
+      ["History replay: scrub the last 24 hours or 7 days", ["Y"]],
       ["Notifications and updates from Home Assistant", ["I"]],
       ["Calendar (Home Assistant and the dashboard's own)", ["D"]],
       ["Plex and bedroom TV", ["P"]],
@@ -37,11 +38,12 @@ const GROUPS: { title: string; rows: [string, string[]][] }[] = [
   {
     title: "Plan (walls, doors, windows)",
     rows: [
-      ["Select, Wall, Room, Door, Window, Pillar, Paint, Stairs opening", ["1", "2", "3", "4", "5", "6", "7", "8"]],
+      ["Select, Wall, Room, Door, Window, Pillar, Paint, Stairs opening, Garden", ["1", "2", "3", "4", "5", "6", "7", "8", "9"]],
       ["Paint bucket (Plan and Furniture)", ["B"]],
       ["Paint: pick up a colour", ["ALT", "CLICK"]],
       ["Paint: both sides of a wall", ["SHIFT", "CLICK"]],
       ["Walls, rooms, openings grid 5 cm, Shift 25 cm, Alt free", ["DRAW"]],
+      ["Garden lines (roads, paths, fences, lights): finish the line", ["DOUBLE-CLICK"]],
       ["Drag a room with its walls and furniture", ["HANDLE"]],
       ["Drag room: floor only", ["ALT", "DRAG"]],
       ["Door: hinge on the other end while placing", ["SHIFT"]],

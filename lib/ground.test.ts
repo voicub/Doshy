@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  EDGES, GARDEN_KINDS, GROUND_PRESETS, addGroundTo, addPathTo, areaCorners, cleanPoints, distToSegment, groundAt, groundBase, hasGround, hasOutdoor, isPlantable, keepPlantable,
-  paintGround, pathLength, pathMidpoint, pathOutline, plantableAt, pointInArea, pointInPath, polygonArea, resizeArea, rotationToward,
+  DEFAULT_PAVEMENT_WIDTH, EDGES, GARDEN_KINDS, GROUND_PRESETS, MAX_PATH_WIDTH, addGroundTo, addPathTo, areaCorners, cleanPoints, distToSegment, dropPathPoint, groundAt, groundBase, groundLabel,
+  hasGround, hasOutdoor, insertPathPoint, isPlantable, keepPlantable, marksOf, paintGround, pathLength, pathLine, pathMidpoint, pathOutline, pavementOf, pavementWidthOf, plantableAt,
+  pointInArea, pointInPath, polygonArea, resizeArea, reversedPath, rotationToward,
 } from "./ground.ts";
 import { areaSurface, edgeTris, pathSurface, type Tris } from "./groundGeo.ts";
 import { commitPlan, keepSel, undoStep, redoStep, type HistoryState } from "./history.ts";
@@ -110,7 +111,12 @@ test("a double click leaves a repeated point that is dropped, and a path needs t
   const plan = empty();
   assert.equal(addPathTo(plan, { points: [{ x: 1, y: 1 }, { x: 1, y: 1 }], width: 1, kind: "gravel" }, "n"), plan);
   const made = addPathTo(plan, { points: [{ x: 0, y: 0 }, { x: 2, y: 0 }], width: 40, kind: "gravel" }, "n");
-  assert.equal(made.paths![0].width, 6); // clamped
+  assert.equal(made.paths![0].width, MAX_PATH_WIDTH); // clamped
+  assert.equal(MAX_PATH_WIDTH, 12);
+  const road = addPathTo(plan, { points: [{ x: 0, y: 0 }, { x: 2, y: 0 }], width: 0.01, kind: "asphalt", marks: "dashed", pavement: "left", stones: false }, "r").paths![0];
+  assert.equal(road.width, 0.3); // clamped up
+  assert.equal(road.marks, "dashed");
+  assert.equal(road.pavement, "left");
   assert.ok(made.paths![0].name);
 });
 
@@ -118,6 +124,93 @@ test("a path's label sits half way along it", () => {
   const mid = pathMidpoint(path("p", [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 6 }]));
   near(mid.x, 2);
   near(mid.y, 2);
+});
+
+// ---- roads: smooth lines, flat ends, pavements ----------------------------------------------------------------------------------
+
+test("a path without any road option gives exactly the outline it always did (regression)", () => {
+  const bent = path("p", [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 4 }, { x: 9, y: 6 }], 1.2);
+  const expected = [[0, 0.6], [4.4, 0.6], [4.4, 4], [4.440398, 4.216437], [4.556151, 4.40373], [4.731672, 4.536656], [8.731672, 6.536656], [8.957467, 6.598491], [9.189737, 6.56921], [9.393121, 6.453272], [9.536656, 6.268328], [9.598491, 6.042533], [9.56921, 5.810263], [9.453272, 5.606879], [9.268328, 5.463344], [5.6, 3.62918], [5.6, 0], [5.554328, -0.22961], [5.424264, -0.424264], [5.22961, -0.554328], [5, -0.6], [0, -0.6], [-0.22961, -0.554328], [-0.424264, -0.424264], [-0.554328, -0.22961], [-0.6, 0], [-0.554328, 0.22961], [-0.424264, 0.424264], [-0.22961, 0.554328]];
+  const got = pathOutline(bent);
+  assert.equal(got.length, expected.length);
+  got.forEach((q, i) => {
+    near(q.x, expected[i][0], 1e-5);
+    near(q.y, expected[i][1], 1e-5);
+  });
+  assert.deepEqual(pathOutline({ ...bent, ends: "round", smooth: false }), got, "explicit defaults change nothing");
+  assert.deepEqual(pathLine(bent), bent.points);
+});
+
+test("flat ends cut the strip square, with no round cap", () => {
+  const p = path("p", [{ x: 0, y: 0 }, { x: 6, y: 0 }], 2, { ends: "flat" });
+  const poly = pathOutline(p);
+  assert.equal(poly.length, 4);
+  near(Math.min(...poly.map((q) => q.x)), 0);
+  near(Math.max(...poly.map((q) => q.x)), 6);
+  near(polygonArea(poly), 12);
+});
+
+test("a smooth path is drawn, measured, picked and labelled along its curve", () => {
+  const ctl = [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 6, y: 6 }];
+  const plain = path("p", ctl, 1);
+  const smooth = path("s", ctl, 1, { smooth: true });
+  assert.ok(pathLine(smooth).length > ctl.length * 3);
+  for (const c of ctl) assert.ok(pathLine(smooth).some((q) => Math.hypot(q.x - c.x, q.y - c.y) < 1e-9), "passes through its control points");
+  assert.ok(pathLength(smooth) >= pathLength(plain) && pathLength(smooth) < 13, `${pathLength(smooth)}`); // a curve between the same points is a little longer than the chords
+  assert.ok(pathOutline(smooth).length > pathOutline(plain).length);
+  for (const q of pathLine(smooth)) assert.ok(pointInPath(smooth, q), "every point of the curve is on the path");
+  assert.equal(groundLabel(smooth), `${pathLength(smooth).toFixed(1)} m`);
+  const mid = pathMidpoint(smooth);
+  assert.ok(pathLine(smooth).some((q) => Math.hypot(q.x - mid.x, q.y - mid.y) < 0.35), "the label sits on the curve");
+});
+
+test("a road's pavement counts as the road for picking and for plants, on its own side only", () => {
+  const road = path("r", [{ x: 0, y: 0 }, { x: 10, y: 0 }], 4, { kind: "asphalt", pavement: "left", pavementWidth: 1.5 });
+  assert.ok(pointInPath(road, { x: 5, y: 1.9 }), "on the tarmac");
+  assert.ok(pointInPath(road, { x: 5, y: -3 }), "left is up the plan when walking along +x");
+  assert.ok(!pointInPath(road, { x: 5, y: 3 }), "no pavement on the right");
+  assert.ok(!pointInPath(road, { x: 5, y: -4 }), "past the pavement");
+  assert.ok(pointInPath({ ...road, pavement: "both" }, { x: 5, y: 3 }));
+  assert.ok(!pointInPath({ ...road, pavement: undefined }, { x: 5, y: -3 }), "a path without a pavement is as wide as it ever was");
+  const plan = withGround([], [road]);
+  assert.equal(groundAt(plan, { x: 5, y: -3 })?.id, "r");
+  assert.equal(plantableAt(plan, { x: 5, y: -3 }), false);
+  assert.equal(plantableAt(plan, { x: 5, y: -4 }), true);
+});
+
+test("a road option that is missing or unknown reads as its default", () => {
+  const plain = path("p", [{ x: 0, y: 0 }, { x: 1, y: 0 }]);
+  assert.equal(marksOf(plain), "none");
+  assert.equal(pavementOf(plain), "none");
+  assert.equal(pavementWidthOf(plain), DEFAULT_PAVEMENT_WIDTH);
+  assert.equal(DEFAULT_PAVEMENT_WIDTH, 1.8);
+  assert.equal(marksOf({ marks: "wavy" as unknown as GroundPath["marks"] }), "none");
+  assert.equal(pavementOf({ pavement: "up" as unknown as GroundPath["pavement"] }), "none");
+  assert.equal(pavementWidthOf({ pavementWidth: 0 }), DEFAULT_PAVEMENT_WIDTH);
+  assert.equal(pavementWidthOf({ pavementWidth: 2.5 }), 2.5);
+  assert.equal(marksOf({ marks: "double" }), "double");
+});
+
+test("reversing a path swaps its pavement side so the pavement stays where it was", () => {
+  const road = path("r", [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 9, y: 3 }], 4, { pavement: "left", marks: "dashed" });
+  const back = reversedPath(road);
+  assert.deepEqual(back.points, [{ x: 9, y: 3 }, { x: 5, y: 0 }, { x: 0, y: 0 }]);
+  assert.equal(back.pavement, "right");
+  assert.equal(back.marks, "dashed");
+  assert.deepEqual(road.points[0], { x: 0, y: 0 }, "the original is not touched");
+  assert.equal(reversedPath({ ...road, pavement: "both" }).pavement, "both");
+  assert.equal("pavement" in reversedPath(path("p", road.points)), false, "an old path gains no new field");
+  // the same ground is covered either way
+  for (const q of [{ x: 4, y: -3 }, { x: 4, y: 3 }, { x: 4, y: 0 }]) assert.equal(pointInPath(road, q), pointInPath(back, q));
+});
+
+test("adding a point splits the longest segment; dropping one never goes below two", () => {
+  const p = path("p", [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 8 }]);
+  assert.deepEqual(insertPathPoint(p), [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 4 }, { x: 2, y: 8 }]);
+  assert.equal(insertPathPoint(path("one", [{ x: 1, y: 1 }])).length, 1, "no segment, nothing to split");
+  assert.deepEqual(dropPathPoint(p, 1), [{ x: 0, y: 0 }, { x: 2, y: 8 }]);
+  const two = path("two", [{ x: 0, y: 0 }, { x: 2, y: 0 }]);
+  assert.deepEqual(dropPathPoint(two, 0), two.points);
 });
 
 // ---- what lies where --------------------------------------------------------------------------------------------------------
@@ -185,10 +278,10 @@ test("presets and gallery only use surfaces that exist, with sensible sizes", ()
   assert.equal(new Set(GROUND_PRESETS.map((p) => p.id)).size, GROUND_PRESETS.length);
   for (const p of GROUND_PRESETS) {
     assert.ok(FLOORS[p.kind], p.id);
-    assert.ok(p.size ? p.size.w > 0 && p.size.h > 0 : (p.width ?? 0) > 0, p.id);
+    assert.ok(p.size.w > 0 && p.size.h > 0, p.id);
     assert.ok(EDGES[p.edge]);
   }
-  assert.ok(GROUND_PRESETS.some((p) => p.mode === "path") && GROUND_PRESETS.some((p) => p.mode === "pond" && p.kind === "water"));
+  assert.ok(GROUND_PRESETS.some((p) => p.mode === "pond" && p.kind === "water"));
   assert.equal(new Set(GARDEN_KINDS).size, GARDEN_KINDS.length);
   for (const k of GARDEN_KINDS) assert.ok(FLOORS[k], k);
   for (const k of ["cobble", "flagstone", "pavers_grey", "pavers_sand", "pavers_red", "mulch", "soil", "turf", "rubber"] as const) assert.ok(isOutdoorFloor(k), k);

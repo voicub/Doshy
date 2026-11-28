@@ -5,7 +5,7 @@
 html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 4px; align-items: stretch; }
 html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step {
   display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0;
-  color: var(--accent); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--accent-line); border-radius: var(--r);
+  color: var(--accent); background: var(--shade-35); border: 1px solid var(--accent-line); border-radius: var(--r);
   touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background 0.12s, border-color 0.12s;
 }
 html:is(:not([data-vp="regular"]), [data-coarse="1"]) .has-steps .num > .num-step:active { background: var(--accent-soft); border-color: var(--accent); }

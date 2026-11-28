@@ -17,11 +17,11 @@ html:not([data-vp="regular"]) .banner { top: env(safe-area-inset-top, 0px); heig
 
 /* a flat panel over a 3D canvas: opaque enough to read, no backdrop blur */
 html:not([data-vp="regular"]) :is(.hud, .chip, .ring, .badge, .scrim, .palette, .rail-item.active) { backdrop-filter: none; -webkit-backdrop-filter: none; }
-html:not([data-vp="regular"]) .hud { background: rgba(6, 9, 12, 0.9); }
+html:not([data-vp="regular"]) .hud { background: rgb(var(--panel-rgb) / 0.9); }
 html:not([data-vp="regular"]) .label { font-size: 12px; }
 
 /* ---------- top strip ---------- */
-.chrome .cstrip { container: cs / inline-size; position: absolute; top: 0; left: 0; right: 0; z-index: 52; height: var(--strip-h); display: flex; align-items: center; gap: 4px; padding: calc(env(safe-area-inset-top, 0px) + var(--banner-h)) calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px)); border-width: 0 0 1px; border-radius: 0; background: rgba(6, 9, 12, 0.94); }
+.chrome .cstrip { container: cs / inline-size; position: absolute; top: 0; left: 0; right: 0; z-index: 52; height: var(--strip-h); display: flex; align-items: center; gap: 4px; padding: calc(env(safe-area-inset-top, 0px) + var(--banner-h)) calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px)); border-width: 0 0 1px; border-radius: 0; background: var(--panel); }
 .cs-ha { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 0 6px; }
 .cs-ha .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
 .cs-ha.online .dot { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
@@ -58,7 +58,7 @@ html[data-vp="tiny"] .cstrip .t-cal-text { display: none; }
 @container cs (max-width: 440px) { .cstrip .cs-media { display: none; } .cs-ha { padding: 0 4px; } .cs-house { gap: 8px; padding: 0 4px; } .cs-clock { font-size: 19px; } .cstrip .t-btn { padding: 0 6px; } }
 
 /* ---------- bottom mode bar ---------- */
-.chrome .cdock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 52; height: var(--dock-h); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); display: grid; grid-template-columns: repeat(5, 1fr); border-width: 1px 0 0; border-radius: 0; background: rgba(6, 9, 12, 0.94); }
+.chrome .cdock { position: absolute; left: 0; right: 0; bottom: 0; z-index: 52; height: var(--dock-h); padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); display: grid; grid-template-columns: repeat(5, 1fr); border-width: 1px 0 0; border-radius: 0; background: var(--panel); }
 .cd-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 56px; color: var(--muted); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; transition: color 0.15s, background 0.15s; }
 .cd-btn svg { width: 24px; height: 24px; }
 .cd-btn[aria-pressed="true"], .cd-btn[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 2px 0 var(--accent); }
@@ -66,15 +66,18 @@ html[data-vp="small"] .cd-btn { flex-direction: row; gap: 10px; }
 html[data-kbd-open="1"] :is(.cdock, .rail) { display: none; }
 
 /* ---------- sheets: a side sheet in landscape, a bottom sheet in portrait ---------- */
-.csheet-scrim { position: absolute; z-index: 51; left: 0; right: 0; top: var(--strip-h); bottom: var(--dock-h); background: rgba(2, 4, 6, 0.28); }
-html:not([data-vp="regular"]) .chrome .csheet { position: absolute; z-index: 53; top: var(--strip-h); bottom: var(--dock-h); right: env(safe-area-inset-right, 0px); left: auto; width: min(380px, 55%); max-height: none; display: flex; flex-direction: column; gap: 0; padding: 0; border-width: 0 0 0 1px; border-radius: 0; background: rgba(6, 9, 12, 0.97); overflow: hidden; animation: slide-in-r 0.2s var(--ease); }
+.csheet-scrim { position: absolute; z-index: 51; left: 0; right: 0; top: var(--strip-h); bottom: var(--dock-h); background: rgb(var(--scrim-rgb) / 0.28); }
+html:not([data-vp="regular"]) .chrome .csheet { position: absolute; z-index: 53; top: var(--strip-h); bottom: var(--dock-h); right: env(safe-area-inset-right, 0px); left: auto; width: min(380px, 55%); max-height: none; display: flex; flex-direction: column; gap: 0; padding: 0; border-width: 0 0 0 1px; border-radius: 0; background: rgb(var(--panel-rgb) / 0.97); overflow: hidden; animation: slide-in-r 0.2s var(--ease); }
 html[data-vp="small"] .chrome .csheet { width: min(420px, 45%); }
 html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .csheet { top: auto; left: 0; right: 0; bottom: var(--dock-h); width: auto; max-height: calc(100% - var(--strip-h) - var(--dock-h) - 48px); border-width: 1px 0 0; animation-name: rise; }
 .csheet.hud::after { display: none; } /* no corner brackets on an edge-to-edge sheet */
 .csheet:focus-visible { outline: 0; box-shadow: none; }
 .csheet-head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 6px 0 16px; border-bottom: 1px solid var(--accent-line); touch-action: pan-y; }
 .csheet-head .label { color: var(--accent); font-size: 13px; }
-html[data-orient="portrait"] .csheet-head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: rgba(138, 160, 173, 0.4); }
+html[data-orient="portrait"] .csheet-head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: rgb(var(--dim-rgb) / 0.4); }
+/* The header is the swipe-to-close handle (useSwipeClose). The browser cancels a pointer the moment it starts panning in a direction `touch-action` allows, so the swipe must be a direction the header does not pan in: sideways in landscape (pan-y), either way in portrait where the swipe is DOWN. The header scrolls nothing, so nothing is lost. */
+.livebar.csheet .lb-head { touch-action: pan-y; }
+html[data-orient="portrait"] :is(.csheet-head, .livebar.csheet .lb-head) { touch-action: none; }
 .csheet-close { width: 44px; height: 44px; margin: 0; }
 .csheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
 
@@ -83,7 +86,7 @@ html[data-orient="portrait"] .csheet-head::before { content: ""; position: absol
 .cm-sec + .cm-sec { padding-top: 14px; border-top: 1px solid var(--accent-line); }
 .cm-title { color: var(--accent); }
 .more-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.more-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(255, 255, 255, 0.02); color: var(--text); font: 500 14px/1.25 var(--sans); transition: color 0.15s, background 0.15s, border-color 0.15s; }
+.more-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 12px; text-align: left; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgb(var(--fg-rgb) / 0.02); color: var(--text); font: 500 14px/1.25 var(--sans); transition: color 0.15s, background 0.15s, border-color 0.15s; }
 .more-row > svg { flex: none; width: 20px; height: 20px; color: var(--muted); }
 .more-row.active, .more-row[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .more-row.active > svg, .more-row[aria-pressed="true"] > svg { color: var(--accent); }
@@ -122,20 +125,20 @@ html:not([data-vp="regular"]) .rail > * { pointer-events: auto; }
 html:not([data-vp="regular"]) .rail-title, html:not([data-vp="regular"]) .rail-live { display: none; }
 html:not([data-vp="regular"]) .rail-bottom { display: flex; }
 html:not([data-vp="regular"]) .rail-row { flex-wrap: wrap; gap: 2px; }
-html:not([data-vp="regular"]) .rail-item { flex: 1 1 100%; min-height: 52px; gap: 6px; padding: 7px 9px; background: rgba(6, 9, 12, 0.85); border-color: var(--accent-line); color: var(--text); }
-html:not([data-vp="regular"]) .rail-item.active { border-color: var(--accent); background: rgba(10, 22, 30, 0.95); }
+html:not([data-vp="regular"]) .rail-item { flex: 1 1 100%; min-height: 52px; gap: 6px; padding: 7px 9px; background: rgb(var(--panel-rgb) / calc(0.85 * var(--panel-k))); border-color: var(--accent-line); color: var(--text); }
+html:not([data-vp="regular"]) .rail-item.active { border-color: var(--accent); background: rgb(var(--lg-10-22-30) / 0.95); }
 html:not([data-vp="regular"]) .rail-top { font-size: 13px; letter-spacing: 0.05em; }
 html:not([data-vp="regular"]) .rail-top small, html:not([data-vp="regular"]) .rail-bottom small { font-size: 13px; }
 html:not([data-vp="regular"]) .bars { height: 3px; }
 html:not([data-vp="regular"]) .bars i { width: 10px; height: 3px; }
 html:not([data-vp="regular"]) .rail-open { font-size: 12px; }
 html:not([data-vp="regular"]) :is(.rail-enter, .rail-dev) { display: none; }
-html:not([data-vp="regular"]) .rail-item.active ~ :is(.rail-enter, .rail-dev) { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 calc(50% - 1px); width: auto; min-height: 44px; border: 1px solid var(--accent-line); background: rgba(6, 9, 12, 0.9); color: var(--text); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+html:not([data-vp="regular"]) .rail-item.active ~ :is(.rail-enter, .rail-dev) { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1 1 calc(50% - 1px); width: auto; min-height: 44px; border: 1px solid var(--accent-line); background: rgb(var(--panel-rgb) / 0.9); color: var(--text); font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
 html:not([data-vp="regular"]) .rail-enter::after { content: "Enter"; }
 html:not([data-vp="regular"]) .rail-enter[aria-pressed="true"]::after { content: "Leave"; }
 html:not([data-vp="regular"]) .rail-dev::after { content: "Devices"; }
 html:not([data-vp="regular"]) .rail-enter svg, html:not([data-vp="regular"]) .rail-dev svg { width: 16px; height: 16px; color: var(--accent); }
-html:not([data-vp="regular"]) .rail-level { min-height: 44px; align-items: center; padding: 0 9px; font-size: 12px; background: rgba(6, 9, 12, 0.85); }
+html:not([data-vp="regular"]) .rail-level { min-height: 44px; align-items: center; padding: 0 9px; font-size: 12px; background: rgb(var(--panel-rgb) / calc(0.85 * var(--panel-k))); }
 html:not([data-vp="regular"]) .sk { height: 52px; }
 /* portrait: a row of chips above the mode bar that you swipe sideways */
 html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .rail { left: 0; right: 0; top: auto; bottom: calc(var(--dock-h) + 8px); width: auto; flex-direction: row; align-items: flex-end; gap: 6px; padding: 0 8px; overflow: auto hidden; scroll-snap-type: x proximity; }
@@ -147,11 +150,11 @@ html[data-orient="portrait"]:not([data-vp="regular"]) .sk { flex: none; width: 1
 /* level chips (several storeys): one row under the strip; one storey needs no label */
 html:not([data-vp="regular"]) .chrome .levels { top: calc(var(--strip-h) + 8px); left: calc(8px + env(safe-area-inset-left, 0px)); max-width: calc(100% - 16px); flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
 html:not([data-vp="regular"]) .levels.single { display: none; }
-html:not([data-vp="regular"]) .level-chip { flex: none; min-height: 44px; align-items: center; padding: 0 12px; font-size: 13px; background: rgba(6, 9, 12, 0.88); }
+html:not([data-vp="regular"]) .level-chip { flex: none; min-height: 44px; align-items: center; padding: 0 12px; font-size: 13px; background: rgb(var(--panel-rgb) / calc(0.88 * var(--panel-k))); }
 html:not([data-vp="regular"]) .level-chip small { font-size: 12px; }
 
 /* ---------- compass: a small dial, no read-out ---------- */
-html:not([data-vp="regular"]) .chrome .compass { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-h) + 8px); padding: 2px; background: rgba(6, 9, 12, 0.55); }
+html:not([data-vp="regular"]) .chrome .compass { left: auto; right: calc(8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--dock-h) + 8px); padding: 2px; background: var(--glass); }
 html:not([data-vp="regular"]) .compass-btn svg { width: 56px; height: 56px; }
 html:not([data-vp="regular"]) .compass-read { display: none; }
 html:not([data-vp="regular"]) .compass-pop { left: auto; right: 0; }
@@ -198,13 +201,13 @@ html[data-kiosk="1"] .app .dock-hint:not(.err) { display: none; }
 /* Browsers on a Pi do not always report a coarse pointer, so this follows the layout, not the pointer media query. The entity browser is an edit panel (sheet.css). */
 html:not([data-vp="regular"]) :is(.cal, .inbox, .mp, .stats, .energy, .rd, .climate, .plexcard, .dc, .cc, .gp, .dp) :is(button, [role="tab"], [role="switch"], summary) { min-height: 44px; min-width: 44px; }
 html:not([data-vp="regular"]) :is(.cal, .inbox, .mp, .stats, .energy, .rd, .climate, .plexcard, .dc, .cc, .gp, .dp) input[type="range"] { height: 44px; }
-html:not([data-vp="regular"]) :is(.hud.sheet, .hud.drawer) { background: rgba(6, 9, 12, 0.98); }
+html:not([data-vp="regular"]) :is(.hud.sheet, .hud.drawer) { background: rgb(var(--panel-rgb) / 0.98); }
 /* text never below 12 px in the live panels (the sheets of the edit panels do this in sheet.css) */
 html:not([data-vp="regular"]) :is(.sync, .cal-views button, .cal-today, .cal-filter, .cal-check, .cal-note, .cal-dow, .cal-add, .cal-cardsw, .inbox-tabs button, .nt-btn, .nt-time, .nt-note, .mp-empty, .mp-others summary, .mp-rowsub, .eb-chip, .d-action, .en-empty, .en-row span, .st-error b, .hud-meta, .field-note, .rd-empty, .rd-group, .rd-val, .rd :is(span, small), .gp-name, .gp-cost, .gp-box small) { font-size: 12px; }
 
 /* ---------- cinema mode on a touch screen: no Esc key, so an Exit button appears with any touch and fades with the idle timer ---------- */
 .cinema-exit { display: none; }
-html:not([data-vp="regular"]) .cinema-exit, html[data-coarse="1"] .cinema-exit { display: inline-flex; position: fixed; z-index: 77; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgba(6, 9, 12, 0.85); font: 500 13px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); transition: opacity 0.3s; }
+html:not([data-vp="regular"]) .cinema-exit, html[data-coarse="1"] .cinema-exit { display: inline-flex; position: fixed; z-index: 77; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); align-items: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 14px; border: 1px solid var(--accent-line); border-radius: var(--r); background: rgb(var(--panel-rgb) / calc(0.85 * var(--panel-k))); font: 500 13px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); transition: opacity 0.3s; }
 html.idle .cinema-exit { opacity: 0; pointer-events: none; }
 html:not([data-vp="regular"]) .esc-hint, html[data-coarse="1"] .esc-hint { display: none; }
 html[data-orient="portrait"]:not([data-vp="regular"]) .chrome .levels { max-width: calc(100% - 80px); }

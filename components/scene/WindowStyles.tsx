@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BoxGeometry, ExtrudeGeometry, MeshPhysicalMaterial, Shape, ShapeGeometry, type Group } from "three";
 import { WALL_CUT_H } from "@/lib/geometry";
-import { styleOf } from "@/lib/openings";
+import { frameColor, styleOf } from "@/lib/openings";
 import type { Opening } from "@/lib/types";
-import { ArchRing, BAR, Bar, FRAME, FRAME_DARK, STONE, Slide, Spandrels, archRise, barMat, useGlass, type StyleProps } from "./openingParts";
+import { ArchRing, BAR, Bar, FRAME, STONE, Slide, Spandrels, archRise, barMat, useGlass, type StyleProps } from "./openingParts";
 
 const STEEL = "#b8bcc2";
 
@@ -62,7 +62,7 @@ function Picture({ p, high }: { p: StyleProps; high?: boolean }) {
   const glass = useGlass(p.o.tint, p.glow);
   const { w, sill, h, clipped } = dims(p.o, p.cutaway);
   if (h <= BAR) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const bw = high ? 0.03 : BAR;
   const gh = h - bw * (clipped ? 1 : 2);
   return (
@@ -77,7 +77,7 @@ function Sliding({ p }: { p: StyleProps }) {
   const glass = useGlass(p.o.tint, p.glow);
   const { w, sill, h, clipped } = dims(p.o, p.cutaway);
   if (h <= BAR) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const iw = w - BAR * 2;
   const sashW = iw / 2 + 0.03; // the sashes overlap a little
   const gh = h - BAR * (clipped ? 1 : 2);
@@ -110,7 +110,7 @@ function TiltTurn({ p }: { p: StyleProps }) {
   });
   const { w, sill, h, clipped } = dims(p.o, p.cutaway);
   if (h <= BAR) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const iw = w - BAR * 2;
   const sh = h - BAR * (clipped ? 1 : 2);
   const hx = -p.sw.h * (iw / 2 - 0.04); // handle opposite the hinge
@@ -149,7 +149,7 @@ function Bay({ p }: { p: StyleProps }) {
   const top = p.cutaway ? Math.min(full + 0.05, WALL_CUT_H) : full + 0.05;
   const ph = top - y0;
   if (h <= BAR || ph <= 0.02) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const clipped = p.cutaway && top < full + 0.05;
   const zo = -p.inward * d;
   const side = (x: number, rot: number) => (
@@ -191,7 +191,7 @@ function Arched({ p }: { p: StyleProps }) {
   }, [gx, ry, bottom, spring]);
   useEffect(() => () => geo.dispose(), [geo]);
   if (lowTop - sill <= BAR) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const FD = p.thick + 0.02;
   const lh = lowTop - sill;
   const arch = !p.cutaway;
@@ -222,7 +222,7 @@ function Round({ p }: { p: StyleProps }) {
   const { w, sill } = dims(p.o, p.cutaway);
   const h = p.o.height;
   if (p.cutaway && sill >= WALL_CUT_H) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const r = Math.min(w, h) / 2 - 0.02;
   const cy = sill + h / 2;
   return (
@@ -263,7 +263,7 @@ function GlassBlock({ p }: { p: StyleProps }) {
   useEffect(() => () => mat.dispose(), [mat]);
   useEffect(() => () => geo.dispose(), [geo]);
   if (h <= BAR) return null;
-  const F = p.o.color ?? "#c9c5bd";
+  const F = frameColor(p.o);
   const rows = Array.from({ length: ny }, (_, j) => j).filter((j) => sill + bw + (j + 1) * ch <= top + 1e-6);
   const mortarH = clipped ? Math.max(0.01, top - sill - bw) : ih;
   return (
@@ -283,7 +283,7 @@ function Shopfront({ p }: { p: StyleProps }) {
   const glass = useGlass(p.o.tint, p.glow);
   const { w, sill, full, top, h, clipped } = dims(p.o, p.cutaway);
   if (h <= BAR) return null;
-  const F = p.o.color ?? FRAME_DARK;
+  const F = frameColor(p.o);
   const FD = p.thick + 0.02;
   const iw = w - BAR * 2;
   const riser = Math.min(0.45, h);
@@ -298,7 +298,7 @@ function Shopfront({ p }: { p: StyleProps }) {
       <Bar p={[-w / 2 + BAR / 2, sill + h / 2, 0]} s={[BAR, h, FD]} color={F} />
       <Bar p={[w / 2 - BAR / 2, sill + h / 2, 0]} s={[BAR, h, FD]} color={F} />
       {!clipped && <Bar p={[0, full - BAR / 2, 0]} s={[w, BAR, FD]} color={F} />}
-      <Bar p={[0, sill + riser / 2, 0]} s={[iw, riser, FD - 0.02]} color={p.o.color ?? FRAME_DARK} />
+      <Bar p={[0, sill + riser / 2, 0]} s={[iw, riser, FD - 0.02]} color={F} />
       {h > riser + 0.03 && <Bar p={[0, sill + riser + 0.015, 0]} s={[iw, 0.03, FD]} color={F} />}
       {lowTop - glassBot > 0.02 && (
         <mesh material={glass} position={[0, (glassBot + lowTop) / 2, 0]}>

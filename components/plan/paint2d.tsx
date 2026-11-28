@@ -5,6 +5,7 @@ import { usePaint } from "@/lib/paintStore";
 import { activeLevelId, useStore } from "@/lib/store";
 import type { Plan, Pt, Wall } from "@/lib/types";
 import { ACCENT } from "./planStyle";
+import { PillarShape } from "./Pillars";
 
 /** How far from a wall's edge (metres) a click still counts as on the wall: 8 screen pixels, never less than 12 cm. */
 const reach = (px: number) => Math.max(0.12, 8 * px);
@@ -44,6 +45,10 @@ export function PaintHover({ plan, at, px, both }: { plan: Plan; at: Pt; px: num
     const g = groundAt(plan, at);
     const shape = g && (g.type === "path" ? plan.paths?.find((x) => x.id === g.id) : plan.ground?.find((x) => x.id === g.id));
     return shape ? <polygon points={groundPolygon(shape).map((q) => `${q.x},${q.y}`).join(" ")} fill={ACCENT} fillOpacity={0.12} stroke={ACCENT} strokeWidth={2 * px} pointerEvents="none" /> : null;
+  }
+  if (hit.type === "pillar") {
+    const it = plan.items.find((x) => x.id === hit.id);
+    return it ? <PillarShape it={it} fill={ACCENT} fillOpacity={0.2} stroke={ACCENT} strokeWidth={2 * px} pointerEvents="none" /> : null;
   }
   if (hit.type === "room") {
     const r = plan.rooms.find((x) => x.id === hit.id);

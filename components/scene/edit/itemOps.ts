@@ -1,5 +1,6 @@
 import { CATALOG } from "@/lib/catalog";
 import { snapElev } from "@/lib/editMath";
+import { PLATE_FIT_KEY } from "@/lib/plateFit";
 import { clearWalls, collisionWalls } from "@/lib/placement";
 import { useStore } from "@/lib/store";
 import type { Item } from "@/lib/types";
@@ -20,13 +21,25 @@ export function once(fn: () => void) {
   s.endEdit();
 }
 
+/**
+ * The options that are only looks (a car's paint finish, number plate text, style and place): they come along with a copy. Any other option may name a
+ * device or an address (a camera stream, a battery sensor), and a copy must not drive the same one twice, so those stay behind.
+ */
+const LOOK_PARAMS = ["finish", "plate", "plateStyle", PLATE_FIT_KEY.front, PLATE_FIT_KEY.rear];
+
+function lookParams(params: Item["params"]): Item["params"] {
+  const kept = Object.entries(params ?? {}).filter(([k]) => LOOK_PARAMS.includes(k));
+  return kept.length ? Object.fromEntries(kept) : undefined;
+}
+
 /** Add a copy of `src` at (x, y) as one undo step, the copy selected; the Home Assistant link is not copied (it would drive the same device twice). */
 export function cloneItem(src: Item, x: number, y: number, rot = src.rot) {
   once(() => {
     const s = useStore.getState();
     s.addItem(src.kind, x, y);
     const id = useStore.getState().sel?.id;
-    if (id) useStore.getState().patch("item", id, { rot, w: src.w, d: src.d, h: src.h, color: src.color, elev: src.elev });
+    const params = lookParams(src.params);
+    if (id) useStore.getState().patch("item", id, { rot, w: src.w, d: src.d, h: src.h, color: src.color, elev: src.elev, ...(params ? { params } : {}) });
   });
 }
 

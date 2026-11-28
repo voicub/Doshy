@@ -9,6 +9,8 @@ import { makeLook } from "./Look";
 export const live = {
   /** damped 0 night .. 1 day */
   daylight: 0,
+  /** damped 0..1 lit share of the moon: scales and tints the moonlight at night (see moonGain in lib/moon.ts) */
+  moon: 0.5,
   /** unit vector from the flat towards the light (sun, moon at night); x east, y up, -z north */
   sunDir: new Vector3(0.4, 0.8, 0.3).normalize(),
   /** blended look with cloud, fog and lightning already applied */

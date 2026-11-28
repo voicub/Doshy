@@ -4,6 +4,7 @@ import type { Def } from "@/lib/catalog";
 import type { Item, Pt } from "@/lib/types";
 import { PillarShape } from "./Pillars";
 import type { Box } from "@/lib/viewInset";
+import MeasureToggles from "./MeasureToggles";
 import { ACCENT, HALO, MONO } from "./planStyle";
 
 const signed = (v: number) => `${v < -0.005 ? "-" : "+"}${Math.abs(v).toFixed(2)}`;
@@ -12,12 +13,13 @@ const signed = (v: number) => `${v < -0.005 ? "-" : "+"}${Math.abs(v).toFixed(2)
 export function PlanCorner({ onFit, dims, onDims }: { onFit: () => void; dims: boolean; onDims: () => void }) {
   return (
     <div className="plan-corner">
-      <button className="kbd" onClick={onFit} aria-label="Fit the plan to the view" title="Fit the plan to the view" style={{ height: 26, background: "rgba(5,7,10,0.85)", cursor: "pointer" }}>
+      <button className="kbd" onClick={onFit} aria-label="Fit the plan to the view" title="Fit the plan to the view" style={{ height: 26, background: "rgb(var(--lg-5-7-10) / calc(0.85 * var(--panel-k)))", cursor: "pointer" }}>
         Fit <span className="plan-key" style={{ color: ACCENT, marginLeft: 6 }}>0</span>
       </button>
-      <button className="kbd" onClick={onDims} aria-pressed={dims} aria-label="Show dimensions, axes and tags" title="Show dimensions, grid axes and door/window tags" style={{ height: 26, gap: 6, background: "rgba(8,31,58,0.9)", cursor: "pointer", color: dims ? ACCENT : undefined }}>
+      <button className="kbd" onClick={onDims} aria-pressed={dims} aria-label="Show dimensions, axes and tags" title="Show dimensions, grid axes and door/window tags" style={{ height: 26, gap: 6, background: "rgb(var(--lg-8-31-58) / 0.9)", cursor: "pointer", color: dims ? ACCENT : undefined }}>
         <RulerIcon size={14} /> Dimensions
       </button>
+      <MeasureToggles where="corner" />
     </div>
   );
 }
@@ -30,7 +32,7 @@ export function Dim({ a, b, text, u }: { a: Pt; b: Pt; text: string; u: number }
   const side = ny > 0 || (ny === 0 && nx > 0) ? -1 : 1; // always lift the label above the line
   const off = 0.42 * Math.max(u, 0.5);
   return (
-    <text x={(a.x + b.x) / 2 + nx * off * side} y={(a.y + b.y) / 2 + ny * off * side + 0.08 * u} fontSize={0.26 * u} textAnchor="middle" fill="#e8f1f7" style={{ ...MONO, ...HALO, strokeWidth: HALO.strokeWidth * u }} pointerEvents="none">{text}</text>
+    <text x={(a.x + b.x) / 2 + nx * off * side} y={(a.y + b.y) / 2 + ny * off * side + 0.08 * u} fontSize={0.26 * u} textAnchor="middle" fill="var(--text)" style={{ ...MONO, ...HALO, strokeWidth: HALO.strokeWidth * u }} pointerEvents="none">{text}</text>
   );
 }
 
@@ -80,12 +82,12 @@ export function SnapCursor({ cur, vb, u, px, finger, free, delta, wallLen }: Cur
       <rect x={cur.x - 0.07 * u} y={cur.y - 0.07 * u} width={0.14 * u} height={0.14 * u} fill="none" stroke={ACCENT} strokeWidth={0.03 * u} />
       {finger && <circle cx={cur.x} cy={cur.y} r={20 * px} fill="none" stroke={ACCENT} strokeOpacity={0.65} strokeWidth={1.5 * px} />}
       {delta && (
-        <text x={x} y={yUp} fontSize={0.22 * u} textAnchor={anchor} fill="#e8f1f7" style={{ ...MONO, ...halo }}>
+        <text x={x} y={yUp} fontSize={0.22 * u} textAnchor={anchor} fill="var(--text)" style={{ ...MONO, ...halo }}>
           {`DX ${signed(delta.x)}  DY ${signed(delta.y)}`}
         </text>
       )}
       {finger && wallLen !== null && (
-        <text x={x} y={yUp} fontSize={0.22 * u} textAnchor="middle" fill="#e8f1f7" style={{ ...MONO, ...halo }}>
+        <text x={x} y={yUp} fontSize={0.22 * u} textAnchor="middle" fill="var(--text)" style={{ ...MONO, ...halo }}>
           {`${wallLen.toFixed(2)} m`}
         </text>
       )}

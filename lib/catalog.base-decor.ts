@@ -216,9 +216,9 @@ export const BASE_DECOR = finish({
   column: {
     label: "Structural column", brand: "Generic", cat: "Decor", w: 0.55, d: 0.55, h: 2.58, solid: true, pillar: true,
     parts: [
-      b(0, 1.27, 0, 0.55, 2.54, 0.55, "#9a9ea3", { tex: "stone", rough: 0.85, bevel: 0.006 }),
-      b(0, 2.56, 0, 0.57, 0.04, 0.57, "#aeb2b7", { ...STONE, rough: 0.8, bevel: 0.008 }),
-      b(0, 0.03, 0, 0.57, 0.06, 0.57, "#aeb2b7", { ...STONE, rough: 0.8, bevel: 0.008, detail: 1 }),
+      b(0, 1.27, 0, 0.55, 2.54, 0.55, "#9a9ea3", { tex: "stone", rough: 0.85, bevel: 0.006, m: true }), // m: the pillar can be painted (Item.color); unpainted it keeps its stone grey
+      b(0, 2.56, 0, 0.57, 0.04, 0.57, "#aeb2b7", { ...STONE, rough: 0.8, bevel: 0.008, m: true }),
+      b(0, 0.03, 0, 0.57, 0.06, 0.57, "#aeb2b7", { ...STONE, rough: 0.8, bevel: 0.008, detail: 1, m: true }),
       seam(0, 1.27, 0.276, 0.004, 2.4, 0.004, "#8a8e93"),
       seam(0, 2.5, 0.28, 0.56, 0.02, 0.01, "#9a9ea3"),
     ],
@@ -226,10 +226,10 @@ export const BASE_DECOR = finish({
   column_round: {
     label: "Round column", brand: "Generic", cat: "Decor", w: 0.4, d: 0.4, h: 2.58, solid: true, pillar: true,
     parts: [
-      cy(0, 1.27, 0, 0.4, 2.54, "#9a9ea3", { tex: "stone", rough: 0.85 }),
-      cy(0, 2.56, 0, 0.42, 0.04, "#aeb2b7", { ...STONE, rough: 0.8 }),
-      turned(0, 0, 0, [[0.215, 0], [0.215, 0.04], [0.2, 0.06]], "#aeb2b7", { ...STONE, rough: 0.8, detail: 1 }),
-      cy(0, 2.5, 0, 0.43, 0.02, "#9a9ea3", { ...STONE, rough: 0.8, detail: 1 }),
+      cy(0, 1.27, 0, 0.4, 2.54, "#9a9ea3", { tex: "stone", rough: 0.85, m: true }),
+      cy(0, 2.56, 0, 0.42, 0.04, "#aeb2b7", { ...STONE, rough: 0.8, m: true }),
+      turned(0, 0, 0, [[0.215, 0], [0.215, 0.04], [0.2, 0.06]], "#aeb2b7", { ...STONE, rough: 0.8, detail: 1, m: true }),
+      cy(0, 2.5, 0, 0.43, 0.02, "#9a9ea3", { ...STONE, rough: 0.8, detail: 1, m: true }),
     ],
   },
   balcony_railing: {

@@ -4,7 +4,10 @@ import { CATALOG } from "./catalog";
 import { OPENING_DEFAULTS, WALL_H, normalizeOpening, wallLen, withOpeningDims } from "./geometry";
 import { fenceDefaults, isFence, wallHeight } from "./fences";
 import { fetchStates, toggleEntity, type HAState } from "./ha";
+import { currentHome, homeKnown, onHomeChange } from "./haHome";
 import { mergeStates } from "./statesMerge";
+import { isReplaying, rememberPoll } from "./replayGate";
+import { onGuestPage } from "./guestMode";
 import { singleFlight } from "./singleFlight";
 import { createChangeOnlyStorage } from "./persistStable";
 import { FLOOR_COLORS } from "./palette";
@@ -22,12 +25,17 @@ import type { BuildingEntry, BuildingType, Flow, GlassTint, GroundArea, GroundPa
 import { addGroundTo, addPathTo, type NewArea, type NewPath } from "./ground";
 import { uid } from "./uid";
 import { setSiteIn, withSite, type SitePatch } from "./siteUi";
+import { withScenes } from "./scenes";
+import { withChoreographies } from "./arrival";
+import { withMdiIcons } from "./mdiPlan";
+import { withDesign } from "./designFields";
 import { placedHeight } from "./voids";
+import { addLine, patchLine, removeLine, type UtilityLine } from "./utilities";
 
 
 const KEY = { wall: "walls", opening: "openings", room: "rooms", item: "items", void: "voids", ground: "ground", path: "paths" } as const;
 
-export type Tool = "select" | "wall" | "room" | "door" | "window" | "pillar" | "paint" | "stairwell" | "garden" | `add:${string}`;
+export type Tool = "select" | "wall" | "room" | "door" | "window" | "pillar" | "paint" | "stairwell" | "garden" | "lines" | "pipes" | "ruler" | "annotate" | `add:${string}`;
 /** live: the 3D scene. plan: walls, rooms, doors, windows. furniture: placing and shaping furniture. ha: linking things to Home Assistant. */
 export type View = "live" | "plan" | "furniture" | "ha";
 export const VIEWS: readonly View[] = ["live", "plan", "furniture", "ha"];
@@ -35,7 +43,7 @@ export const VIEWS: readonly View[] = ["live", "plan", "furniture", "ha"];
 const SEL_VIEWS: Record<View, readonly SelType[]> = { live: [], plan: ["wall", "room", "opening", "void", "item", "ground", "path"], furniture: ["item"], ha: ["item", "room", "opening"] }; // plan: items only when they are pillars (see `viewPicksItem`)
 /** Tools each view honours. */
 const viewAllowsTool = (view: View, tool: Tool): boolean =>
-  tool === "select" || (view === "plan" ? ["wall", "room", "door", "window", "pillar", "paint", "stairwell", "garden"].includes(tool) : view === "furniture" ? tool.startsWith("add:") || tool === "paint" : false);
+  tool === "select" || (view === "plan" ? ["wall", "room", "door", "window", "pillar", "paint", "stairwell", "garden", "lines", "pipes", "ruler", "annotate"].includes(tool) : view === "furniture" ? tool.startsWith("add:") || tool === "paint" : false);
 type LevelView = "all" | "upTo" | "only";
 const LEVEL_VIEWS: readonly LevelView[] = ["all", "upTo", "only"];
 /** The level the editors work on: the stored one, or the first level when it no longer exists. */
@@ -91,6 +99,9 @@ type State = {
   addPath: (p: NewPath) => string | null;
   addOpening: (o: Omit<Opening, "id">) => void;
   addItem: (kind: string, x: number, y: number) => void;
+  addUtility: (line: UtilityLine) => void;
+  patchUtility: (id: string, patch: Partial<Omit<UtilityLine, "id">>) => void;
+  removeUtility: (id: string) => void;
   patch: (type: SelType, id: string, p: Partial<Wall> | Partial<Opening> | Partial<Room> | Partial<Item> | Partial<SlabVoid> | Partial<GroundArea> | Partial<GroundPath>) => void; // a union, not an intersection: Wall.style and Opening.style are disjoint literal types and would collapse an intersection to never
   remove: (type: SelType, id: string) => void;
   setPlan: (p: Plan) => void;
@@ -238,6 +249,9 @@ export const useStore = create<State>()(
           const wall = s.plan.walls.find((w) => w.id === o.wallId);
           return commitPlan(s, { ...s.plan, openings: [...s.plan.openings, fitOpening(s.plan, { ...o, id: uid(), level: wall ? levelIdOf(s.plan, wall) : activeLevelId(s) })] });
         }),
+      addUtility: (line) => set((s) => commitPlan(s, addLine(s.plan, line))),
+      patchUtility: (id, patch) => set((s) => commitPlan(s, patchLine(s.plan, id, patch))),
+      removeUtility: (id) => set((s) => commitPlan(s, removeLine(s.plan, id))),
       setOpeningDefaults: (type, p) => set((s) => ({ openingDefaults: { ...s.openingDefaults, [type]: { ...s.openingDefaults[type], ...p } } })),
       moveRoom: (roomId, dx, dy, withContents = true) =>
         set((s) =>
@@ -273,7 +287,7 @@ export const useStore = create<State>()(
         }),
       setPlan: (plan) =>
         set((s) => {
-          const next = withSite(withDefaultLevels({ ...plan, openings: plan.openings.map(withOpeningDims) }));
+          const next = withMdiIcons(withDesign(withChoreographies(withScenes(withSite(withDefaultLevels({ ...plan, openings: plan.openings.map(withOpeningDims) }))))));
           return { ...commitPlan(s, next), sel: null, activeLevel: findLevel(next, s.activeLevel).id };
         }),
       setActiveLevel: (id) => set((s) => (levelsOf(s.plan).some((l) => l.id === id) ? { activeLevel: id, sel: null } : {})),
@@ -314,8 +328,13 @@ export const useStore = create<State>()(
         }),
       // One poll at a time: a tick that finds one still running joins it, so a slow or stuck server cannot collect a pile of open requests (fetchStates gives up on its own).
       refreshStates: singleFlight(async () => {
+        await homeKnown();
+        const home = currentHome(); // the answer is only for this home: another plan may have been opened while it was on its way
+        const again = () => void setTimeout(() => void get().refreshStates(), 0); // after this run has ended, so it starts a new one
         try {
           const list = await fetchStates();
+          if (currentHome() !== home) return again();
+          if (isReplaying()) return rememberPoll(list); // history replay owns `states`: the poll waits for it to end, and feeds no live buffer
           const { states, haError } = get();
           // An unchanged poll hands back the same array. Skip it too, unless something wrote `states` meanwhile (an optimistic update the server never confirmed): then merge, which restores the server's values.
           const settled = list === lastList && states === lastMerged;
@@ -325,11 +344,13 @@ export const useStore = create<State>()(
           if (next !== states || haError) set({ states: next, haError: null });
           usePoll.setState({ at: Date.now() });
         } catch (e) {
-          set({ haError: errorMessage(e) });
+          if (currentHome() !== home) return again();
+          if (!isReplaying()) set({ haError: errorMessage(e) });
         }
       }),
       toggle: async (entityId) => get().toggleMany([entityId]),
       toggleMany: async (entityIds) => {
+        if (isReplaying() || onGuestPage()) return; // controls are off while the history is replayed, and always on the read-only guest page
         try {
           await Promise.all(entityIds.map(toggleEntity));
           setTimeout(() => void get().refreshStates(), 400); // HA needs a moment to publish the new state
@@ -348,7 +369,7 @@ export const useStore = create<State>()(
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<State>;
         const saved: string | undefined = p.view;
-        const plan = withSite(applyAdditions(withDefaultLevels(p.plan ?? current.plan)));
+        const plan = withMdiIcons(withDesign(withChoreographies(withScenes(withSite(applyAdditions(withDefaultLevels(p.plan ?? current.plan)))))));
         return {
           ...current,
           ...p,
@@ -368,10 +389,19 @@ export const useStore = create<State>()(
       migrate: (persisted, version) => {
         const p = (persisted ?? {}) as Partial<State>;
         if (!p.plan || version < STARTER_VERSION) return { ...p, plan: starterPlan() } as State;
-        const { walls = [], openings = [], rooms = [], items = [], bearing, building, levels, voids, ground, paths, site, flows, added } = p.plan;
-        return { ...p, plan: withSite({ walls, rooms, items, bearing, building, levels, voids, ground, paths, site, flows, added, openings: openings.map(withOpeningDims) }) } as State;
+        const { walls = [], openings = [], rooms = [], items = [], bearing, building, levels, voids, ground, paths, site, flows, added, scenes, choreographies, annotations, trace, maintenance, utilities } = p.plan;
+        return { ...p, plan: withDesign(withChoreographies(withScenes(withSite({ walls, rooms, items, bearing, building, levels, voids, ground, paths, site, flows, added, scenes, choreographies, annotations, trace, maintenance, utilities, openings: openings.map(withOpeningDims) })))) } as State;
       },
     },
   ),
 );
+
+// Another home on screen (a plan that shows a different Home Assistant was opened): nothing of the old home may stay on screen, not its devices, its error or the "nothing changed" memory.
+onHomeChange(() => {
+  lastList = null;
+  lastMerged = null;
+  useStore.setState({ states: {}, haError: null });
+  usePoll.setState({ at: 0 });
+  void useStore.getState().refreshStates();
+});
 storage.bind(() => void useStore.persist.rehydrate());

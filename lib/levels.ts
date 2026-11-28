@@ -4,7 +4,7 @@ import type { Item, Level, Opening, Plan, Room, Wall } from "./types";
 export const DEFAULT_LEVEL_HEIGHT = 2.78;
 /** Id of the level every legacy plan lives on. */
 export const GROUND_ID = "L0";
-/** A raised ground floor ("parter inalt"): the finished floor sits this far above the ground. */
+/** A raised ground floor: the finished floor sits this far above the ground. */
 export const RAISED_FLOOR = 1.0;
 /** Thickness of the slab between two storeys / under a raised floor (m). */
 export const SLAB_T = 0.2;
@@ -77,4 +77,16 @@ export function floorY(plan: Plan, e: { level?: string; x?: number; y?: number; 
   const lv = findLevel(plan, id);
   if (e.kind === undefined || e.x === undefined || e.y === undefined || !groundable(plan, id, e.elev ?? 0)) return lv.elevation;
   return outsideRooms(plan, id, e.x, e.y) ? 0 : lv.elevation;
+}
+
+/**
+ * Does a garden fence, wall or hedge rest on the ground instead of on its level's floor? Yes when both ends and the middle lie outside the building and the
+ * level is the lowest of a raised building, the same rule as a free-standing item (`floorY`): a fence round the garden of a flat lifted one metre must not
+ * float at the flat's floor height. The caller checks that the wall is a fence (lib/fences.ts `isFence`).
+ */
+export function groundedWall(plan: Plan, w: Wall): boolean {
+  const id = levelIdOf(plan, w);
+  if (!groundable(plan, id)) return false;
+  const mid = { x: (w.a.x + w.b.x) / 2, y: (w.a.y + w.b.y) / 2 };
+  return [w.a, w.b, mid].every((p) => outsideRooms(plan, id, p.x, p.y));
 }

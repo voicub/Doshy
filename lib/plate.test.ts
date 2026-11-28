@@ -68,3 +68,14 @@ test("each body style puts a front and a rear plate mount on its bumper, the rig
     assert.ok(front.p[1] > 0.15 && front.p[1] < s.height * 0.6 && rear.p[1] > 0.15 && rear.p[1] < s.height * 0.7, `${s.id} plate heights ${front.p[1]} ${rear.p[1]}`);
   }
 });
+
+test("a car built without a plate holder at one end has a smaller black layer, the same plate mounts and the other end's holder", () => {
+  const s = carSpec(CAR_TABLE.find((row) => carSpec(row).bodyStyle === "sedan") ?? CAR_TABLE[0]);
+  const full = buildCar(s);
+  const bareRear = buildCar(s, 0, { front: true, rear: false });
+  const bare = buildCar(s, 0, { front: false, rear: false });
+  assert.ok(bareRear.layers.black.pos.length < full.layers.black.pos.length);
+  assert.ok(bare.layers.black.pos.length <= bareRear.layers.black.pos.length);
+  assert.deepEqual(bareRear.plates, full.plates);
+  assert.equal(buildCar(s, 0, { front: true, rear: true }), full, "the default is cached as the full car");
+});

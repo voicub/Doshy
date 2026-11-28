@@ -10,6 +10,6 @@
 .level-row { display: flex; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--accent-line); border-radius: var(--r); }
 .level-row.active { border-color: var(--accent); background: var(--accent-soft); }
 .level-head { display: flex; align-items: center; gap: 8px; }
-.level-head input { flex: 1; min-width: 0; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--accent-line); border-radius: var(--r); padding: 6px 8px; font: 500 12px/1.2 var(--sans); color: var(--text); }
-.level-head input:focus-visible { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px rgba(90, 215, 255, 0.15); }
+.level-head input { flex: 1; min-width: 0; background: var(--shade-35); border: 1px solid var(--accent-line); border-radius: var(--r); padding: 6px 8px; font: 500 12px/1.2 var(--sans); color: var(--text); }
+.level-head input:focus-visible { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.15); }
 .level-head .icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }

@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CATALOG, isPillar } from "./catalog.ts";
-import { PILLAR_PRESETS, addPillar, fullHeight, isRoundPillar, resizePillar, snapPillar, viewPicksItem } from "./pillars.ts";
+import { PILLAR_PRESETS, addPillar, fullHeight, isRoundPillar, pillarAt, resizePillar, snapPillar, viewPicksItem } from "./pillars.ts";
 import { withDefaultLevels } from "./planOps.ts";
 import { starterPlan } from "./starterPlan.ts";
-import type { Wall } from "./types.ts";
+import type { Item, Wall } from "./types.ts";
 
 const near = (a: number, b: number, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} !~ ${b}`);
 const wall = (x1: number, y1: number, x2: number, y2: number): Wall => ({ id: "w", a: { x: x1, y: y1 }, b: { x: x2, y: y2 }, style: "plaster" });
@@ -80,4 +80,27 @@ test("addPillar drops a storey-high pillar of the chosen size on the level; unkn
 test("fullHeight is the level's wall height", () => {
   near(fullHeight({ levels: [{ id: "L0", name: "G", elevation: 0, height: 2.78 }] }, "L0"), 2.58);
   near(fullHeight({ levels: [{ id: "L0", name: "G", elevation: 0, height: 3.2 }] }, "L0"), 3.0);
+});
+
+test("every kind of pillar can be painted: its main body takes the item's colour, and unpainted pillars keep the colour they were drawn with", () => {
+  for (const kind of Object.keys(CATALOG).filter(isPillar)) {
+    const body = CATALOG[kind].parts.reduce((a, p) => (p.s[0] * p.s[1] * p.s[2] > a.s[0] * a.s[1] * a.s[2] ? p : a));
+    assert.equal(body.m, true, `${kind}: the biggest part is the pillar itself`);
+    assert.ok(/^#[0-9a-f]{6}$/i.test(body.c), `${kind}: still has its own colour to fall back to`);
+  }
+});
+
+const col = (id: string, over: Partial<Item> = {}): Item => ({ id, kind: "column", x: 2, y: 2, rot: 0, w: 0.4, d: 0.2, h: 2.58, ...over });
+
+test("pillarAt finds the pillar under a point, turned and round ones included, and ignores furniture", () => {
+  assert.equal(pillarAt([col("a")], { x: 2.19, y: 2.09 })?.id, "a");
+  assert.equal(pillarAt([col("a")], { x: 2.21, y: 2 }), null, "just outside the footprint");
+  assert.equal(pillarAt([col("a")], { x: 2.21, y: 2 }, 0.05)?.id, "a", "reach adds slack");
+  assert.equal(pillarAt([col("a", { rot: 90 })], { x: 2.09, y: 2.19 })?.id, "a", "a quarter turn swaps the sides");
+  assert.equal(pillarAt([col("a", { rot: 90 })], { x: 2.19, y: 2.09 }), null);
+  const round = col("r", { kind: "column_round", w: 0.4, d: 0.4 });
+  assert.equal(pillarAt([round], { x: 2.18, y: 2 })?.id, "r");
+  assert.equal(pillarAt([round], { x: 2.18, y: 2.18 }), null, "a circle has no corners");
+  assert.equal(pillarAt([col("chair", { kind: "chair" })], { x: 2, y: 2 }), null);
+  assert.equal(pillarAt([col("under"), col("over")], { x: 2, y: 2 })?.id, "over", "the one drawn last is on top");
 });

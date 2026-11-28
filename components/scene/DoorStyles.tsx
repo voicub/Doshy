@@ -3,8 +3,8 @@ import { useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import { MathUtils, type Group, type MeshPhysicalMaterial } from "three";
 import { WALL_CUT_H } from "@/lib/geometry";
-import { styleOf } from "@/lib/openings";
-import { AJAR, ArchRing, BAR, Bar, DOOR_OPEN, FRAME, FRAME_DARK, Leaf, Slide, Spandrels, STONE, WOOD, archRise, useGlass, type StyleProps } from "./openingParts";
+import { frameColor, styleOf } from "@/lib/openings";
+import { AJAR, ArchRing, BAR, Bar, DOOR_OPEN, Leaf, Slide, Spandrels, STONE, WOOD, archRise, useGlass, type StyleProps } from "./openingParts";
 import DoorLeafDetail from "./DoorLeafDetail";
 import { useKnobs } from "@/lib/quality";
 
@@ -90,7 +90,7 @@ function SolidLeaf({
 
 function Double(p: StyleProps) {
   const { o } = p;
-  const F = o.color ?? FRAME;
+  const F = frameColor(o);
   const leafW = (o.width - BAR * 2) / 2;
   return (
     <group>
@@ -122,7 +122,7 @@ function GlassPanel({ cx, width, y0, height, color, glass }: { cx: number; width
 
 function SlidingGlass(p: StyleProps) {
   const { o, glow, sw, amount, known } = p;
-  const F = o.color ?? FRAME_DARK;
+  const F = frameColor(o);
   const glass = useGlass(o.tint, glow);
   const w = o.width;
   const pw = (w - BAR * 2) / 2 + 0.04;
@@ -152,7 +152,7 @@ function SlidingGlass(p: StyleProps) {
 
 function Pocket(p: StyleProps) {
   const { o, thick, inward, sw, amount, known, cutaway } = p;
-  const F = o.color ?? WOOD;
+  const F = frameColor(o);
   const w = o.width;
   const lw = w + 0.1;
   const lh = o.height - 0.02;
@@ -211,7 +211,7 @@ function MeetingHandle({ p, y }: { p: StyleProps; y: number }) {
 
 function French(p: StyleProps) {
   const { o, glow, amount, known, sw, cutaway } = p;
-  const F = o.color ?? FRAME;
+  const F = frameColor(o);
   const glass = useGlass(o.tint, glow);
   const leafW = (o.width - BAR * 2) / 2;
   return (
@@ -246,7 +246,7 @@ function French(p: StyleProps) {
 
 function Arch(p: StyleProps) {
   const { o, thick, cutaway, wallTint } = p;
-  const F = o.color ?? FRAME;
+  const F = frameColor(o);
   const w = o.width;
   const rise = archRise(w, o.height);
   const spring = o.sill + o.height - rise;
@@ -265,7 +265,7 @@ function Arch(p: StyleProps) {
 
 function GarageSectional(p: StyleProps) {
   const { o, glow, known, amount, cutaway } = p;
-  const F = o.color ?? "#d9d6cf";
+  const F = frameColor(o);
   const glass = useGlass(o.tint, glow);
   const refs = useRef<(Group | null)[]>([]);
   const w = o.width;
@@ -324,7 +324,7 @@ const MAX_SLATS = 20;
 
 function GarageRoller(p: StyleProps) {
   const { o, inward, known, amount, cutaway } = p;
-  const F = o.color ?? "#9aa0a8";
+  const F = frameColor(o);
   const w = o.width;
   const ch = o.height - BAR; // curtain height
   const top = o.sill + ch; // curtain anchored under the head
@@ -359,7 +359,7 @@ function GarageRoller(p: StyleProps) {
 
 function Sidelight(p: StyleProps) {
   const { o, glow, sw, cutaway } = p;
-  const F = o.color ?? FRAME;
+  const F = frameColor(o);
   const slit = useGlass(o.tint, glow);
   const frosted = useGlass(o.tint ?? "frosted", glow);
   const w = o.width;
@@ -417,7 +417,7 @@ function FoldPanel({ p, i, pw, color, glass }: { p: StyleProps; i: number; pw: n
 
 function Folding(p: StyleProps) {
   const { o, glow, cutaway } = p;
-  const F = o.color ?? FRAME_DARK;
+  const F = frameColor(o);
   const glass = useGlass(o.tint, glow);
   return (
     <group>
@@ -427,8 +427,6 @@ function Folding(p: StyleProps) {
   );
 }
 
-const GATE_WHITE = "#f4f1ea";
-const GATE_GREEN = "#4a5d46";
 const PICKET_STEP = 0.11;
 
 /** A garden gate: two posts and one hinged leaf of rails and pickets with gaps between them. In cutaway only the posts remain. */
@@ -478,7 +476,7 @@ export default function DoorStyles(p: StyleProps) {
     case "arch":
       return <Arch {...p} />;
     case "passage":
-      return <Frame p={p} color={p.o.color ?? FRAME} trim={BAR * 0.7} threshold={false} />;
+      return <Frame p={p} color={frameColor(p.o)} trim={BAR * 0.7} threshold={false} />;
     case "garageSectional":
       return <GarageSectional {...p} />;
     case "garageRoller":
@@ -488,9 +486,8 @@ export default function DoorStyles(p: StyleProps) {
     case "folding":
       return <Folding {...p} />;
     case "gate":
-      return <Gate {...p} color={p.o.color ?? GATE_WHITE} />;
     case "wicket":
-      return <Gate {...p} color={p.o.color ?? GATE_GREEN} />;
+      return <Gate {...p} color={frameColor(p.o)} />;
     default:
       return null; // "single" is the legacy Door
   }

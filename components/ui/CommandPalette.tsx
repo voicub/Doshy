@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import DisplayHint from "./DisplayHint";
 import MonoLabel from "./MonoLabel";
 import useRestoreFocus from "./useRestoreFocus";
-import { score, useCommands, type Cmd, type Handlers } from "./paletteCommands";
+import { score, useCommands, type Cmd, type Handlers, type PaletteMode } from "./paletteCommands";
+import { AskResult, Mic, useAsk } from "./CommandBox";
 import "./palette.css";
 
 /** The matching commands, grouped under headings (a heading shows where the group changes). */
@@ -38,12 +39,14 @@ function ResultList({ results, active, q, list, onHover, onRun }: { results: Cmd
 }
 
 export default function CommandPalette({ onClose, ...handlers }: { onClose: () => void } & Handlers) {
-  const [cards, setCards] = useState(false); // "Open device card..." narrows the list to the linked devices
-  const pickCards = useCallback(() => { setCards(true); setQ(""); setIdx(0); }, []);
-  const all = useCommands(handlers, cards, pickCards);
+  const [mode, setMode] = useState<PaletteMode>("all"); // "Open device card..." and "Switch plan..." narrow the list
+  const narrow = useCallback((next: PaletteMode) => { setMode(next); setQ(""); setIdx(0); }, []);
+  const all = useCommands(handlers, mode, narrow);
   const [q, setQ] = useState("");
   const [idx, setIdx] = useState(0);
   const list = useRef<HTMLDivElement>(null);
+  const asking = mode === "ask";
+  const ask = useAsk(asking ? q : "");
 
   const results = useMemo(() => {
     const scored = all.map((c, i) => ({ c, i, s: score(q, c.hay) }));
@@ -54,13 +57,14 @@ export default function CommandPalette({ onClose, ...handlers }: { onClose: () =
   const active = Math.min(idx, Math.max(results.length - 1, 0));
 
   useRestoreFocus();
+  // Not on every new `results` array: the command list is rebuilt whenever the home's state ticks, and each rebuild pulled the list back to the selected row under a finger that had scrolled away.
   useEffect(() => {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-  }, [active, results]);
+  }, [active, q, mode]);
 
   const run = (c: Cmd | undefined, card = false) => {
     if (!c) return;
-    if (c.id === "act:cards") return c.run(); // narrows this palette to device cards instead of closing it
+    if (c.stay) return c.run(); // narrows this palette instead of closing it
     onClose();
     (card && c.card ? c.card : c.run)();
   };
@@ -72,8 +76,8 @@ export default function CommandPalette({ onClose, ...handlers }: { onClose: () =
     else if (e.key === "ArrowUp") { e.preventDefault(); setIdx(n ? (active - 1 + n) % n : 0); }
     else if (e.key === "Home") { e.preventDefault(); setIdx(0); }
     else if (e.key === "End") { e.preventDefault(); setIdx(Math.max(n - 1, 0)); }
-    else if (e.key === "Enter") { e.preventDefault(); run(results[active], e.shiftKey); }
-    else if (e.key === "Tab") e.preventDefault(); // keep focus in the field
+    else if (e.key === "Enter") { e.preventDefault(); if (asking) { if (ask.confirm()) onClose(); } else run(results[active], e.shiftKey); }
+    else if (e.key === "Tab" && !asking) e.preventDefault(); // Assist has real controls that keyboard users must reach
   };
 
   return (
@@ -83,27 +87,37 @@ export default function CommandPalette({ onClose, ...handlers }: { onClose: () =
           <MagnifyingGlassIcon size={16} />
           <input
             autoFocus
-            role="combobox"
-            aria-expanded="true"
-            aria-controls="cmd-list"
-            aria-autocomplete="list"
-            aria-activedescendant={results[active] ? `cmd-${results[active].id}` : undefined}
-            aria-label="Search rooms, lights, appliances and actions"
-            placeholder={cards ? "Pick a device to open its card" : "Search rooms, lights, appliances, actions"}
+            {...(asking ? {} : { role: "combobox", "aria-expanded": true, "aria-controls": "cmd-list", "aria-autocomplete": "list" as const, "aria-activedescendant": results[active] ? `cmd-${results[active].id}` : undefined })}
+            aria-label={asking ? "Tell Doshy what to do" : "Search rooms, lights, appliances and actions"}
+            placeholder={asking ? 'Say it in plain words, like "turn off the lights in the bedroom"' : mode === "cards" ? "Pick a device to open its card" : mode === "plans" ? "Pick a plan to show" : "Search rooms, lights, appliances, actions"}
             value={q}
             onChange={(e) => { setQ(e.target.value); setIdx(0); }}
             onKeyDown={onKey}
             spellCheck={false}
             autoComplete="off"
           />
+          {asking && <Mic onText={(t) => { setQ(t); setIdx(0); }} />}
           <button type="button" className="icon-btn palette-close" aria-label="Close search" onClick={onClose}><XIcon size={16} /></button>
         </div>
-        <ResultList results={results} active={active} q={q} list={list} onHover={setIdx} onRun={run} />
+        {asking ? (
+          <AskResult ask={ask} onExample={(t) => setQ(t)} onDone={onClose} />
+        ) : (
+          <ResultList results={results} active={active} q={q} list={list} onHover={setIdx} onRun={run} />
+        )}
         <div className="palette-foot" aria-hidden>
-          <span><b>UP DOWN</b>Navigate</span>
-          <span><b>ENTER</b>Run</span>
-          <span><b>SHIFT ENTER</b>Device card</span>
-          <span><b>ESC</b>Close</span>
+          {asking ? (
+            <>
+              <span><b>ENTER</b>Confirm</span>
+              <span><b>ESC</b>Close</span>
+            </>
+          ) : (
+            <>
+              <span><b>UP DOWN</b>Navigate</span>
+              <span><b>ENTER</b>Run</span>
+              <span><b>SHIFT ENTER</b>Device card</span>
+              <span><b>ESC</b>Close</span>
+            </>
+          )}
         </div>
         <DisplayHint />
       </div>

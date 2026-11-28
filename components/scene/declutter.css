@@ -13,20 +13,20 @@
 .dc-body .ha-mark { pointer-events: auto; cursor: pointer; }
 
 /* calm sensors collapse to a small status dot (the state colour); a tap shows the full badge */
-.dc-pip { display: none; position: absolute; left: 0; top: 0; width: 12px; height: 12px; padding: 0; border-radius: 50%; transform: translate(-50%, -50%); background: var(--dc, #8a98a3); border: 1px solid rgba(6, 9, 12, 0.85); box-shadow: 0 0 0 1px rgba(232, 241, 247, 0.3), 0 0 8px color-mix(in srgb, var(--dc, #8a98a3) 55%, transparent); pointer-events: auto; cursor: pointer; }
+.dc-pip { display: none; position: absolute; left: 0; top: 0; width: 12px; height: 12px; padding: 0; border-radius: 50%; transform: translate(-50%, -50%); background: var(--dc, var(--lg-8a98a3)); border: 1px solid rgb(var(--panel-rgb) / calc(0.85 * var(--panel-k))); box-shadow: 0 0 0 1px rgb(var(--text-rgb) / 0.3), 0 0 8px color-mix(in srgb, var(--dc, var(--lg-8a98a3)) 55%, transparent); pointer-events: auto; cursor: pointer; }
 .dc-pip::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; }
 .dc-host.dc-dot .dc-body { visibility: hidden; } /* still laid out, so its full size stays measured */
 .dc-host.dc-dot .dc-pip { display: block; }
 
 /* numbered marker for labels that cannot be told apart at this zoom */
-.dc-cluster { position: absolute; left: 0; top: 0; min-width: 40px; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r); border: 1px solid var(--accent); background: rgba(6, 9, 12, 0.85); color: var(--accent); font: 600 11px/1 var(--mono); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; pointer-events: auto; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 12px -2px rgba(90, 215, 255, 0.5); will-change: transform; }
+.dc-cluster { position: absolute; left: 0; top: 0; min-width: 40px; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r); border: 1px solid var(--accent); background: rgb(var(--panel-rgb) / calc(0.85 * var(--panel-k))); color: var(--accent); font: 600 11px/1 var(--mono); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; pointer-events: auto; cursor: pointer; backdrop-filter: blur(4px); box-shadow: 0 0 12px -2px rgb(var(--accent-rgb) / 0.5); will-change: transform; }
 .dc-cluster::after { content: ""; position: absolute; inset: -8px; }
 .dc-cluster[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); }
-.dc-cluster:focus-visible, .dc-pip:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.dc-cluster:focus-visible, .dc-pip:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
 
 /* while a cluster is open, everything else steps back */
 .dc-layer.dc-fanned .dc-host:not(.dc-fan) { opacity: 0.35; }
-.dc-host.dc-fan .ring, .dc-host.dc-fan .chip, .dc-host.dc-fan .badge, .dc-host.dc-fan .sfx-badge, .dc-host.dc-fan .ha-mark { box-shadow: 0 0 0 1px var(--accent), 0 4px 14px rgba(0, 0, 0, 0.5); }
+.dc-host.dc-fan .ring, .dc-host.dc-fan .chip, .dc-host.dc-fan .badge, .dc-host.dc-fan .sfx-badge, .dc-host.dc-fan .ha-mark { box-shadow: 0 0 0 1px var(--accent), 0 4px 14px var(--shade-50); }
 
 @media (pointer: coarse) {
   .dc-pip::after { inset: -16px; }
@@ -34,15 +34,15 @@
   .dc-host.dc-fan .ring { width: 44px; height: 44px; }
   .dc-host.dc-fan .chip, .dc-host.dc-fan .badge, .dc-host.dc-fan .sfx-badge, .dc-host.dc-fan .ha-mark { min-height: 44px; }
 }
-@media (prefers-reduced-transparency: reduce) { .dc-cluster { background: #080c10; backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .dc-cluster { background: var(--panel-solid); backdrop-filter: none; } }
 .app.cinema .dc-layer { opacity: 0; pointer-events: none; }
 
 /* room chip: the name (toggles the room's lights) and a small button that opens the room's device sheet */
 .chip-row { display: inline-flex; align-items: stretch; }
 .chip-row .chip { pointer-events: auto; }
-.chip-dev { pointer-events: auto; display: grid; place-items: center; width: 28px; margin-left: -1px; border: 1px solid var(--accent-line); border-radius: 0 var(--r) var(--r) 0; background: rgba(6, 9, 12, 0.62); color: var(--muted); backdrop-filter: blur(8px); transition: color 0.2s, border-color 0.2s; }
+.chip-dev { pointer-events: auto; display: grid; place-items: center; width: 28px; margin-left: -1px; border: 1px solid var(--accent-line); border-radius: 0 var(--r) var(--r) 0; background: rgb(var(--panel-rgb) / calc(0.62 * var(--panel-k))); color: var(--muted); backdrop-filter: blur(8px); transition: color 0.2s, border-color 0.2s; }
 .chip-dev:hover { color: var(--accent); border-color: var(--accent); }
 .chip-row:has(.chip-dev) .chip { border-radius: var(--r) 0 0 var(--r); }
 @media (pointer: coarse) { .chip-dev { width: 44px; min-height: 44px; } }
-@media (prefers-reduced-transparency: reduce) { .chip-dev { background: #080c10; backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .chip-dev { background: var(--panel-solid); backdrop-filter: none; } }
 .dc-body button.badge { pointer-events: auto; cursor: pointer; color: inherit; }

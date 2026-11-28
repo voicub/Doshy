@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { callService } from "@/lib/ha";
 import { errorMessage } from "@/lib/guards";
+import { haFetch, onHomeChange } from "@/lib/haHome";
 import { diffNotifications, type Notification } from "@/lib/haNotify";
 import { REQUEST_TIMEOUT_MS, within } from "@/lib/requestTimeout";
 
@@ -27,6 +28,9 @@ type Inbox = {
   loaded: boolean;
   unavailable: boolean;
   seen: string[] | null;
+  /** Dashboard-only notices never go through Home Assistant's create/dismiss services. */
+  local: Notification[];
+  addLocal: (notification: Notification) => void;
   toast: (Notification & { /** An appliance card to open on tap instead of the inbox (the "washing machine is done" toast). */ entity?: string }) | null;
   error: string | null;
   setOpen: (open: boolean) => void;
@@ -39,6 +43,7 @@ type Inbox = {
   dismiss: (ids: string[]) => Promise<void>;
 };
 
+let epoch = 0; // counts the homes shown so far: an answer from an older one is dropped
 export const useInbox = create<Inbox>()((set, get) => {
   const markSeen = () => {
     const seen = get().notifications.map((n) => n.id);
@@ -51,6 +56,8 @@ export const useInbox = create<Inbox>()((set, get) => {
     notifications: [],
     loaded: false,
     unavailable: false,
+    local: [],
+    addLocal: (notification) => set((s) => ({ local: [notification, ...s.local.filter((n) => n.id !== notification.id)].slice(0, 40), notifications: [notification, ...s.notifications.filter((n) => n.id !== notification.id)], toast: notification })),
     seen: null,
     toast: null,
     error: null,
@@ -60,12 +67,14 @@ export const useInbox = create<Inbox>()((set, get) => {
     setTab: (tab) => { set({ tab, error: null }); if (tab === "notifications") markSeen(); },
     clearToast: () => set({ toast: null }),
     refresh: async (fresh = false) => {
+      const mine = epoch;
       try {
-        const res = await fetch(`/api/ha/notifications${fresh ? "?fresh=1" : ""}`, { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
+        const res = await haFetch(`/api/ha/notifications${fresh ? "?fresh=1" : ""}`, { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
         const body: { notifications?: Notification[]; error?: boolean } = await res.json();
+        if (mine !== epoch) return; // another home came on screen meanwhile: this is the old home's answer
         if (!res.ok || body.error || !Array.isArray(body.notifications)) throw new Error(POLL_TIP);
         const prev = get();
-        const list = body.notifications;
+        const list = [...prev.local, ...body.notifications];
         const arrived = prev.loaded ? list.filter((n) => !prev.notifications.some((p) => p.id === n.id)) : [];
         const watching = prev.open && prev.tab === "notifications";
         set({ notifications: list, loaded: true, unavailable: false, seen: prev.seen ?? readSeen(), toast: !watching && arrived.length ? arrived[0] : prev.toast });
@@ -75,13 +84,22 @@ export const useInbox = create<Inbox>()((set, get) => {
       }
     },
     dismiss: async (ids) => {
-      const results = await Promise.allSettled(ids.map((id) => callService({ domain: "persistent_notification", service: "dismiss", data: { notification_id: id } })));
+      const localIds = new Set(get().local.map((n) => n.id));
+      const remote = ids.filter((id) => !localIds.has(id));
+      const results = await Promise.allSettled(remote.map((id) => callService({ domain: "persistent_notification", service: "dismiss", data: { notification_id: id } })));
       const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
-      const gone = new Set(ids.filter((_, i) => results[i].status === "fulfilled"));
-      set((s) => ({ notifications: s.notifications.filter((n) => !gone.has(n.id)), error: failed.length ? `Could not dismiss ${failed.length === 1 ? "it" : `${failed.length} of them`}: ${errorMessage(failed[0].reason)}` : null }));
+      const gone = new Set([...ids.filter((id) => localIds.has(id)), ...remote.filter((_, i) => results[i].status === "fulfilled")]);
+      set((s) => ({ local: s.local.filter((n) => !gone.has(n.id)), notifications: s.notifications.filter((n) => !gone.has(n.id)), error: failed.length ? `Could not dismiss ${failed.length === 1 ? "it" : `${failed.length} of them`}: ${errorMessage(failed[0].reason)}` : null }));
       if (gone.size) { markSeen(); await get().refresh(true); }
     },
   };
+});
+
+// Another home on screen: its notifications are not this home's. Nothing is announced for them (`loaded: false` makes the first read a quiet one).
+onHomeChange(() => {
+  epoch++;
+  useInbox.setState({ notifications: [], local: [], loaded: false, unavailable: false, toast: null });
+  void useInbox.getState().refresh(true);
 });
 
 /** How many notifications the user has not looked at yet. */

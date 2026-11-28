@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { useAreas } from "./haAreas";
+import { onHomeChange } from "./haHome";
+import { useHomeId } from "./useHomeId";
 import { houseLive, pushSample, roomLive, stabilize, type HouseLive, type Line, type RoomLive } from "./live";
 import { alignAt, fetchHistory, minMaxAvg, sampleAt } from "./stats";
 import { useStore, usePoll } from "./store";
@@ -77,7 +79,9 @@ type Day = { midnightKwh?: number; maxW?: number };
 export function useHouseDay(): { todayKwh?: number; maxW?: number } {
   const energy = useLive((s) => s.house.energyKwh);
   const [day, setDay] = useState<Day>({});
+  const home = useHomeId();
   useEffect(() => {
+    setDay({}); // another home's midnight reading and peak are not this home's
     const ctl = new AbortController();
     const load = async () => {
       try {
@@ -94,7 +98,10 @@ export function useHouseDay(): { todayKwh?: number; maxW?: number } {
     void load();
     const t = setInterval(load, DAY_REFRESH_MS);
     return () => { ctl.abort(); clearInterval(t); };
-  }, []);
+  }, [home]);
   const todayKwh = energy !== undefined && day.midnightKwh !== undefined && energy >= day.midnightKwh ? energy - day.midnightKwh : undefined;
   return { todayKwh, maxW: day.maxW };
 }
+
+// Another home on screen: the samples of the old home must not run into the new one's charts.
+onHomeChange(() => useLive.setState({ rooms: {}, house: { persons: [] }, history: {} }));

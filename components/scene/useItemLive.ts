@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from "react";
 import { Color } from "three";
 import { create } from "zustand";
+import { onHomeChange } from "@/lib/haHome";
 import { CATALOG } from "@/lib/catalog";
 import { runStatus, thresholdsFor, toWatts, familyOf, pushWatts, type Family, type RunStatus, type Sample } from "@/lib/running";
 import { classifySensor, type SensorInfo } from "@/lib/sensors";
@@ -16,6 +17,7 @@ const HISTORY_POINTS = 400;
 /** Recent watts of every plug power sensor in use: live readings pushed at each poll, earlier ones from /api/ha/history. */
 const useWatts = create<{ buf: Record<string, Sample[]> }>(() => ({ buf: {} }));
 const tracked = new Set<string>();
+let epoch = 0; // counts the homes shown so far: history that arrives from an older one is dropped
 let wired = false;
 
 function wire() {
@@ -40,12 +42,13 @@ function track(entity: string) {
   wire();
   if (tracked.has(entity)) return;
   tracked.add(entity);
+  const mine = epoch;
   const unit = useStore.getState().states[entity]?.attributes.unit_of_measurement;
   // History is an extra: without it (no recorder, request failed) the live buffer alone still detects a run, just from "now" on.
   fetchHistory([entity], KEEP_MS / 3_600_000, { points: HISTORY_POINTS })
     .then((r) => {
       const s = r.series[entity];
-      if (s?.kind !== "num") return;
+      if (s?.kind !== "num" || mine !== epoch) return;
       const old = s.t.map((t, i) => ({ t, w: toWatts(String(s.v[i]), unit) ?? 0 }));
       useWatts.setState(({ buf }) => {
         const live = buf[entity] ?? [];
@@ -55,6 +58,13 @@ function track(entity: string) {
     })
     .catch(() => tracked.delete(entity)); // retried the next time an item with this plug mounts
 }
+
+// Another home on screen: the watts of its plugs are not this home's. Items mount again with the new plan and fetch their own history.
+onHomeChange(() => {
+  epoch++;
+  tracked.clear();
+  useWatts.setState({ buf: {} });
+});
 
 export type RunLive = {
   family: Family;

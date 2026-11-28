@@ -12,6 +12,8 @@ import { AxisGrid, OpeningTags, OverallDimensions, RoomDimensions, WallDimension
 import { CutWalls, DragRoomOutline, LevelBelow, RectDraft, RoomChips, RoomFloors, WallDraft, WallEndHandles, WallPicks, isSelected } from "./EditorLayers";
 import { GroundDraft, GroundHandles, GroundLayer } from "./GroundMark";
 import HallwayMark from "./HallwayMark";
+import LampMarks from "./LampMarks";
+import LinesDraft from "./LinesDraft";
 import OpeningMark from "./OpeningMark";
 import { Dim, SolidShape, SnapCursor, ticks } from "./PlanBits";
 import { PillarGhost, PillarLayer } from "./Pillars";
@@ -24,7 +26,14 @@ import { inOneStep } from "./oneStep";
 import { ROOM_DRAG, openingDrag } from "./grabs";
 import type { Gesture } from "./useGesture";
 import type { PlanPointer } from "./usePlanPointer";
+import TraceLayer, { TraceUnderlay } from "./TraceLayer";
+import DaylightOverlay from "./DaylightOverlay";
+import { PlanAnnotations } from "./AnnotateLayer";
+import WallLengthLabels from "./MeasureLabels";
+import MeasureLayer from "./MeasureLayer";
+import { PlanUtilities } from "./UtilityLayer";
 
+import DevicePins from "./DevicePins";
 type Props = {
   /** Every level, and the active level's own plan. */
   full: Plan;
@@ -74,12 +83,14 @@ function BackdropLayers({ full, plan, activeLevel, lower, sel, tool, vb, u, dpx,
   const below = lower ? planOfLevel(full, lower.id) : null;
   return (
     <>
-      <g fontSize={0.22 * u} fill="rgba(138,160,173,0.8)" style={MONO} pointerEvents="none">
+      <TraceUnderlay trace={full.trace} />
+      <g fontSize={0.22 * u} fill="rgb(var(--dim-rgb) / 0.8)" style={MONO} pointerEvents="none">
         {ticks(vb.x, vb.w).map((x) => <text key={`x${x}`} x={x + 0.1 * u} y={vb.y + 0.4 * u}>{x}</text>)}
         {ticks(vb.y, vb.h).map((y) => <text key={`y${y}`} x={vb.x + 0.1 * u} y={y - 0.1 * u}>{y}</text>)}
       </g>
       <GroundLayer plan={plan} selId={sel?.type === "ground" || sel?.type === "path" ? sel.id : undefined} tool={tool} u={u} onGrab={pointer.grabGround} />
       <RoomFloors rooms={plan.rooms} sel={sel} u={u} onDown={(e, r) => (e.pointerType === "touch" ? pointer.panRoom(e, r.id) : pointer.startDrag(e, "room", r.id, ROOM_DRAG))} />
+      <DaylightOverlay level={activeLevel} />
       {below && lower && <LevelBelow below={below} name={lower.name} vb={vb} u={u} />}
       <HallwayMark plan={full} level={activeLevel} u={u} px={dpx} />
     </>
@@ -100,6 +111,7 @@ function StructureLayers({ full, plan, activeLevel, sel, tiny, showDims, hatchOf
       <g pointerEvents="none">
         {plan.items.map((it) => (CATALOG[it.kind] ? <SolidShape key={it.id} it={it} def={CATALOG[it.kind]} /> : null))}
       </g>
+      <LampMarks items={plan.items} px={px} />
       {/* stairs openings: the hole in the floor above shows as a dashed UP, holes in this floor as hatched DN */}
       {upVoids.map((v) => <StairwellMark key={v.id} v={v} mode="up" u={u} px={px} />)}
       {myVoids.map((v) => (
@@ -121,7 +133,7 @@ function StructureLayers({ full, plan, activeLevel, sel, tiny, showDims, hatchOf
 }
 
 /** Garden handles, dimensions, the opening ghost, tool hovers, room chips, wall-end handles and every shape being drawn. */
-function OverlayLayers({ plan, sel, tool, vb, u, px, dpx, touch, tiny, showDims, reach, free, g, pointer }: Props) {
+function OverlayLayers({ plan, activeLevel, sel, tool, vb, u, px, dpx, touch, tiny, showDims, reach, free, g, pointer }: Props) {
   const openingDefaults = useStore((s) => s.openingDefaults);
   const pillarPreset = usePillarUi((s) => s.preset);
   const { cur, ptr, hover, panning, wallStart, roomStart, voidStart, drag, delta } = g;
@@ -143,9 +155,13 @@ function OverlayLayers({ plan, sel, tool, vb, u, px, dpx, touch, tiny, showDims,
           <OpeningTags plan={plan} px={dpx} />
         </>
       )}
+      <WallLengthLabels plan={plan} px={dpx} />
+      <DevicePins items={plan.items} px={px} />
+      <PlanAnnotations plan={plan} activeLevel={activeLevel} tool={tool} vb={vb} u={u} px={px} dpx={dpx} touch={touch} />
       {opGhost && opGhostWall && <OpeningMark o={opGhost} wall={opGhostWall} plan={plan} on ghost u={u} px={px} touch={touch} />}
       {tool === "paint" && hover && ptr && !panning && <PaintHover plan={plan} at={ptr} px={px} both={ptr.shiftKey} />}
-      {tool === "garden" && !panning && <GroundDraft cur={cur} hover={hover} u={u} px={px} />}
+      {tool === "garden" && !panning && <GroundDraft cur={cur} hover={hover} u={u} />}
+      {tool === "lines" && !panning && <LinesDraft cur={cur} hover={hover || touch > 1} u={u} px={px} />}
       {tool === "pillar" && hover && !panning && <PillarGhost preset={presetOf(pillarPreset)} at={cur} u={u} px={px} />}
       <RoomChips plan={plan} sel={sel} tool={tool} tiny={tiny} showDims={showDims} u={u} px={px} touch={touch} onGrab={(e, r) => pointer.startDrag(e, "room", r.id, ROOM_DRAG)} />
       {selWall && tool === "select" && <WallEndHandles wall={selWall} px={px} touch={touch} onDown={(e, k) => pointer.startEnd(e, selWall, k)} />}
@@ -154,8 +170,11 @@ function OverlayLayers({ plan, sel, tool, vb, u, px, dpx, touch, tiny, showDims,
       {voidStart && <RectDraft start={voidStart} cur={cur} u={u} dashed />}
       {roomStart && <RectDraft start={roomStart} cur={cur} u={u} />}
       {dragRoom && <DragRoomOutline plan={plan} room={dragRoom} px={px} />}
+      <TraceLayer vb={vb} px={px} touch={touch} tool={tool} />
+      {tool === "ruler" && <MeasureLayer plan={plan} activeLevel={activeLevel} vb={vb} u={u} px={px} dpx={dpx} touch={touch} />}
+      <PlanUtilities plan={plan} activeLevel={activeLevel} tool={tool} vb={vb} u={u} px={px} dpx={dpx} touch={touch} />
       {/* snap cursor: crosshair + coordinate readout */}
-      {(hover || fingerWall) && (
+      {(hover || fingerWall) && tool !== "ruler" && tool !== "annotate" && tool !== "pipes" && (
         <SnapCursor cur={cur} vb={vb} u={u} px={px} finger={touch > 1} free={free} delta={drag ? delta : null} wallLen={fingerWall && wallStart ? Math.hypot(cur.x - wallStart.x, cur.y - wallStart.y) : null} />
       )}
     </>

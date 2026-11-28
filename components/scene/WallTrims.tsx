@@ -20,13 +20,14 @@ const deeper = (hex: string, k: number) => `#${new Color(hex).multiplyScalar(k).
 export default function WallTrims({ openings, len, t, height, top, faces, ground, detail, outsideTint }: { openings: readonly Opening[]; len: number; t: number; height: number; top: number; faces: TrimFaces; ground: boolean; detail: number; outsideTint: string }) {
   const crown = detail >= 2 && top >= height && height >= 2.2;
   const geo = useMemo(() => {
-    const { paint, base } = wallTrims({ len, t, height, top, spans: openingSpans(openings, len, top), faces, ground, crown });
-    return { paint: paint && toGeometry(paint), base: base && toGeometry(base) };
+    const { paint, base, tinted } = wallTrims({ len, t, height, top, spans: openingSpans(openings, len, top), faces, ground, crown });
+    return { paint: paint && toGeometry(paint), base: base && toGeometry(base), tinted: tinted.map((x) => ({ color: x.color, geometry: toGeometry(x.mesh) })) };
   }, [openings, len, t, height, top, faces, ground, crown]);
-  useEffect(() => () => { geo.paint?.dispose(); geo.base?.dispose(); }, [geo]);
+  useEffect(() => () => { geo.paint?.dispose(); geo.base?.dispose(); geo.tinted.forEach((x) => x.geometry.dispose()); }, [geo]);
   return (
     <>
       {geo.paint && <mesh geometry={geo.paint} material={flatMaterial(PAINT)} receiveShadow raycast={NO_RAYCAST} />}
+      {geo.tinted.map((x) => <mesh key={x.color} geometry={x.geometry} material={flatMaterial(x.color)} receiveShadow raycast={NO_RAYCAST} />)}
       {geo.base && <mesh geometry={geo.base} material={flatMaterial(deeper(outsideTint, 0.62), 0.9)} castShadow receiveShadow raycast={NO_RAYCAST} />}
     </>
   );

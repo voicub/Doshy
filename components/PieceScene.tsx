@@ -2,6 +2,7 @@
 import { OrbitControls } from "@react-three/drei";
 import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
+import { useThemeColors } from "@/lib/useThemeColors";
 import { BoxGeometry, EdgesGeometry, Plane, Vector2, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Part } from "@/lib/catalog";
@@ -118,9 +119,10 @@ export default function PieceScene({ parts, sel, pick, onBegin, onMove }: SceneP
   useReframe(orbit, parts);
   const drag = usePartDrag(orbit, parts, onBegin, onMove);
   const s = parts[sel];
+  const { bg } = useThemeColors();
   return (
     <>
-      <color attach="background" args={["#05070a"]} />
+      <color attach="background" args={[bg]} />
       <hemisphereLight args={["#ffffff", "#445566", 1.4]} />
       <directionalLight position={[2, 4, 3]} intensity={2} />
       <gridHelper args={[4, 40, "#2a5566", "#14262f"]} />

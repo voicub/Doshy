@@ -19,4 +19,5 @@ export function applyFoliageLook(look: FoliageLook) {
   FOLIAGE.uFruit.value = look.fruit;
   FOLIAGE.uMush.value = look.mushrooms;
   FOLIAGE.uLitterShare.value = look.litterShare;
+  FOLIAGE.uGrow.value = look.growth;
 }

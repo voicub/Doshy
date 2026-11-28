@@ -25,7 +25,7 @@ const flat = (extra: Partial<Plan> = {}): Plan => ({
   ],
   rooms: [room("hall", 0, 0, 10, 3)],
   items: [],
-  levels: [{ id: "L0", name: "Parter inalt", elevation: 1, height: 2.78 }],
+  levels: [{ id: "L0", name: "Ground floor", elevation: 1, height: 2.78 }],
   building: { type: "apartment" },
   openings: [{ id: "d", wallId: "n", t: 0.5, width: 0.9, height: 2.1, sill: 0, type: "door" }],
   ...extra,

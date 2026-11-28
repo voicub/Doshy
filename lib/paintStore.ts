@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { dbStorage } from "./dbClient";
-import { DEFAULT_BRUSH, parseHex, pushRecent, type Brush } from "./materials";
+import { DEFAULT_BRUSH, mergeBrush, parseHex, pushRecent, type Brush } from "./materials";
 
 type PaintState = {
   /** What the paint bucket lays down. Not saved: a new session starts with the default sage. */
@@ -18,7 +18,7 @@ export const usePaint = create<PaintState>()(
   persist(
     (set) => ({
       brush: DEFAULT_BRUSH,
-      setBrush: (p) => set((s) => ({ brush: { ...s.brush, ...p } })),
+      setBrush: (p) => set((s) => ({ brush: mergeBrush(s.brush, p) })),
       recent: [],
       // a drag repeats the same colour: leave the list (and its storage write) alone when it is already first
       remember: (hex) => set((s) => (!hex || s.recent[0] === parseHex(hex) ? s : { recent: pushRecent(s.recent, hex) })),

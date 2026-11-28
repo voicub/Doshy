@@ -8,8 +8,8 @@
   padding: 4px 8px;
   border-radius: 2px;
   border: 1px solid color-mix(in srgb, var(--sc) 55%, transparent);
-  background: rgba(6, 9, 12, 0.7);
-  color: #dfe9ef;
+  background: rgb(var(--panel-rgb) / calc(0.7 * var(--panel-k)));
+  color: var(--lg-dfe9ef);
   font: 500 10.5px/1 var(--mono, "Geist Mono", monospace);
   letter-spacing: 0.06em;
   white-space: nowrap;
@@ -28,7 +28,7 @@
   opacity: 0.7;
 }
 .sfx-badge svg { color: var(--sc); flex: none; }
-.sfx-badge.on { border-color: var(--sc); color: #fff; }
+.sfx-badge.on { border-color: var(--sc); color: var(--hi); }
 .sfx-badge.alert { border-color: var(--sc); box-shadow: 0 0 10px color-mix(in srgb, var(--sc) 45%, transparent); }
 @media (prefers-reduced-motion: no-preference) {
   .sfx-badge.alert[data-anim="pulse"], .sfx-badge.alert[data-anim="drip"] { animation: sfx-pulse 1.7s ease-in-out infinite; }
@@ -39,15 +39,15 @@
 
 /* two-line appliance badge: state + watts, then a timer / how long ago */
 .sfx-badge.run { flex-direction: column; align-items: flex-start; gap: 3px; border-color: color-mix(in srgb, var(--sc) 55%, transparent); }
-.sfx-badge.run small { font: 500 9.5px/1 var(--mono, "Geist Mono", monospace); letter-spacing: 0.08em; color: color-mix(in srgb, var(--sc) 75%, #dfe9ef); text-transform: uppercase; }
-.sfx-badge.run.running { border-color: var(--sc); color: #fff; }
-.sfx-badge.run.off, .sfx-badge.run.standby { color: #9fb0ba; border-color: rgba(232, 241, 247, 0.22); }
+.sfx-badge.run small { font: 500 9.5px/1 var(--mono, "Geist Mono", monospace); letter-spacing: 0.08em; color: color-mix(in srgb, var(--sc) 75%, var(--lg-dfe9ef)); text-transform: uppercase; }
+.sfx-badge.run.running { border-color: var(--sc); color: var(--hi); }
+.sfx-badge.run.off, .sfx-badge.run.standby { color: var(--lg-9fb0ba); border-color: rgb(var(--text-rgb) / 0.22); }
 .sfx-badge.run.off::after, .sfx-badge.run.standby::after { opacity: 0.3; }
 
 @keyframes sfx-pulse { 0%, 100% { box-shadow: 0 0 4px color-mix(in srgb, var(--sc) 30%, transparent); } 50% { box-shadow: 0 0 16px 2px color-mix(in srgb, var(--sc) 65%, transparent); } }
-@keyframes sfx-blink { 0%, 100% { border-color: var(--sc); } 50% { border-color: rgba(232, 241, 247, 0.18); } }
+@keyframes sfx-blink { 0%, 100% { border-color: var(--sc); } 50% { border-color: rgb(var(--text-rgb) / 0.18); } }
 @keyframes sfx-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
 
 /* reduced motion: colour and border only, nothing moves or flashes */
-@media (prefers-reduced-transparency: reduce) { .sfx-badge { background: #080c10; backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { .sfx-badge { background: var(--panel-solid); backdrop-filter: none; } }
 .app.cinema .sfx-badge { opacity: 0; }

@@ -2,6 +2,7 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { clamp } from "@/lib/mathUtil";
 import { useSky } from "@/lib/useSky";
+import { isLite, useQuality } from "@/lib/quality";
 import { useStore } from "@/lib/store";
 import { useReducedMotion } from "../scene/motion";
 import { drawScene, type RainSprites } from "./rainDraw";
@@ -89,7 +90,8 @@ function createEngine(canvas: HTMLCanvasElement, input: MutableRefObject<RainInp
 export default function RainOverlay() {
   const w = useSky().weather;
   const live = useStore((s) => s.view === "live");
-  const reduce = useReducedMotion();
+  const lite = useQuality((s) => isLite(s.tier));
+  const still = useReducedMotion() || lite; // a full-window 2D canvas redrawn 60 times a second (streaks, drops with trails, fog sprites) is not something Eco can afford: the flat tint stands in for it
   const canvas = useRef<HTMLCanvasElement>(null);
   const input = useRef<RainInput>({ kind: "clear", rain: 0, snow: 0, fog: 0, tilt: 0.06, show: 0 });
   const engine = useRef<Engine | null>(null);
@@ -106,7 +108,7 @@ export default function RainOverlay() {
   }, [w.kind, rain, snow, fog, tilt, live]);
 
   useEffect(() => {
-    if (reduce || !canvas.current) return;
+    if (still || !canvas.current) return;
     const e = createEngine(canvas.current, input);
     if (!e) return;
     engine.current = e;
@@ -115,8 +117,8 @@ export default function RainOverlay() {
       e.dispose();
       engine.current = null;
     };
-  }, [reduce]);
+  }, [still]);
 
-  if (reduce) return <div className="rain-tint" aria-hidden style={{ opacity: live && rain > 0 ? 1 : 0 }} />;
+  if (still) return <div className="rain-tint" aria-hidden style={{ opacity: live && rain > 0 ? 1 : 0 }} />;
   return <canvas ref={canvas} className="rain-canvas" aria-hidden />;
 }

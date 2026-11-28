@@ -1,7 +1,9 @@
 "use client";
 import { useMemo, useRef } from "react";
 import { Color } from "three";
-import { seasonPalette } from "@/lib/season";
+import { yearPalette } from "@/lib/seasonYear";
+import { useKnobs } from "@/lib/quality";
+import { foliageLookAt, levelOfFoliage } from "@/lib/vegetation";
 import { useStore } from "@/lib/store";
 import { useSky } from "@/lib/useSky";
 import FoliageInstances from "../FoliageInstances";
@@ -31,7 +33,7 @@ function seeds(n: number) {
 /** 0..1 how much of the garden's current look belongs to season `s`. */
 const share = (season: string, next: string, mix: number, s: string) => (season === s ? 1 - mix : 0) + (next === s ? mix : 0);
 
-type Drift = { petals: Color[]; season: string; next: string; mix: number; rooms: number[][]; cx: number; cz: number };
+type Drift = { petals: Color[]; petalAmount: number; season: string; next: string; mix: number; rooms: number[][]; cx: number; cz: number };
 
 /**
  * The garden follows the season: organic instanced trees, shrubs, hedges, grasses and flower beds (components/scene/FoliageInstances,
@@ -44,7 +46,10 @@ export default function SeasonGarden({ cx, cz }: { cx: number; cz: number }) {
   const reduced = useReducedMotion();
   const { season, next } = sky.season;
   const mix = Math.round(sky.season.mix * 100) / 100;
-  const pal = useMemo(() => seasonPalette(season, mix), [season, mix]);
+  const { year } = sky;
+  const pal = useMemo(() => yearPalette(year), [year.palette.season, year.palette.mix, year.snow]);
+  // blossom petals drift for the weeks the trees flower on the denser tiers; the lighter tiers keep the four-step garden's spring
+  const petalAmount = levelOfFoliage(useKnobs().foliage) >= 2 ? year.blossom : share(season, next, mix, "spring");
   const layout = useMemo(() => gardenLayout(plan), [plan.rooms, plan.walls, plan.ground, plan.paths]); // the slices the layout reads, not the whole plan
   // the real surroundings take precedence: nothing grows inside a neighbour's walls, and the made-up trees give way to the real ones
   const { inside, realTrees } = useSiteBlock();
@@ -52,9 +57,10 @@ export default function SeasonGarden({ cx, cz }: { cx: number; cz: number }) {
 
   const drift = useRef<Drift | null>(null);
   const petals = useMemo(() => [pal.canopy[0], pal.canopy[1]].map((h) => new Color(h)), [pal]);
-  const leaves = useMemo(() => pal.leaf.map((h) => new Color(h)), [pal]);
+  // leaves in the air are the colour the tree turned, going browner as the weeks pass (the same colours the leaf litter on the ground has)
+  const leaves = useMemo(() => foliageLookAt(year, 2).litter.map((h) => new Color(h)), [year.phase, year.palette.mix]);
   const rooms = plan.rooms.map((r) => [r.x, r.y, r.x + r.w, r.y + r.h]);
-  drift.current = { petals, season, next, mix, rooms, cx, cz };
+  drift.current = { petals, petalAmount, season, next, mix, rooms, cx, cz };
   const seed = useMemo(() => seeds(FALL + 2 * GLOW), []);
 
   /** Petals (spring): square sprites that sink and sway on the wind. Autumn leaves are real leaf shapes (FallingLeaves.tsx). */
@@ -65,7 +71,7 @@ export default function SeasonGarden({ cx, cz }: { cx: number; cz: number }) {
       const wind = 0.15 + live.windX * live.wind * 0.12;
       for (let i = 0; i < FALL; i++) {
         const k = i / FALL, o = i * 4;
-        const on = clamp((share(d.season, d.next, d.mix, "spring") - 0.85 * k) / 0.15, 0, 1);
+        const on = clamp((d.petalAmount - 0.85 * k) / 0.15, 0, 1);
         const y = HEIGHT * (1 - wrap(seed[o + 1] + t * 0.045));
         const x = d.cx + (wrap(seed[o] + (t * wind) / AREA) - 0.5) * AREA + Math.sin(t * 0.7 + seed[o + 3] * 6.3) * 0.5;
         const z = d.cz + (seed[o + 2] - 0.5) * AREA + Math.cos(t * 0.5 + seed[o + 3] * 4.1) * 0.5;
@@ -119,7 +125,7 @@ export default function SeasonGarden({ cx, cz }: { cx: number; cz: number }) {
       {!reduced && (
         <>
           <Sparks count={FALL} step={fall} shape="square" />
-          <FallingLeaves amount={share(season, next, mix, "autumn")} colors={leaves} rooms={rooms} cx={cx} cz={cz} />
+          <FallingLeaves amount={year.falling} colors={leaves} rooms={rooms} cx={cx} cz={cz} />
           <Sparks count={2 * GLOW} step={glow} shape="dot" additive />
         </>
       )}

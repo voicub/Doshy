@@ -3,19 +3,28 @@ import { useFrame } from "@react-three/fiber";
 import { keepAlive } from "@/lib/framePacer";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { MathUtils, type Object3D } from "three";
-import { isolationOf, stayingItems, wallRoles, type WallRole, type Zone } from "@/lib/roomIsolate";
+import { create } from "zustand";
+import { DEFAULT_AZIMUTH, isolationOf, stayingItems, wallRoles, type WallRole, type Zone } from "@/lib/roomIsolate";
 import { useStore } from "@/lib/store";
 import { useReducedMotion } from "./motion";
 
 /** The zone Room mode isolates, or undefined while it is off. Same object until the plan, the room or the open-plan switch changes. */
 export const useIsoZone = (): Zone | undefined => useStore(isolationOf);
 
+/** The azimuth (degrees) Room mode draws its walls for: far sides stand, near sides are cut. The Rig sets it to where the camera looks from when a room is entered and when the owner stops turning. */
+const useIsoFacing = create<{ azimuth: number }>(() => ({ azimuth: DEFAULT_AZIMUTH }));
+export const setIsoFacing = (azimuth: number) => {
+  if (useIsoFacing.getState().azimuth !== azimuth) useIsoFacing.setState({ azimuth });
+};
+
 /** How this wall looks in Room mode (undefined outside it). */
-export const useIsoWall = (wallId: string): WallRole | undefined =>
-  useStore((s) => {
+export const useIsoWall = (wallId: string): WallRole | undefined => {
+  const azimuth = useIsoFacing((s) => s.azimuth);
+  return useStore((s) => {
     const z = isolationOf(s);
-    return z ? wallRoles(s.plan, z).get(wallId) : undefined;
+    return z ? wallRoles(s.plan, z, azimuth).get(wallId) : undefined;
   });
+};
 
 /** Is this piece of furniture another room's, so Room mode takes it away? */
 export const useIsoItemGone = (itemId: string): boolean =>

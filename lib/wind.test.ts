@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { beaufort, compass8, gustAt, windBend, windFromSensors } from "./wind.ts";
+import { beaufort, compass8, gustAt, gustiness, windBend, windFromSensors, windToMs } from "./wind.ts";
 import type { HAState } from "./ha.ts";
 
 const st = (entity_id: string, state: string, attributes: HAState["attributes"] = {}): HAState => ({ entity_id, state, attributes });
@@ -38,4 +38,22 @@ test("wind sensors: speed converted to m/s from km/h, direction read as degrees"
   assert.equal(found.speed, 10);
   assert.equal(found.from, 225);
   assert.deepEqual(windFromSensors({ "sensor.x": st("sensor.x", "unavailable") }), { speed: undefined, from: undefined });
+});
+
+test("wind speeds convert to m/s from the unit they come in, with a per-source default for a missing unit", () => {
+  assert.equal(windToMs(10, "m/s"), 10);
+  assert.ok(Math.abs(windToMs(36, "km/h") - 10) < 1e-9);
+  assert.ok(Math.abs(windToMs(10, " MPH ") - 4.4704) < 1e-9);
+  assert.ok(Math.abs(windToMs(10, "kn") - 5.14444) < 1e-9);
+  assert.equal(windToMs(10, undefined), 10);
+  assert.ok(Math.abs(windToMs(36, undefined, "km/h") - 10) < 1e-9);
+  assert.equal(windToMs(10, "furlongs per fortnight"), 10);
+});
+
+test("gustiness: no reading keeps the usual swing, steady air has little, a gust 60% over the mean has all of it", () => {
+  assert.equal(gustiness(5, undefined), 1);
+  assert.equal(gustiness(5, 5), 0.2);
+  assert.equal(gustiness(5, 8), 1);
+  assert.ok(gustiness(5, 6.5) > 0.2 && gustiness(5, 6.5) < 1);
+  assert.equal(gustiness(0, 3), 1);
 });

@@ -5,14 +5,21 @@ import type { Part } from "./catalog.ts";
 
 /** The material classes a catalog part can name (Part.tex). */
 type MatClass = NonNullable<Part["tex"]>;
-/** Every procedural texture there is: the part classes plus the building, ground and plant surfaces. */
-export type PbrKind = MatClass | "plaster" | "brick" | "tile" | "woodfloor" | "concrete" | "bark" | "leaf" | "carpet" | "paving" | "cobble" | "flagstone";
-export const PBR_KINDS: readonly PbrKind[] = ["wood", "fabric", "leather", "metal", "plastic", "ceramic", "stone", "paint", "rubber", "foam", "plaster", "brick", "tile", "woodfloor", "concrete", "bark", "leaf", "carpet", "paving", "cobble", "flagstone"];
+/** Every procedural texture there is: the part classes plus the building, ground, water and plant surfaces. */
+export type PbrKind =
+  | MatClass
+  | "plaster" | "brick" | "tile" | "woodfloor" | "concrete" | "bark" | "leaf" | "carpet" | "paving" | "cobble" | "flagstone"
+  | "lawn" | "gravel" | "soil" | "sand" | "mulch" | "asphalt" | "water" | "slabs";
+export const PBR_KINDS: readonly PbrKind[] = [
+  "wood", "fabric", "leather", "metal", "plastic", "ceramic", "stone", "paint", "rubber", "foam", "plaster", "brick", "tile", "woodfloor", "concrete", "bark", "leaf",
+  "carpet", "paving", "cobble", "flagstone", "lawn", "gravel", "soil", "sand", "mulch", "asphalt", "water", "slabs",
+];
 
 /** Metres one texture tile covers (UV 0..1 = one tile). Fine weaves are small so the thread stays visible up close; coarse surfaces are big so they do not visibly repeat. */
 export const PBR_TILE_M: Record<PbrKind, number> = {
   wood: 1.2, fabric: 0.2, leather: 0.3, metal: 0.4, plastic: 0.5, ceramic: 0.6, stone: 1.2, paint: 0.5, rubber: 0.3, foam: 0.3,
   plaster: 1, brick: 0.9, tile: 0.6, woodfloor: 1.2, concrete: 2, bark: 0.8, leaf: 0.12, carpet: 1, paving: 0.8, cobble: 0.8, flagstone: 0.8,
+  lawn: 2.4, gravel: 1.2, soil: 1.2, sand: 1.6, mulch: 1.2, asphalt: 2, water: 3.2, slabs: 1.6,
 };
 
 /** Mean of every roughness map: the material's roughness is the wanted value divided by this, so the map only ever lowers it. */

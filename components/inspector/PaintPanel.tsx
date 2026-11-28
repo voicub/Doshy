@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FLOORS, FLOOR_GROUPS, PALETTE, WALLS, WALL_STYLES, floorsInGroup, paintLevelWalls, parseHex, type Swatch } from "@/lib/materials";
 import { usePaint } from "@/lib/paintStore";
 import { activeLevelId, useStore } from "@/lib/store";
@@ -8,6 +8,10 @@ import type { FloorKind, WallStyle } from "@/lib/types";
 import { useVp } from "@/lib/useVp";
 import HudPanel from "../ui/HudPanel";
 import MonoLabel from "../ui/MonoLabel";
+import { useColourDrag } from "../ui/useColourDrag";
+import FloorPhotoMaker from "../ui/FloorPhotoMaker";
+import { MaterialBrowse } from "../lazyPanels";
+import { createPortal } from "react-dom";
 import "./PaintPanel.css";
 
 type SwatchProps = ({ id: FloorKind; floor: true } | { id: WallStyle; floor: false }) & { tint: string | null };
@@ -55,8 +59,6 @@ export function MaterialGrid(p: GridProps) {
   );
 }
 
-const COMMIT_MS = 600; // a drag in the native colour picker is one undo step: it closes this long after the last change
-
 type ColourProps = {
   /** The chosen colour; null = the natural colour. */
   value: string | null;
@@ -75,34 +77,11 @@ type ColourProps = {
 export function ColourField({ value, onChange, reset, natural, lead, undoable }: ColourProps) {
   const recent = usePaint((s) => s.recent);
   const remember = usePaint((s) => s.remember);
-  const timer = useRef<number | undefined>(undefined);
-  const open = useRef(false);
-
-  const close = useCallback(() => {
-    clearTimeout(timer.current);
-    if (open.current) {
-      open.current = false;
-      useStore.getState().endEdit();
-    }
-  }, []);
-  useEffect(() => close, [close]);
+  const { drag, close } = useColourDrag(onChange, undoable, remember);
 
   const pick = (hex: string | null) => {
     onChange(hex);
     remember(hex);
-  };
-  const drag = (hex: string) => {
-    const s = useStore.getState();
-    if (undoable && !open.current && !s.gesture) {
-      s.beginEdit();
-      open.current = true;
-    }
-    onChange(hex);
-    clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      close();
-      remember(hex);
-    }, COMMIT_MS);
   };
 
   const cur = value?.toLowerCase() ?? null;
@@ -152,7 +131,9 @@ export default function PaintPanel() {
   const setTool = useStore((s) => s.setTool);
   const editPlan = useStore((s) => s.editPlan);
   const [last, setLast] = useState<{ floor: FloorKind; wall: WallStyle }>({ floor: "oak", wall: "plaster" });
-  const mode: Mode = brush.material?.kind ?? "colour";
+  const mode: Mode = brush.floorPhoto || brush.floorMaterial ? "floor" : brush.material?.kind ?? "colour";
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [textureOpen, setTextureOpen] = useState(false);
   const mat = brush.material;
 
   const choose = (m: Mode) => {
@@ -180,7 +161,15 @@ export default function PaintPanel() {
       </div>
       {mat?.kind === "floor" && <MaterialGrid kind="floor" value={mat.id} tint={brush.color} onPick={(id) => { setLast((l) => ({ ...l, floor: id })); setBrush({ material: { kind: "floor", id } }); }} />}
       {mat?.kind === "wall" && <MaterialGrid kind="wall" value={mat.id} tint={brush.color} onPick={(id) => { setLast((l) => ({ ...l, wall: id })); setBrush({ material: { kind: "wall", id } }); }} />}
-      {!mat && (
+      {mode === "floor" && (
+        <div className="field" role="group" aria-label="Floor photo">
+          <button type="button" className="btn" onClick={() => setPhotoOpen(true)}>Use a photo of my floor...</button>
+          {brush.floorPhoto && <small className="field-note">Painting with your floor photo. Click a room to lay it.</small>}
+          <button type="button" className="btn" onClick={() => setTextureOpen(true)}>Material from Poly Haven...</button>
+          {brush.floorMaterial && <small className="field-note">Painting with a Poly Haven texture. Click a room, or a garden area, to lay it.</small>}
+        </div>
+      )}
+      {!mat && !brush.floorPhoto && !brush.floorMaterial && (
         <div className="field" role="group" aria-label="Clicking a room paints">
           <small className="field-note">Keeps what a surface is made of and changes only its colour.</small>
           <MonoLabel>Clicking a room paints its</MonoLabel>
@@ -202,6 +191,8 @@ export default function PaintPanel() {
         </div>
       )}
       {mat?.kind === "wall" && <small className="field-note">{tap ? "Tap a room to paint all the walls around it." : "Shift-click paints both sides of a wall. Click a room to paint all the walls around it."}</small>}
+      {photoOpen && createPortal(<FloorPhotoMaker onClose={() => setPhotoOpen(false)} onPhoto={(floorPhoto) => setBrush({ material: null, color: floorPhoto.avg, floorPhoto })} onColour={(color) => setBrush({ material: { kind: "floor", id: last.floor }, color })} />, document.body)}
+      {textureOpen && <MaterialBrowse use="floor" onClose={() => setTextureOpen(false)} onUse={(floorMaterial) => setBrush({ material: null, color: floorMaterial.avg, floorMaterial })} />}
     </HudPanel>
   );
 }
