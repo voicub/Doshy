@@ -1,0 +1,33 @@
+/* Floor plan image panel (TracePanel and its blocks). Reuses the Surroundings panel's frame (.sp, .sp-body, .sp-block, .sp-adv ...); only what is new is named tr-*. Colours and radii come from the HUD tokens. */
+.tr-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 120px; padding: 14px; text-align: center; color: var(--text); background: var(--shade-25); border: 1px dashed var(--accent-line); border-radius: var(--r); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.tr-drop svg { color: var(--accent); }
+.tr-drop span { font: 500 13px/1.3 var(--sans); }
+.tr-drop small { font: 400 11px/1.4 var(--mono); letter-spacing: 0.02em; color: var(--muted); }
+.tr-drop:hover, .tr-drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.tr-drop:disabled { opacity: 0.6; cursor: default; }
+.tr-drop:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.tr-pic { display: flex; align-items: flex-start; gap: 10px; }
+.tr-pic .field-note { margin: 0; }
+.tr-thumb { flex: none; width: 96px; height: 72px; object-fit: contain; background: #fff; border: 1px solid var(--accent-line); border-radius: var(--r); }
+
+/* Few lines / Normal / Many lines */
+.tr-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: 100%; padding: 2px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.tr-seg button { min-height: 36px; padding: 0 4px; font: 500 10.5px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: var(--r); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.tr-seg button:hover:not(:disabled) { color: var(--text); }
+.tr-seg button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.tr-seg button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+.tr-seg button:disabled { opacity: 0.5; cursor: default; }
+
+.tr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tr-two .btn { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.tr-confirm { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid rgb(var(--bad-rgb) / 0.45); border-radius: var(--r); background: rgb(var(--bad-rgb) / 0.08); }
+.tr-confirm .hint { margin: 0; color: var(--text); }
+.tr-body .btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+
+/* finger-sized targets */
+@media (pointer: coarse) { .tr-seg button, .tr-two .btn { min-height: var(--touch, 44px); } .tr-drop { min-height: 132px; } }
+html[data-vp="tiny"] .tr-seg button, html[data-vp="small"] .tr-seg button, html[data-vp="tiny"] .tr-two .btn, html[data-vp="small"] .tr-two .btn { min-height: 44px; }
+html:not([data-vp="regular"]) .tr .sp-wide { min-height: 48px; }
+html:not([data-vp="regular"]) .tr-drop span { font-size: 15px; }
+html:not([data-vp="regular"]) .tr .hint, html:not([data-vp="regular"]) .tr .sp-status, html:not([data-vp="regular"]) .tr .field-note { font-size: 13px; }

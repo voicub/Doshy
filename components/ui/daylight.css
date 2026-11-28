@@ -1,0 +1,91 @@
+/* "Sunlight in this room" (DaylightPanel, DaylightControls, DaylightSunPath). Colours and radii come from the HUD tokens in globals.css; every class here starts with dl-. */
+.hud.dl { background: var(--panel); z-index: 46; }
+.dl { width: 380px; gap: 12px; }
+/* the scrolling body of the panel: see "Scrolling and touch" in docs/small-screens.md (position + overscroll, as the finger-scroll list in app/kiosk.css gives the other panels) */
+.dl-body { position: relative; overscroll-behavior: contain; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 2px; }
+.dl-body > .hint { margin: 0; }
+.dl-block { display: flex; flex-direction: column; gap: 8px; }
+.dl-small .field-note { margin: 0; }
+.dl-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.dl-val { font: 500 14px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+.dl-room select { min-height: 32px; }
+
+/* the answer: one sentence, and a bar while it is being worked out */
+.dl-answer { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--accent-line); border-left: 2px solid var(--accent); border-radius: var(--r); background: var(--accent-soft); }
+.dl-summary { margin: 0; font: 500 14px/1.4 var(--sans); color: var(--text); }
+.dl-summary.muted { color: var(--muted); font-weight: 400; }
+.dl-progress { width: 100%; height: 4px; appearance: none; border: 0; border-radius: 2px; background: rgb(var(--dim-rgb) / 0.3); overflow: hidden; }
+.dl-progress::-webkit-progress-bar { background: rgb(var(--dim-rgb) / 0.3); }
+.dl-progress::-webkit-progress-value { background: var(--accent); }
+.dl-progress::-moz-progress-bar { background: var(--accent); }
+
+/* sliders: a thick hit area round a thin track; sideways drags belong to the slider, vertical swipes still scroll the panel */
+.dl-range { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; margin: 0; padding: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
+.dl-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: rgb(var(--dim-rgb) / 0.35); }
+.dl-range::-moz-range-track { height: 4px; border-radius: 2px; background: rgb(var(--dim-rgb) / 0.35); }
+.dl-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 24px; margin-top: -10px; border: 1px solid var(--bg); border-radius: var(--r); background: var(--accent); }
+.dl-range::-moz-range-thumb { width: 14px; height: 24px; border: 1px solid var(--bg); border-radius: var(--r); background: var(--accent); }
+.dl-range:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.dl-seasons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.dl-season, .dl-seg button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 44px; padding: 4px 6px; text-align: center; font: 500 10.5px/1.2 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--shade-30); border: 1px solid var(--accent-line); border-radius: var(--r); cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.dl-season small { font: 400 10px/1 var(--mono); letter-spacing: 0.02em; text-transform: none; opacity: 0.85; }
+.dl-season:hover, .dl-seg button:hover { color: var(--text); border-color: var(--border-strong); }
+.dl-season[aria-pressed="true"], .dl-seg button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.dl-sunrise { margin: 0; font: 400 12px/1.4 var(--mono); letter-spacing: 0.02em; color: var(--text); }
+.dl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dl-two .btn { min-height: 44px; }
+
+.dl-now-text { margin: 0; font: 400 13px/1.45 var(--sans); color: var(--text); }
+.dl-path { display: block; width: 100%; height: auto; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-30); }
+.dl-ground { fill: rgb(var(--fg-rgb) / 0.04); }
+.dl-horizon { stroke: rgb(var(--dim-rgb) / 0.6); stroke-width: 1; }
+.dl-curve { fill: none; stroke: var(--lg-ffd479); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.dl-now { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.8; }
+.dl-sun { fill: var(--lg-ffd479); stroke: var(--bg); stroke-width: 1.5; }
+.dl-sun.dl-down { fill: var(--text-dim); }
+.dl-tick { font: 500 9px var(--mono); fill: var(--muted); }
+
+/* floor colours */
+.dl-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 6px 10px; text-align: left; font: 500 13px/1.3 var(--sans); color: var(--text); background: var(--shade-30); border: 1px solid var(--accent-line); border-radius: var(--r); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.dl-switch:hover { border-color: var(--accent); }
+.dl-switch i { position: relative; flex: none; width: 40px; height: 22px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-40); transition: background 0.15s, border-color 0.15s; }
+.dl-switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 1px; background: var(--muted); transition: transform 0.15s var(--ease), background 0.15s; }
+.dl-switch[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.dl-switch[aria-checked="true"] i { border-color: var(--accent); background: var(--accent-soft); }
+.dl-switch[aria-checked="true"] i::after { background: var(--accent); transform: translateX(18px); }
+.dl-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dl-legend { display: flex; flex-direction: column; gap: 5px; }
+.dl-ramp { display: block; height: 10px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.dl-ends { display: flex; justify-content: space-between; font: 400 10.5px/1 var(--mono); color: var(--muted); }
+.dl-key { display: flex; align-items: center; gap: 8px; font: 400 12px/1.3 var(--sans); color: var(--text); }
+.dl-key i { flex: none; width: 14px; height: 14px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+
+.dl-place { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dl-wide { grid-column: 1 / -1; margin: 0; }
+.dl-more summary { cursor: pointer; font: 500 10.5px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.dl-more summary:hover { color: var(--accent); }
+.dl-more[open] summary { margin-bottom: 8px; }
+.dl-more .field-note { margin: 0; }
+
+@media (max-width: 900px) { .dl { width: auto; } }
+@media (pointer: coarse) {
+  .hud.dl button, .hud.dl summary, .hud.dl .field input, .hud.dl .field select { min-height: 44px; }
+  .dl-range { height: 44px; }
+  .dl-range::-webkit-slider-thumb { width: 20px; height: 32px; margin-top: -14px; }
+  .dl-range::-moz-range-thumb { width: 18px; height: 32px; }
+  .dl-more summary { display: flex; align-items: center; }
+}
+
+/* compact screens (800x480, 1024x600, phones): the panel is a sheet (ui/sheet.css); it scrolls as a whole and every control is a finger wide */
+html:not([data-vp="regular"]) .app .hud.dl .dl-body { flex: none; overflow: visible; padding-right: 0; gap: 16px; }
+html:not([data-vp="regular"]) .app .hud.dl :is(.dl-season, .dl-seg button, .dl-switch, .dl-two .btn) { min-height: 48px; }
+html:not([data-vp="regular"]) .app .hud.dl .dl-range { height: 44px; }
+html:not([data-vp="regular"]) .app .hud.dl :is(.field-note, .dl-sunrise, .dl-now-text, .dl-key) { font-size: 13px; }
+html:not([data-vp="regular"]) .app .hud.dl :is(.dl-season small, .dl-ends, .dl-more summary) { font-size: 12px; }
+html:not([data-vp="regular"]) .dl-place { grid-template-columns: 1fr; }
+html:not([data-vp="regular"]) .dl-summary { font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-switch, .dl-switch i, .dl-switch i::after, .dl-season, .dl-seg button { transition: none; }
+}
