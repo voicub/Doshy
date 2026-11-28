@@ -24,9 +24,12 @@ export const median = (xs: readonly number[]): number => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+/** What the governor asks for: God rays off (the first thing to go, they are the costliest optional effect), or the next lighter tier. */
+export type Step = Tier | "godrays";
+
 export type Governor = {
-  /** Feed one frame (ms). Returns the tier to switch to, or null to keep the current one. */
-  frame: (ms: number, tier: Tier, manual: boolean) => Tier | null;
+  /** Feed one frame (ms). `godraysOn`: the picture has God rays, which are shed before the tier is lowered. Returns the step to take, or null to keep things as they are. */
+  frame: (ms: number, tier: Tier, manual: boolean, godraysOn?: boolean) => Step | null;
   /** Start over: the scene changed (environment, mode, plan) or the tab came back. */
   reset: () => void;
 };
@@ -40,7 +43,7 @@ export function createGovernor(cfg: typeof GOVERNOR = GOVERNOR): Governor {
 
   return {
     reset: () => clear(cfg.settleMs),
-    frame(ms, tier, manual) {
+    frame(ms, tier, manual, godraysOn = false) {
       if (manual || lowerTier(tier) === tier) { clear(cfg.settleMs); return null; } // nothing to decide: locked, or already at the floor (Eco)
       if (!(ms > 0) || ms > cfg.hitchMs) return null;
       if (settle > 0) { settle -= ms; return null; }
@@ -53,7 +56,7 @@ export function createGovernor(cfg: typeof GOVERNOR = GOVERNOR): Governor {
       slow = judged > cfg.slowMs ? slow + 1 : 0;
       if (slow < cfg.slowWindows) return null;
       clear(cfg.settleMs);
-      return lowerTier(tier);
+      return godraysOn ? "godrays" : lowerTier(tier);
     },
   };
 }

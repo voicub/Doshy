@@ -1,5 +1,5 @@
 import { isRecord } from "@/lib/guards";
-import { haFailure, ha } from "@/lib/haServer";
+import { haFailure, haFor, resolveHa } from "@/lib/haServer";
 import { ENTITY_ID } from "@/lib/haService";
 import { TOGGLEABLE, domainOf } from "@/lib/ha";
 import { forgetStates } from "@/lib/server/haStates";
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "entity not toggleable" }, { status: 400 });
   }
   try {
-    const res = await ha("services/homeassistant/toggle", { method: "POST", body: JSON.stringify({ entity_id }) });
+    const res = await haFor(resolveHa(req))("services/homeassistant/toggle", { method: "POST", body: JSON.stringify({ entity_id }) });
     forgetStates();
     if (!res.ok) return Response.json({ error: `Home Assistant HTTP ${res.status}` }, { status: 502 });
     return Response.json({ ok: true });

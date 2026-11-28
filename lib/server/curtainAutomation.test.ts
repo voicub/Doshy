@@ -1,11 +1,16 @@
 process.env.TZ = "Europe/Bucharest";
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
+import { createHome, parseNewHome } from "../db/connections.ts";
+import { createDashboard, parseCreateBody, patchDashboard, setDefaultDashboard } from "../db/dashboards.ts";
 import { putPlan } from "../db/plans.ts";
 import { tempDb } from "../db/testDb.ts";
 import { MAX_TRIES } from "../curtainAuto.ts";
 import { KEY, MAX_BACKOFF_MS, TICK_MS, curtainsOf, type Curtain, isRunning, lastActions, loadStore, nextDelay, startCurtainAutomation, stopCurtainAutomation, tick, type Deps } from "./curtainAutomation.ts";
+import type { HaFetch } from "./haCall.ts";
 
+const HOME = 1; // the plan every database starts with: also the default (home) plan
+const freshCache = () => ({ id: null as number | null, rev: null as number | null, curtains: [] as Curtain[] });
 afterEach(() => {
   stopCurtainAutomation();
   delete process.env.HOUSEY_AUTOMATION;
@@ -25,7 +30,7 @@ function fakeHa(covers: Record<string, string> = { "cover.blind": "open" }) {
     down: false,
     refuse: false,
   };
-  const ha: Deps["ha"] = async (path, init) => {
+  const ha: HaFetch = async (path, init) => {
     w.calls.push({ path, method: init?.method ?? "GET", body: init?.body ? JSON.parse(String(init.body)) : undefined });
     if (w.down) throw new Error("fetch failed");
     const states = () => {
@@ -53,12 +58,12 @@ function fakeHa(covers: Record<string, string> = { "cover.blind": "open" }) {
 
 function rig(items: unknown[] = [item("c1")], covers?: Record<string, string>) {
   const t = tempDb();
-  putPlan(t.db, { json: planWith(items), baseRev: 0, format: 1 });
+  putPlan(t.db, HOME, { json: planWith(items), baseRev: 0, format: 1 });
   const h = fakeHa(covers);
   const logs: string[] = [];
   let clock = new Date(2026, 5, 10, 3, 0);
-  const deps: Deps = { db: () => t.db, ha: h.ha, now: () => clock, configured: () => true, log: { info: (m) => logs.push(`i ${m}`), error: (m) => logs.push(`e ${m}`) } };
-  const cache = { rev: null as number | null, curtains: [] as Curtain[] };
+  const deps: Deps = { db: () => t.db, ha: () => h.ha, now: () => clock, configured: () => true, log: { info: (m) => logs.push(`i ${m}`), error: (m) => logs.push(`e ${m}`) } };
+  const cache = freshCache();
   return {
     t,
     h,
@@ -141,7 +146,7 @@ test("the sun missing from Home Assistant, or the cover missing: no action, no e
   const r = rig();
   r.h.sun = undefined;
   r.h.covers = {};
-  const cache = { rev: null, curtains: [] };
+  const cache = freshCache();
   for (const m of [0, 1, 2]) {
     assert.equal(await tick({ ...r.deps, now: () => new Date(2026, 5, 10, 4, m) }, cache), "ok");
   }
@@ -181,9 +186,9 @@ test("no such curtains in the plan: the automation is idle and never asks Home A
 test("no plan at all, or Home Assistant not set up: idle, no calls", async () => {
   const t = tempDb();
   const h = fakeHa();
-  const deps: Deps = { db: () => t.db, ha: h.ha, now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: () => undefined, error: () => undefined } };
+  const deps: Deps = { db: () => t.db, ha: () => h.ha, now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: () => undefined, error: () => undefined } };
   assert.equal(await tick(deps), "idle");
-  putPlan(t.db, { json: planWith([item("a")]), baseRev: 0, format: 1 });
+  putPlan(t.db, HOME, { json: planWith([item("a")]), baseRev: 0, format: 1 });
   assert.equal(await tick({ ...deps, configured: () => false }), "idle");
   assert.equal(h.calls.length, 0);
   t.cleanup();
@@ -191,16 +196,28 @@ test("no plan at all, or Home Assistant not set up: idle, no calls", async () =>
 
 test("a change to the plan (curtain added, rule switched off) is picked up on the next look", async () => {
   const r = rig([item("a", { params: {} })]);
-  const cache = { rev: null, curtains: [] };
+  const cache = freshCache();
   assert.equal(await tick(r.deps, cache), "idle");
-  putPlan(r.t.db, { json: planWith([item("a")]), baseRev: 1, format: 1 });
+  putPlan(r.t.db, HOME, { json: planWith([item("a")]), baseRev: 1, format: 1 });
   r.h.sun = { state: "below_horizon", attributes: { elevation: -30, rising: true } };
   assert.equal(await tick(r.deps, cache), "ok");
   assert.ok(r.h.calls.length > 0);
-  putPlan(r.t.db, { json: planWith([item("a", { params: { blackoutEntity: "cover.blind", blackoutDawn: false } })]), baseRev: 2, format: 1 });
+  putPlan(r.t.db, HOME, { json: planWith([item("a", { params: { blackoutEntity: "cover.blind", blackoutDawn: false } })]), baseRev: 2, format: 1 });
   const n = r.h.calls.length;
   assert.equal(await tick(r.deps, cache), "idle");
   assert.equal(r.h.calls.length, n);
+  r.cleanup();
+});
+
+test("only the home plan's curtains are driven, and making another plan the home plan switches the rule to it even at the same revision", async () => {
+  const r = rig([item("a")], { "cover.blind": "open", "cover.other": "open" });
+  const second = createDashboard(r.t.db, parseCreateBody({ name: "Second", plan: JSON.parse(planWith([item("b", { params: { blackoutEntity: "cover.other" } })])), format: 1 })).id;
+  assert.equal(await r.look(10, 4, 1, -5, true), "ok");
+  assert.deepEqual(r.h.services(), ["services/cover/close_cover cover.blind"], "the second plan's curtain is left alone");
+  setDefaultDashboard(r.t.db, second); // both plans are at revision 1
+  r.h.covers["cover.blind"] = "open";
+  assert.equal(await r.look(11, 4, 1, -5, true), "ok");
+  assert.deepEqual(r.h.services().slice(1), ["services/cover/close_cover cover.other"], "now it drives the new home plan's curtain only");
   r.cleanup();
 });
 
@@ -221,10 +238,10 @@ test("Home Assistant unreachable: never throws, no action, one error line, and t
 
 test("Home Assistant answering 500 to the states read is an error, not an exception", async () => {
   const r = rig();
-  const bad: Deps = { ...r.deps, ha: async () => new Response("boom", { status: 500 }) };
+  const bad: Deps = { ...r.deps, ha: () => async () => new Response("boom", { status: 500 }) };
   assert.equal(await tick(bad), "error");
   assert.match(r.logs[0], /Home Assistant HTTP 500/);
-  const odd: Deps = { ...r.deps, ha: async () => Response.json({ not: "a list" }) };
+  const odd: Deps = { ...r.deps, ha: () => async () => Response.json({ not: "a list" }) };
   assert.equal(await tick(odd), "error");
   r.cleanup();
 });
@@ -266,7 +283,7 @@ test("memory survives a restart: a new loop does not close what the owner opened
   assert.equal(r.h.services().length, 1);
   r.h.covers["cover.blind"] = "open";
   // restart: a fresh cache, the same database; the sun is still in the dawn window
-  const cache = { rev: null, curtains: [] };
+  const cache = freshCache();
   r.h.sun = { state: "below_horizon", attributes: { elevation: -4, rising: true } };
   await tick({ ...r.deps, now: () => new Date(2026, 5, 10, 4, 10) }, cache);
   await tick({ ...r.deps, now: () => new Date(2026, 5, 10, 9, 30) }, cache);
@@ -282,8 +299,8 @@ test("the stored row stays small, drops curtains that left the plan, and keeps t
   assert.ok(JSON.stringify(loadStore(r.t.db)).length < 1500);
   assert.equal(lastActions(r.t.db).a.action, "close");
   assert.equal(lastActions(r.t.db).b.action, "skip");
-  putPlan(r.t.db, { json: planWith([item("b", { params: { blackoutEntity: "cover.other" } })]), baseRev: 1, format: 1 });
-  await tick(r.deps, { rev: null, curtains: [] });
+  putPlan(r.t.db, HOME, { json: planWith([item("b", { params: { blackoutEntity: "cover.other" } })]), baseRev: 1, format: 1 });
+  await tick(r.deps, freshCache());
   assert.deepEqual(Object.keys(loadStore(r.t.db).items), ["b"]);
   r.t.db.exec(`UPDATE settings SET value = 'garbage' WHERE key = '${KEY}'`);
   assert.deepEqual(loadStore(r.t.db), { items: {} }, "a damaged row means a fresh start, never an action");
@@ -296,7 +313,7 @@ test("backoff: a minute, doubling after each failed look, at most 15 minutes", (
 
 test("the loop starts once, never twice, and stops cleanly", () => {
   const logs: string[] = [];
-  const deps: Deps = { db: () => { throw new Error("no db in this test"); }, ha: async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: (m) => logs.push(m), error: (m) => logs.push(m) } };
+  const deps: Deps = { db: () => { throw new Error("no db in this test"); }, ha: () => async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: (m) => logs.push(m), error: (m) => logs.push(m) } };
   assert.equal(isRunning(), false);
   assert.equal(startCurtainAutomation(deps, 3_600_000), true);
   assert.equal(isRunning(), true);
@@ -307,7 +324,7 @@ test("the loop starts once, never twice, and stops cleanly", () => {
 
 test("HOUSEY_AUTOMATION=off, or no Home Assistant: the loop does not start", () => {
   const logs: string[] = [];
-  const deps: Deps = { db: () => { throw new Error("no db"); }, ha: async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: (m) => logs.push(m), error: (m) => logs.push(m) } };
+  const deps: Deps = { db: () => { throw new Error("no db"); }, ha: () => async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: (m) => logs.push(m), error: (m) => logs.push(m) } };
   process.env.HOUSEY_AUTOMATION = " OFF ";
   assert.equal(startCurtainAutomation(deps, 3_600_000), false);
   assert.match(logs[0], /off/);
@@ -319,8 +336,29 @@ test("HOUSEY_AUTOMATION=off, or no Home Assistant: the loop does not start", () 
 
 test("the running loop looks on its own timer and survives a failing database", async () => {
   const failed = Promise.withResolvers<string>();
-  const deps: Deps = { db: () => { throw new Error("db down"); }, ha: async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: () => undefined, error: failed.resolve } };
+  const deps: Deps = { db: () => { throw new Error("db down"); }, ha: () => async () => new Response("no", { status: 500 }), now: () => new Date(2026, 5, 10, 3, 0), configured: () => true, log: { info: () => undefined, error: failed.resolve } };
   assert.equal(startCurtainAutomation(deps, 0), true);
   assert.match(await failed.promise, /db down/); // the loop's own first look, no guessed wait
   assert.equal(isRunning(), true);
+});
+
+test("the loop asks the home that the home plan shows, and no other plan's home", async () => {
+  const r = rig();
+  const asked: (string | null)[] = [];
+  const home = createHome(r.t.db, parseNewHome({ name: "Holiday house", url: "http://127.0.0.1:9", token: "tok-aaaa-1111" }));
+  const other = createHome(r.t.db, parseNewHome({ name: "Parents", url: "http://127.0.0.1:9", token: "tok-bbbb-2222" }));
+  putPlan(r.t.db, HOME, { json: planWith([item("a")]), baseRev: 0, format: 1 });
+  patchDashboard(r.t.db, HOME, { haConnection: home.id });
+  const second = createDashboard(r.t.db, parseCreateBody({ name: "Annex", haConnection: other.id }));
+  const deps: Deps = { ...r.deps, ha: (id) => (asked.push(id), r.deps.ha(id)) };
+  await tick(deps);
+  assert.deepEqual(asked, [home.id], "the default plan's home, once");
+  setDefaultDashboard(r.t.db, second.id);
+  await tick(deps, freshCache()); // the Annex has no curtains: nothing is asked
+  assert.deepEqual(asked, [home.id]);
+  setDefaultDashboard(r.t.db, HOME);
+  patchDashboard(r.t.db, HOME, { haConnection: null });
+  await tick(deps, freshCache());
+  assert.deepEqual(asked, [home.id, null], "no link = the main home");
+  r.cleanup();
 });

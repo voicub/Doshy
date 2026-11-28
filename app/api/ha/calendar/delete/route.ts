@@ -1,7 +1,8 @@
 import { validateDelete } from "@/lib/calendar";
 import { refuse } from "@/lib/db/http";
 import { errorMessage } from "@/lib/guards";
-import { HaWebSocket, haCredentials } from "@/lib/haServer";
+import { HttpError } from "@/lib/db/errors";
+import { HaWebSocket, allowHome, haFailure, resolveHa } from "@/lib/haServer";
 import { wsCommand } from "@/lib/haNotify";
 
 export const runtime = "nodejs";
@@ -29,10 +30,12 @@ export async function POST(req: Request) {
   const v = validateDelete(body);
   if (!v.ok) return Response.json({ error: v.error }, { status: 400 });
   try {
-    const { base, token } = haCredentials();
-    await wsCommand(base, token, HaWebSocket, v.value, "Home Assistant could not delete the event");
+    const home = resolveHa(req);
+    await allowHome(home);
+    await wsCommand(home.baseUrl, home.token, HaWebSocket, v.value, "Home Assistant could not delete the event");
     return Response.json({ ok: true });
   } catch (e) {
+    if (e instanceof HttpError) return haFailure(e);
     console.error("calendar delete:", errorMessage(e));
     return Response.json({ error: "Home Assistant could not delete that event." }, { status: 502 });
   }

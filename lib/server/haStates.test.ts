@@ -14,7 +14,7 @@ const raw = [
 
 test("only the attributes the dashboard renders are forwarded, per kind of entity", () => {
   const out = Object.fromEntries(shapeStates(raw).map((s) => [s.entity_id, s]));
-  assert.deepEqual(out["light.kitchen"].attributes, { friendly_name: "Kitchen", brightness: 200 }, "null and unknown attributes are dropped");
+  assert.deepEqual(out["light.kitchen"].attributes, { friendly_name: "Kitchen", brightness: 200, icon: "mdi:x" }, "null and unknown attributes are dropped, validated MDI icons are kept");
   assert.equal(out["light.kitchen"].last_changed, "2026-11-22T10:00:00Z");
   assert.deepEqual(out["media_player.tv"].attributes, { friendly_name: "TV", media_title: "Show", app_name: "Netflix" });
   assert.deepEqual(out["sensor.power"].attributes, { unit_of_measurement: "W" });
@@ -22,6 +22,11 @@ test("only the attributes the dashboard renders are forwarded, per kind of entit
   assert.deepEqual(out["select.other"].attributes, {});
   assert.deepEqual(out["update.core"].attributes, { installed_version: "1", latest_version: "2" });
   assert.deepEqual(out["vacuum.robot"].attributes, { battery_level: 80, x: 1, y: 2 });
+});
+
+test("MDI attributes survive state forwarding; custom prefixes and injection strings do not", () => {
+  const icons = ["mdi:lightbulb-group", "mdi:door-open", "hass:lightbulb", "mdi:../path", "mdi:<script>", `mdi:${"x".repeat(61)}`];
+  assert.deepEqual(shapeStates(icons.map((icon, i) => ({ entity_id: `light.icon_${i}`, state: "on", attributes: { icon } }))).map((st) => st.attributes.icon), ["mdi:lightbulb-group", "mdi:door-open", undefined, undefined, undefined, undefined]);
 });
 
 test("the lists per kind are shared, not rebuilt per entity", () => {
@@ -55,12 +60,27 @@ test("concurrent readers share one fetch, and forgetStates makes the next read a
   forgetStates();
   let calls = 0;
   const load = async () => (calls++, [{ entity_id: "light.a", state: calls === 1 ? "on" : "off", attributes: {} }]);
-  const [a, b] = await Promise.all([statesSnapshot(load), statesSnapshot(load)]);
+  const [a, b] = await Promise.all([statesSnapshot("main", load), statesSnapshot("main", load)]);
   assert.equal(calls, 1);
   assert.equal(a.etag, b.etag);
   forgetStates();
-  const c = await statesSnapshot(load);
+  const c = await statesSnapshot("main", load);
   assert.equal(calls, 2);
   assert.notEqual(c.etag, a.etag);
+  forgetStates();
+});
+
+test("two homes never share a cached list or validate each other's ETag", async () => {
+  forgetStates();
+  const same = [{ entity_id: "light.a", state: "on", attributes: {} }];
+  const loadsFor = (calls: string[], id: string) => async () => (calls.push(id), same);
+  const calls: string[] = [];
+  const [flat, house] = await Promise.all([statesSnapshot("main", loadsFor(calls, "main")), statesSnapshot("abc123def4", loadsFor(calls, "abc123def4"))]);
+  assert.deepEqual(calls.sort(), ["abc123def4", "main"], "each home is fetched once for itself");
+  assert.equal(flat.body, house.body, "the lists are identical on purpose");
+  assert.notEqual(flat.etag, house.etag, "but the validators are per home");
+  const again = await statesSnapshot("abc123def4", loadsFor(calls, "x"));
+  assert.equal(again.etag, house.etag);
+  assert.equal(calls.length, 2, "the second home's list is cached under its own key");
   forgetStates();
 });

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { errorMessage, isRecord } from "./guards.ts";
 import type { HAState } from "./ha";
+import { haFetch, onHomeChange } from "./haHome.ts";
 import { REQUEST_TIMEOUT_MS, within } from "./requestTimeout.ts";
 import type { Plan, Room } from "./types";
 
@@ -27,6 +28,7 @@ type AreasState = {
 };
 
 let inflight: Promise<void> | null = null;
+let epoch = 0; // counts the homes shown so far: an answer from an older one is dropped
 
 export const useAreas = create<AreasState>((set, get) => ({
   areas: [],
@@ -36,24 +38,33 @@ export const useAreas = create<AreasState>((set, get) => ({
   load: () => {
     if (get().loaded) return Promise.resolve();
     inflight ??= (async () => {
+      const mine = epoch;
       try {
-        const res = await fetch("/api/ha/areas", { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
+        const res = await haFetch("/api/ha/areas", { cache: "no-store", signal: within(REQUEST_TIMEOUT_MS) });
         if (!res.ok) {
           const sent: unknown = await res.json().catch(() => null);
           throw new Error(isRecord(sent) && typeof sent.error === "string" ? sent.error : `HTTP ${res.status}`);
         }
         const data = parseAreas(await res.json());
         if (!data) throw new Error("The server sent an area list this page cannot read.");
-        set({ areas: data.areas, entityArea: data.entityArea, loaded: true, error: null });
+        if (mine === epoch) set({ areas: data.areas, entityArea: data.entityArea, loaded: true, error: null });
       } catch (e) {
-        set({ error: errorMessage(e) });
+        if (mine === epoch) set({ error: errorMessage(e) });
       } finally {
-        inflight = null;
+        if (mine === epoch) inflight = null;
       }
     })();
     return inflight;
   },
 }));
+
+// Another home on screen: its areas are not this home's.
+onHomeChange(() => {
+  epoch++;
+  inflight = null;
+  useAreas.setState({ areas: [], entityArea: {}, loaded: false, error: null });
+  void useAreas.getState().load();
+});
 
 const areaOfEntity = (entityArea: Record<string, string | null>, entityId: string): string | null => entityArea[entityId] ?? null;
 

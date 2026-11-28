@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { FPS30_MS, PACE, createPacer, framePolicy, keepAlive, takeKept } from "./framePacer.ts";
 
 test("only the heavy tiers on a normal screen keep the plain always-drawing loop", () => {
-  assert.deepEqual(framePolicy("high", "regular", false), { demand: false, capMs: 0 });
-  assert.deepEqual(framePolicy("ultra", "regular", false), { demand: false, capMs: 0 });
+  assert.deepEqual(framePolicy("high", "regular", false), { demand: false, capMs: 0, ambientMs: 0, shadowMs: PACE.shadowMs });
+  assert.deepEqual(framePolicy("ultra", "regular", false), { demand: false, capMs: 0, ambientMs: 0, shadowMs: PACE.shadowMs });
   assert.equal(framePolicy("high", "regular", true).demand, true, "a kiosk idles when still");
   assert.equal(framePolicy("high", "tiny", false).demand, true, "a small screen idles when still");
   assert.equal(framePolicy("medium", "regular", false).demand, true);
@@ -156,4 +156,44 @@ test("the last move of an animation reaches the shadow map even when nothing els
   const last = drawn[drawn.length - 1];
   assert.ok(last >= 1010 && last <= 1010 + PACE.shadowMs + FPS30_MS, `last shadow pass at ${last}`);
   assert.ok(drawn.filter((t) => t > last).length === 0, "and then none while the scene is still");
+});
+
+test("Eco and Light draw ambient motion slower than the owner's own touch; the heavy tiers do not", () => {
+  assert.ok(framePolicy("eco", "tiny", true).ambientMs > FPS30_MS);
+  assert.ok(framePolicy("low", "small", false).ambientMs > FPS30_MS);
+  assert.equal(framePolicy("low", "regular", false).ambientMs, 0, "Light on a big screen has no cap, so no ambient rate either");
+  assert.equal(framePolicy("medium", "tiny", true).ambientMs, 0);
+  assert.ok(framePolicy("eco", "regular", false).shadowMs > PACE.shadowMs, "Eco redraws a moving caster's shadow rarely");
+});
+
+test("a fan that turns while nobody touches draws at the ambient rate; a touch brings the cap back; a finger on a panel holds it off", () => {
+  const AMBIENT = 100;
+  const p = createPacer(FPS30_MS, { ambientMs: AMBIENT });
+  p.begin(10_000, true, false);
+  assert.equal(p.end(10_005, true, false), AMBIENT - 5, "kept alive, nobody touches");
+  p.poke(10_100);
+  p.begin(10_100, true, false);
+  assert.ok(Math.abs(p.end(10_105, true, false) - (FPS30_MS - 5)) < 1e-6, "the owner touched the screen: the cap");
+  const t = 10_100 + PACE.activeMs + 50;
+  p.begin(t, true, false);
+  assert.equal(p.end(t + 5, true, false), AMBIENT - 5, "and after it, ambient again");
+  p.hold(t + 10);
+  p.begin(t + 100, true, false);
+  assert.equal(p.end(t + 105, true, false), t + 10 + PACE.holdMs - (t + 105), "a panel is being scrolled: the next ambient frame waits for the hold to end");
+  p.begin(t + 600, true, false);
+  assert.equal(p.end(t + 605, true, false), AMBIENT - 5, "hold over");
+});
+
+test("with an ambient rate a still scene is still idle and a fan's shadow map is redrawn at the tier's shadow rate", () => {
+  const p = createPacer(FPS30_MS, { ambientMs: 100, shadowMs: 500 });
+  p.begin(0, true, false);
+  assert.equal(p.end(5, false, false), PACE.idleMs, "nothing moves: the heartbeat");
+  let drawn = 0;
+  let at = 5000 + PACE.activeMs;
+  const stop = at + 10_000;
+  while (at < stop) {
+    if (p.begin(at, true, false)) drawn++;
+    at += p.end(at + 5, true) + 5;
+  }
+  assert.ok(drawn <= 10_000 / 500 + 2 && drawn >= 10_000 / 600, `${drawn} shadow passes in 10 s`);
 });

@@ -54,3 +54,11 @@ test("a mistyped reading cannot reach the dashboard, and an entry without a text
   assert.deepEqual(out[0].attributes, { temperature: 22 });
   assert.deepEqual(out[1].attributes, {});
 });
+
+test("an entity's icon is forwarded only when it is a Material Design icon name", () => {
+  assert.equal(cleanAttribute("icon", "mdi:lightbulb-group"), "mdi:lightbulb-group");
+  for (const bad of ["hass:bulb", "phu:bulb", "mdi:", "mdi:Bad Name", "mdi:../x", "mdi:" + "a".repeat(80), 5, null]) assert.equal(cleanAttribute("icon", bad), undefined, String(bad));
+  const out = shapeStates([{ entity_id: "light.a", state: "on", attributes: { icon: "mdi:ceiling-light", friendly_name: "A" } }, { entity_id: "switch.b", state: "on", attributes: { icon: "hass:plug" } }]);
+  assert.equal(out[0].attributes.icon, "mdi:ceiling-light");
+  assert.equal(out[1].attributes.icon, undefined);
+});

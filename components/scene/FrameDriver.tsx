@@ -1,13 +1,15 @@
 "use client";
 import { addAfterEffect, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
-import { createPacer, frameFlags, takeKept } from "@/lib/framePacer";
+import { WAKE_EVENT, createPacer, frameFlags, takeKept, type FramePolicy } from "@/lib/framePacer";
 import { isOrtho } from "./camera";
 import { probe } from "./devProbe";
 
 /** Pointer, touch, wheel and key activity: the owner is looking, so the scene draws at the tier's rate for a while (hover, drag, camera easing). */
 const INPUT = ["pointerdown", "pointermove", "pointerup", "wheel", "keydown", "touchstart", "touchmove"] as const;
 const VSYNC_SLACK_MS = 8;
+/** The HUD: panels, sheets, dialogs. A finger on them scrolls or taps the panel, it does not move the 3D view, so it must not wake the scene (a change it makes reaches the scene through React). */
+const HUD = ".chrome, .scrim, [role='dialog']";
 
 /**
  * Paces a Canvas running `frameloop="demand"` (lib/framePacer.ts): after every frame it asks the pacer when the next one is due and requests it with a timer,
@@ -15,7 +17,7 @@ const VSYNC_SLACK_MS = 8;
  * switches to frameloop "never"). Frames somebody else asked for (a React change, the camera controls, a resize) start a short settle burst so easings finish.
  * Renders nothing; mounted only for tiers that pace (not in the plain always-drawing loop).
  */
-export default function FrameDriver({ capMs }: { capMs: number }) {
+export default function FrameDriver({ capMs, ambientMs, shadowMs }: Pick<FramePolicy, "capMs" | "ambientMs" | "shadowMs">) {
   const getState = useThree((s) => s.get);
   const invalidate = useThree((s) => s.invalidate);
   const frameloop = useThree((s) => s.frameloop);
@@ -23,7 +25,8 @@ export default function FrameDriver({ capMs }: { capMs: number }) {
 
   useEffect(() => {
     // the frame itself starts at the next screen refresh after the timer fires (up to 16 ms later on 60 Hz): aim that much early so a 30 fps cap really gives 30, not 20
-    const pacer = createPacer(capMs > 0 ? Math.max(1, capMs - VSYNC_SLACK_MS) : 0);
+    const slack = (ms: number) => (ms > 0 ? Math.max(1, ms - VSYNC_SLACK_MS) : 0);
+    const pacer = createPacer(slack(capMs), { ambientMs: slack(ambientMs), shadowMs });
     let timer: number | undefined;
     let due = Infinity; // when the pending timer fires (performance.now() ms)
     let planned = false; // the next frame is one this driver asked for
@@ -72,17 +75,23 @@ export default function FrameDriver({ capMs }: { capMs: number }) {
       probe({ frames: ++frames });
     });
     const onVisible = () => !document.hidden && wake();
-    for (const t of INPUT) window.addEventListener(t, wake, { capture: true, passive: true });
+    const onInput = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest(HUD)) pacer.hold(performance.now());
+      else wake();
+    };
+    for (const t of INPUT) window.addEventListener(t, onInput, { capture: true, passive: true });
+    window.addEventListener(WAKE_EVENT, wake);
     document.addEventListener("visibilitychange", onVisible);
     wake();
     return () => {
       offAfter();
       clearTimeout(timer);
       begin.current = null;
-      for (const t of INPUT) window.removeEventListener(t, wake, { capture: true });
+      for (const t of INPUT) window.removeEventListener(t, onInput, { capture: true });
+      window.removeEventListener(WAKE_EVENT, wake);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [capMs, getState, invalidate]);
+  }, [capMs, ambientMs, shadowMs, getState, invalidate]);
 
   // back from a pause (screensaver, hidden tab): draw at once
   useEffect(() => {

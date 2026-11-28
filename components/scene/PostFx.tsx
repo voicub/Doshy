@@ -5,12 +5,14 @@ import { Bloom, ChromaticAberration, DepthOfField, EffectComposer, N8AO, Noise, 
 import { BlendFunction, SMAAPreset, ToneMappingMode, type BloomEffect, type DepthOfFieldEffect } from "postprocessing";
 import { useRef } from "react";
 import { keepAlive } from "@/lib/framePacer";
-import { BackSide, MathUtils, type Vector2Tuple } from "three";
+import { BackSide, MathUtils, type DirectionalLight, type Vector2Tuple } from "three";
 import type { OrbitControls } from "three-stdlib";
 import { useStore } from "@/lib/store";
 import { useKnobs } from "@/lib/quality";
 import { Grade, type GradeEffectImpl } from "./GradeEffect";
+import Godrays from "./Godrays";
 import { probe } from "./devProbe";
+import { useWalkActive } from "@/lib/walkStore";
 import { live } from "./skyLive";
 
 const LITE_MSAA = 4; // samples of the Light picture: smooth edges without a separate anti-aliasing pass (cheap on tiled mobile GPUs)
@@ -51,12 +53,14 @@ export function Studio() {
   );
 }
 
-/** The finishing passes of the tier (lib/quality.ts `fx`): film = AO, depth of field, bloom, lens fringing, tone map, colour grade, vignette, anti-aliasing, grain;
- *  lite = tone map, grade and vignette in one pass over a multisampled picture. (Eco draws straight to the screen: Scene3D mounts no PostFx.) */
-export default function PostFx() {
+/** The finishing passes of the tier (lib/quality.ts `fx`): film = AO, god rays, depth of field, bloom, lens fringing, tone map, colour grade, vignette, anti-aliasing, grain;
+ *  lite = tone map, grade and vignette in one pass over a multisampled picture. (Eco draws straight to the screen: Scene3D mounts no PostFx.)
+ *  `sun`: the sun's light, whose shadow map the god rays read (null until it has mounted). */
+export default function PostFx({ sun }: { sun: DirectionalLight | null }) {
   const cinema = useStore((s) => s.cinema);
   const k = useKnobs();
   const film = k.fx === "film";
+  const walking = useWalkActive(); // first person: no tilt-shift blur (its focus point is the isometric view's target). The pass stays mounted: taking it out rebuilds the whole composer, which draws a black frame
   const dof = useRef<DepthOfFieldEffect>(null);
   const bloom = useRef<BloomEffect>(null);
   const grade = useRef<GradeEffectImpl>(null);
@@ -69,6 +73,10 @@ export default function PostFx() {
     grade.current?.setLook(L);
     const fx = dof.current;
     if (!fx) return;
+    if (walking) {
+      fx.bokehScale = 0;
+      return;
+    }
     const { focusRoom, cinema: cin } = useStore.getState();
     const want = focusRoom ? (cin ? DOF.cinema : DOF.room) : cin ? DOF.cinemaOverview : DOF.overview;
     if (Math.abs(fx.cocMaterial.focusRange - want.range) > 0.01 || Math.abs(fx.bokehScale - want.bokeh) > 0.01) keepAlive(false);
@@ -81,6 +89,7 @@ export default function PostFx() {
   return (
     <EffectComposer key={k.fx} ref={(c) => probe({ composer: c })} multisampling={film ? 0 : LITE_MSAA} enableNormalPass={false}>
       {film && <N8AO key={`${k.aoQuality}-${k.aoHalfRes}`} {...(k.ao ? AO.tuned : AO.original)} quality={k.aoQuality} halfRes={k.aoHalfRes} color="black" />}
+      {film && sun && k.godrays !== "off" && <Godrays sun={sun} mode={k.godrays} />}
       {film && <DepthOfField ref={dof} focusDistance={40} focusRange={DOF.overview.range} bokehScale={DOF.overview.bokeh} resolutionScale={0.5} />}
       {film && <Bloom ref={bloom} mipmapBlur intensity={0.7} luminanceThreshold={1} luminanceSmoothing={0.15} radius={0.8} levels={8} />}
       {film && <ChromaticAberration offset={CA_OFFSET} radialModulation modulationOffset={0.25} />}

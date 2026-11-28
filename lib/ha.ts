@@ -1,11 +1,16 @@
 // Browser-side client for our own /api/ha/* routes (the HA token never leaves the server).
 import { REQUEST_TIMEOUT_MS, timedOut, within } from "./requestTimeout.ts";
+import { noteStaleAnswer } from "./offlineStatus.ts";
+import { cachedAtOf } from "./swRules.ts";
+import { assertLive } from "./replayGate.ts";
+import { currentHome, haFetch, homeHeaders, homeKnown } from "./haHome.ts";
 export type HAState = {
   entity_id: string;
   state: string;
   attributes: {
     friendly_name?: string;
     unit_of_measurement?: string;
+    temperature_unit?: string;
     rgb_color?: [number, number, number];
     brightness?: number; // 0-255
     color_temp_kelvin?: number;
@@ -20,6 +25,8 @@ export type HAState = {
     wind_speed?: number; // km/h
     wind_bearing?: number;
     cloud_coverage?: number;
+    pressure?: number; // weather.*: air pressure in `pressure_unit` (lib/pressure.ts)
+    pressure_unit?: string;
     // light
     supported_color_modes?: string[];
     min_color_temp_kelvin?: number;
@@ -65,6 +72,7 @@ export type HAState = {
     min_humidity?: number;
     max_humidity?: number;
     device_class?: string;
+    icon?: string; // `mdi:name` only (the server drops any other icon set), see lib/mdiAuto.ts
     // vacuum (some integrations report where the robot is: `x`/`y`, or a `position` object / pair), camera
     x?: number;
     y?: number;
@@ -85,6 +93,8 @@ export type HAState = {
     options?: string[];
   };
   last_changed?: string;
+  last_updated?: string;
+  last_reported?: string;
 };
 
 export const TOGGLEABLE = ["light", "switch", "input_boolean", "fan", "cover", "media_player", "automation", "humidifier", "climate", "vacuum", "remote", "water_heater"];
@@ -98,18 +108,23 @@ export const isOpenState = (st?: HAState | string) => {
 };
 export const domainOf = (entityId: string) => entityId.split(".")[0];
 
-// The last list the server sent and its ETag: while Home Assistant reports nothing new the server answers an empty 304 instead of re-sending ~250 KB.
-let known: { etag: string; list: HAState[] } | null = null;
+// The last list the server sent for one home and its ETag: while Home Assistant reports nothing new the server answers an empty 304 instead of re-sending ~250 KB.
+// It is remembered with the home it came from, so another home's list (or validator) is never offered back after a plan switch.
+let known: { home: string | null; etag: string; list: HAState[] } | null = null;
 
-/** The entity list. When nothing changed since the previous call it is the very same array (same entity objects), so memoised readers of one entity see no change. Gives up after `timeoutMs`. */
+/** The entity list of the home on screen. When nothing changed since the previous call it is the very same array (same entity objects), so memoised readers of one entity see no change. Gives up after `timeoutMs`. */
 export async function fetchStates(fetchFn: typeof fetch = fetch, timeoutMs = REQUEST_TIMEOUT_MS): Promise<HAState[]> {
+  await homeKnown(); // the first poll must ask the home the plan on screen shows, not the main one
+  const home = currentHome();
+  const mine = known?.home === home ? known : null;
   try {
-    const res = await fetchFn("/api/ha/states", { cache: "no-store", headers: known ? { "If-None-Match": known.etag } : undefined, signal: within(timeoutMs) });
-    if (res.status === 304 && known) return known.list;
+    const res = await fetchFn("/api/ha/states", { cache: "no-store", headers: { ...homeHeaders(), ...(mine ? { "If-None-Match": mine.etag } : {}) }, signal: within(timeoutMs) });
+    noteStaleAnswer(cachedAtOf(res.headers)); // a copy the offline worker kept: the chip says how old (lib/offlineStatus.ts)
+    if (res.status === 304 && mine) return mine.list;
     if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `HTTP ${res.status}`);
     const list: HAState[] = await res.json();
     const etag = res.headers.get("etag");
-    known = etag ? { etag, list } : null;
+    known = etag ? { home, etag, list } : null;
     return list;
   } catch (e) {
     throw timedOut(e) ? new Error("The dashboard server did not answer") : e;
@@ -117,7 +132,8 @@ export async function fetchStates(fetchFn: typeof fetch = fetch, timeoutMs = REQ
 }
 
 export async function toggleEntity(entityId: string) {
-  const res = await fetch("/api/ha/toggle", {
+  assertLive(); // history replay: nothing may reach Home Assistant
+  const res = await haFetch("/api/ha/toggle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ entity_id: entityId }),
@@ -130,7 +146,8 @@ export type ServiceCall = { domain: string; service: string; entity_id?: string;
 
 /** Call an allowlisted Home Assistant service through our server (see lib/haService.ts for what is accepted). */
 export async function callService(call: ServiceCall) {
-  const res = await fetch("/api/ha/service", {
+  assertLive();
+  const res = await haFetch("/api/ha/service", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(call),
@@ -140,4 +157,7 @@ export async function callService(call: ServiceCall) {
 }
 
 /** Poster / thumbnail of a media_player, proxied by our server (the HA token never reaches the browser). Pass the entity's `entity_picture` as `v` to refetch when the artwork changes. */
-export const mediaImageUrl = (entityId: string, v?: string) => `/api/ha/media-image?entity=${encodeURIComponent(entityId)}${v ? `&v=${encodeURIComponent(v)}` : ""}`;
+export const mediaImageUrl = (entityId: string, v?: string) => {
+  const home = currentHome(); // an <img> cannot send the X-Doshy-Home header: the address names the home instead (and so never reuses another home's cached picture)
+  return `/api/ha/media-image?entity=${encodeURIComponent(entityId)}${v ? `&v=${encodeURIComponent(v)}` : ""}${home ? `&home=${home}` : ""}`;
+};

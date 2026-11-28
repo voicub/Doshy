@@ -2,6 +2,7 @@
 // The browser polls every few seconds; one fetch from Home Assistant per second serves every browser, and an unchanged list costs a 304.
 import { createHash } from "node:crypto";
 import { isRecord } from "../guards.ts";
+import { MAIN_HOME, MAX_HOMES } from "../db/connections.ts";
 import { cleanAttribute } from "./haAttributes.ts";
 import { ttlCache, type TtlCache } from "./ttlCache.ts";
 
@@ -10,7 +11,7 @@ const KEEP = [
   "friendly_name", "unit_of_measurement", "rgb_color", "brightness", "color_temp_kelvin", "current_temperature",
   "elevation", "azimuth", "latitude", "longitude", "temperature", "humidity", "wind_speed", "wind_bearing", "cloud_coverage", // sun.sun, weather.*, zone.home
   "supported_color_modes", "min_color_temp_kelvin", "max_color_temp_kelvin", "hs_color", "volume_level", "media_title", "media_artist", "source", "percentage", "current_position", // light, media_player, fan, cover
-  "hvac_action", "hvac_modes", "preset_mode", "preset_modes", "target_temp_step", "min_temp", "max_temp", "current_humidity", "min_humidity", "max_humidity", "device_class", // climate, humidifier, binary_sensor
+  "hvac_action", "hvac_modes", "preset_mode", "preset_modes", "target_temp_step", "min_temp", "max_temp", "current_humidity", "min_humidity", "max_humidity", "device_class", "icon", // climate, humidifier, binary_sensor; `icon`: lib/mdiAuto.ts
 ];
 
 // Now-playing details only matter for players and remotes; keeping them off the other 1000+ entities keeps the payload small.
@@ -73,21 +74,22 @@ export function shapeStates(all: unknown): ShapedState[] {
 /** The reply body (JSON text) and its validator. */
 type Snapshot = { body: string; etag: string };
 
-export function snapshotOf(all: unknown): Snapshot {
+/** The ETag also covers the home's id: two homes that happen to report the same list still never validate each other's copy. */
+export function snapshotOf(all: unknown, homeId: string = MAIN_HOME): Snapshot {
   const body = JSON.stringify(shapeStates(all));
-  return { body, etag: `"${createHash("sha1").update(body).digest("base64url")}"` };
+  return { body, etag: `"${createHash("sha1").update(homeId).update("\0").update(body).digest("base64url")}"` };
 }
 
 /** Does an `If-None-Match` header name this ETag? (The header may list several, or be `*`.) */
 export const etagMatches = (header: string | null, etag: string): boolean => !!header && (header.trim() === "*" || header.split(",").some((t) => t.trim().replace(/^W\//, "") === etag));
 
 const STATES_TTL_MS = 1000;
-const g = globalThis as typeof globalThis & { __houseyStates?: TtlCache<Snapshot> };
-// On globalThis so the routes that change things (service, toggle) and the one that reads share it, also across Next dev's hot reloads.
-const cache = (g.__houseyStates ??= ttlCache<Snapshot>(STATES_TTL_MS, 1));
+const g = globalThis as typeof globalThis & { __doshyStates?: TtlCache<Snapshot> };
+// On globalThis so the routes that change things (service, toggle) and the one that reads share it, also across Next dev's hot reloads. One entry per home.
+const cache = (g.__doshyStates ??= ttlCache<Snapshot>(STATES_TTL_MS, MAX_HOMES + 1));
 
-/** The current entity list, at most a second old; concurrent callers share one fetch from Home Assistant. */
-export const statesSnapshot = (load: () => Promise<unknown>): Promise<Snapshot> => cache.get("states", async () => snapshotOf(await load()));
+/** The current entity list of one home, at most a second old; concurrent callers share one fetch from that Home Assistant. */
+export const statesSnapshot = (homeId: string, load: () => Promise<unknown>): Promise<Snapshot> => cache.get(homeId, async () => snapshotOf(await load(), homeId));
 
-/** Something just changed in Home Assistant: the next read must ask it again (the dashboard re-reads shortly after a toggle). */
+/** Something just changed in Home Assistant: the next read must ask it again (the dashboard re-reads shortly after a toggle). Every home's copy goes: asking again is cheap. */
 export const forgetStates = (): void => cache.clear();

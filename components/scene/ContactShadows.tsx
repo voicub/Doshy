@@ -13,26 +13,32 @@ const LIFT = 0.006; // above the floor: clear of z-fighting, still under the rug
 const STRENGTH = 0.5;
 const MIN_H = 0.05; // flat things (rugs, mats) cast no contact shadow
 
-// Rounded rectangle falloff in metres: opaque under the footprint, fading to nothing PAD further out. One draw call for every item of a level.
-const VERT = /* glsl */ `
+/**
+ * Rounded rectangle falloff in metres: opaque under the footprint, fading to nothing `pad` further out. One draw call for every instance; the instance
+ * attribute `aSize` holds the footprint (w, d) and the instance matrix scales the plane by that plus the pad. Also draws the Studio floor's footprint halo.
+ */
+export function haloMaterial(pad: number, strength: number): ShaderMaterial {
+  const vertexShader = /* glsl */ `
 attribute vec2 aSize;
 varying vec2 vP;
 varying vec2 vHalf;
 void main() {
   vHalf = aSize * 0.5;
-  vP = (uv - 0.5) * (aSize + 2.0 * ${PAD.toFixed(3)});
+  vP = (uv - 0.5) * (aSize + 2.0 * ${pad.toFixed(3)});
   gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
 }`;
-const FRAG = /* glsl */ `
+  const fragmentShader = /* glsl */ `
 varying vec2 vP;
 varying vec2 vHalf;
 void main() {
   float r = min(min(vHalf.x, vHalf.y), 0.3);
   vec2 q = abs(vP) - vHalf + r;
   float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
-  float a = 1.0 - smoothstep(-0.04, ${PAD.toFixed(3)}, d);
-  gl_FragColor = vec4(0.0, 0.0, 0.0, a * a * ${STRENGTH.toFixed(3)});
+  float a = 1.0 - smoothstep(-0.04, ${pad.toFixed(3)}, d);
+  gl_FragColor = vec4(0.0, 0.0, 0.0, a * a * ${strength.toFixed(3)});
 }`;
+  return new ShaderMaterial({ vertexShader, fragmentShader, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+}
 
 /** Items that rest on the floor and are tall enough to matter. */
 const restsOnFloor = (item: Item): boolean => {
@@ -48,7 +54,7 @@ export default function ContactShadows({ levelId, items }: { levelId: string; it
   const list = useMemo(() => items.filter(restsOnFloor), [items]);
   const mesh = useRef<InstancedMesh>(null);
   const geometry = useMemo(() => new PlaneGeometry(1, 1).rotateX(-Math.PI / 2), []);
-  const material = useMemo(() => new ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), []);
+  const material = useMemo(() => haloMaterial(PAD, STRENGTH), []);
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
 
   useEffect(() => {

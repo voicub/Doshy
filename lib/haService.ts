@@ -157,6 +157,8 @@ const SERVICES: Record<string, Record<string, Field>> = {
   "light.turn_off": { transition },
   "switch.turn_on": NONE,
   "switch.turn_off": NONE,
+  "input_boolean.turn_on": NONE,
+  "input_boolean.turn_off": NONE,
   "media_player.media_play": NONE,
   "media_player.media_pause": NONE,
   "media_player.media_next_track": NONE,
@@ -190,6 +192,9 @@ const SERVICES: Record<string, Record<string, Field>> = {
   "cover.close_cover": NONE,
   "cover.stop_cover": NONE,
   "cover.set_cover_position": { position: num("position", 0, 100) },
+  // a shut-off valve (Home Assistant's valve domain), asked for by the pipes dialog after an explicit confirm; the entity must exist (see MUST_EXIST)
+  "valve.close_valve": NONE,
+  "valve.open_valve": NONE,
   // takes a notification id, not an entity (see ENTITYLESS)
   "persistent_notification.dismiss": { notification_id: notificationId },
   // a new event: summary, plus either start_date + end_date (all day, end exclusive) or start_date_time + end_date_time (see CHECKS)
@@ -222,6 +227,10 @@ export const ENTITY_ID = /^[a-z_]+\.[a-z0-9_]+$/;
 /** Does validating this service need the entity's attributes (min/max, offered modes)? */
 export const needsAttrs = (domain: string, service: string) =>
   Object.values(SERVICES[`${domain}.${service}`] ?? NONE).length > 0 && /^(climate|humidifier)\.|^light\.turn_on$|^select\.select_option$/.test(`${domain}.${service}`);
+
+/** Services that are only sent for an entity Home Assistant knows: a typo or a deleted valve must be an error, never a call into the void that looks as if it worked. */
+const MUST_EXIST: readonly string[] = ["valve.close_valve", "valve.open_valve", "switch.turn_off", "switch.turn_on"];
+export const needsExisting = (domain: string, service: string) => MUST_EXIST.includes(`${domain}.${service}`);
 
 export function validateService(body: unknown, attrs: ServiceAttrs = {}): Validated {
   const b: Record<string, unknown> = isRecord(body) ? body : {};

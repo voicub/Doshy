@@ -1,5 +1,6 @@
+import { MAX_HOMES } from "@/lib/db/connections";
 import { isRecord } from "@/lib/guards";
-import { haFailure, ha } from "@/lib/haServer";
+import { haFailure, haFor, resolveHa, type HaHome } from "@/lib/haServer";
 import type { HaArea } from "@/lib/haAreas";
 import { ttlCache } from "@/lib/server/ttlCache";
 
@@ -17,11 +18,11 @@ const TEMPLATE =
   "{{ ns.o | tojson }}";
 
 type Payload = { areas: HaArea[]; entityArea: Record<string, string | null> };
-// Rendering the template walks every area and entity inside Home Assistant: browsers asking together share one render.
-const cache = ttlCache<Payload>(60_000, 1);
+// Rendering the template walks every area and entity inside Home Assistant: browsers asking together share one render. One entry per home.
+const cache = ttlCache<Payload>(60_000, MAX_HOMES + 1);
 
-async function load(): Promise<Payload> {
-  const res = await ha("template", { method: "POST", body: JSON.stringify({ template: TEMPLATE }) });
+async function load(home: HaHome): Promise<Payload> {
+  const res = await haFor(home)("template", { method: "POST", body: JSON.stringify({ template: TEMPLATE }) });
   if (!res.ok) throw new Error(`Home Assistant HTTP ${res.status}`);
   const rows: unknown = JSON.parse(await res.text());
   const data: Payload = { areas: [], entityArea: {} };
@@ -33,9 +34,10 @@ async function load(): Promise<Payload> {
   return data;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    return Response.json(await cache.get("areas", load));
+    const home = resolveHa(req);
+    return Response.json(await cache.get(home.id, () => load(home)));
   } catch (e) {
     return haFailure(e);
   }

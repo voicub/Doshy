@@ -1,7 +1,8 @@
 import { CAMERA_ENTITY, IMAGE_TYPE, MAX_BYTES, TIMEOUT_MS, etagOf, makeLimiter } from "@/lib/cameraProxy";
 import { readCapped } from "@/lib/server/readCapped";
 import { bytesResponse } from "@/lib/server/bytesResponse";
-import { ha } from "@/lib/haServer";
+import { HOME_HEADER, haFor, resolveHa } from "@/lib/haServer";
+import { HttpError } from "@/lib/db/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,10 +18,10 @@ const PRIVATE = { "Cache-Control": "no-store, private", Pragma: "no-cache", "X-C
 export async function GET(req: Request) {
   const entity = new URL(req.url).searchParams.get("entity") ?? "";
   if (!CAMERA_ENTITY.test(entity)) return Response.json({ error: "invalid entity" }, { status: 400, headers: PRIVATE });
-  const gate = limit(entity);
+  const gate = limit(`${(req.headers.get(HOME_HEADER) ?? "").slice(0, 16)}|${entity}`); // the same camera name in two homes is two cameras
   if (!gate.ok) return Response.json({ error: "too many requests" }, { status: 429, headers: { ...PRIVATE, "Retry-After": String(gate.retryAfter) } });
   try {
-    const res = await ha(`camera_proxy/${entity}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const res = await haFor(resolveHa(req))(`camera_proxy/${entity}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     const type = res.headers.get("content-type") ?? "";
     if (!res.ok || !res.body || !IMAGE_TYPE.test(type)) return new Response(null, { status: 404, headers: PRIVATE });
     const length = Number(res.headers.get("content-length") ?? 0);
@@ -30,7 +31,8 @@ export async function GET(req: Request) {
     const headers = { ...PRIVATE, ETag: etag, "Content-Type": type.split(";")[0] };
     if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers });
     return bytesResponse(bytes, { headers });
-  } catch {
+  } catch (e) {
+    if (e instanceof HttpError) return Response.json({ error: e.message, code: e.code }, { status: e.status, headers: PRIVATE });
     // never echo the upstream error: it can carry the Home Assistant address
     return Response.json({ error: "camera unavailable" }, { status: 502, headers: PRIVATE });
   }

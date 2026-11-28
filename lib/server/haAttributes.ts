@@ -2,9 +2,10 @@
 // a list that holds numbers. The dashboard trusts the types of `HAState` (a number is a number), so every attribute is checked here, once, on its way in; one that is
 // not what the dashboard expects is dropped, like a missing one, which every reader already handles. Imports only a type and a pure module: the node test runner loads it.
 import { isRecord } from "../guards.ts";
+import { mdiName } from "../mdi.ts";
 import type { HAState } from "../ha.ts";
 
-type Kind = "text" | "number" | "flag" | "textOrNumber" | "flagOrNumber" | "texts" | "rgb" | "hs" | "position";
+type Kind = "text" | "number" | "flag" | "textOrNumber" | "flagOrNumber" | "texts" | "rgb" | "hs" | "position" | "mdi";
 
 /** What each attribute of `HAState` must be. `satisfies` makes the compiler ask for a line here whenever the type gains an attribute. */
 const KIND_OF = {
@@ -23,6 +24,9 @@ const KIND_OF = {
   supported_color_modes: "texts", source_list: "texts", sound_mode_list: "texts", group_members: "texts", activity_list: "texts", hvac_modes: "texts", preset_modes: "texts", options: "texts",
   rgb_color: "rgb", hs_color: "hs",
   position: "position",
+  pressure_unit: "text", pressure: "number",
+  temperature_unit: "text",
+  icon: "mdi",
 } satisfies Record<keyof HAState["attributes"], Kind>;
 
 const kindOf: Readonly<Record<string, Kind>> = KIND_OF;
@@ -42,6 +46,7 @@ const check: Record<Kind, (v: unknown) => unknown> = {
   rgb: (v) => numbers(v, 3),
   hs: (v) => numbers(v, 2),
   position: (v) => numbers(v, 2) ?? (isRecord(v) && finite(v.x) && finite(v.y) ? { x: v.x, y: v.y } : undefined),
+  mdi: (v) => (mdiName(v) === null ? undefined : v), // only `mdi:` icons: another icon set's name is dropped like a missing attribute
 };
 
 /** The attribute as the dashboard's types promise it, or undefined (drop it) when it is not, or when the dashboard does not know the attribute. */

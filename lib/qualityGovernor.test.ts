@@ -4,10 +4,10 @@ import { GOVERNOR, createGovernor, median, type Governor } from "./qualityGovern
 import { lowerTier } from "./quality.ts";
 import type { Tier } from "./quality.ts";
 
-/** Feed `ms`-long frames for `totalMs` of wall time; returns the first tier the governor asked for. */
-function run(g: Governor, ms: number, totalMs: number, tier: Tier, manual = false) {
+/** Feed `ms`-long frames for `totalMs` of wall time; returns the first step the governor asked for. */
+function run(g: Governor, ms: number, totalMs: number, tier: Tier, manual = false, godraysOn = false) {
   for (let t = 0; t < totalMs; t += ms) {
-    const r = g.frame(ms, tier, manual);
+    const r = g.frame(ms, tier, manual, godraysOn);
     if (r) return r;
   }
   return null;
@@ -89,4 +89,14 @@ test("stalled frames and too few frames are not measurements", () => {
   // a 2 fps page: a window holds fewer than minFrames frames, so it is not judged
   const slowPage = createGovernor();
   assert.equal(run(slowPage, 900, SETTLE + WINDOW * 10, "ultra"), null);
+});
+
+test("slow frames shed the God rays first, then lower the tier", () => {
+  const g = createGovernor();
+  assert.equal(run(g, 80, SETTLE + WINDOW * 3, "ultra", false, true), "godrays", "the costliest optional effect goes before any detail does");
+  assert.equal(run(g, 80, SETTLE + WINDOW * 3, "ultra", false, false), "high", "still slow with them off: now the tier steps down");
+});
+
+test("God rays are shed only when the tier is automatic", () => {
+  assert.equal(run(createGovernor(), 200, SETTLE + WINDOW * 20, "ultra", true, true), null);
 });

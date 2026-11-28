@@ -1,23 +1,24 @@
 // The dawn rule for the sun-blocking curtains, running on the dashboard server so it works with no browser open. Every minute it reads the
-// working plan, and for each window curtain with a linked sun-blocking cover (and the rule on) asks lib/curtainAuto.ts what to do. It only ever
+// home plan (the server's default plan; other plans are ignored, because copies would share cover entities and double-command), and for each window curtain with a linked sun-blocking cover (and the rule on) asks lib/curtainAuto.ts what to do. It only ever
 // calls `cover.close_cover` / `cover.open_cover` on that cover, through the same validated path as POST /api/ha/service (lib/server/haCall.ts).
 // Started once from instrumentation.ts. What it remembers, and the last thing it did per curtain, lives in the settings table (key below).
 import type { DatabaseSync } from "node:sqlite";
 import { errorMessage } from "../guards.ts";
 import { curtainLayers } from "../curtain.ts";
 import { decide, type CoverReading, type Memory, type Rule, type SunReading } from "../curtainAuto.ts";
+import { homeOfPlan, homesExist } from "../db/connections.ts";
 import { getDb } from "../db/connection.ts";
+import { defaultDashboardId } from "../db/dashboards.ts";
 import { getPlan, getPlanRev } from "../db/plans.ts";
 import { setSettings } from "../db/settings.ts";
 import { one } from "../db/sql.ts";
-import { ha } from "../haServer.ts";
+import { haFor, resolveHaIn } from "../haServer.ts";
 import { callHaService, type HaFetch } from "./haCall.ts";
 
 export const KEY = "curtain-automation";
 export const TICK_MS = 60_000;
 export const MAX_BACKOFF_MS = 15 * 60_000;
 const FIRST_TICK_MS = 10_000;
-const HA_TIMEOUT_MS = 10_000;
 const MAX_CURTAINS = 100;
 const MAX_WHY = 160;
 const ENTITY = /^cover\.[a-z0-9_]+$/;
@@ -30,9 +31,10 @@ export type Curtain = { id: string; entity: string; rule: Rule };
 
 export type Deps = {
   db: () => DatabaseSync;
-  /** Home Assistant (`path` after /api/). The real one is lib/haServer.ts `ha`; tests pass a fake. */
-  ha: HaFetch;
+  /** Home Assistant for the home a plan shows (`connectionId`: null = the main home); the fetch takes `path` after /api/. null when that home is not set up (the main one without HA_URL / HA_TOKEN). Throws when an extra home cannot be used. Tests pass a fake. */
+  ha: (connectionId: string | null) => HaFetch | null;
   now: () => Date;
+  /** Is there any Home Assistant to talk to at all? (the loop only starts then) */
   configured: () => boolean;
   log: { info: (msg: string) => void; error: (msg: string) => void };
 };
@@ -44,9 +46,9 @@ export const haConfigured = () => !!process.env.HA_URL && !!process.env.HA_TOKEN
 
 const realDeps = (): Deps => ({
   db: getDb,
-  ha: (path, init) => ha(path, { ...init, signal: AbortSignal.timeout(HA_TIMEOUT_MS) }),
+  ha: (connectionId) => (connectionId === null && !haConfigured() ? null : haFor(resolveHaIn(getDb(), connectionId))),
   now: () => new Date(),
-  configured: haConfigured,
+  configured: () => haConfigured() || homesExist(getDb()),
   log: { info: (m) => console.info(m), error: (m) => console.error(m) },
 });
 
@@ -139,22 +141,28 @@ async function readEntities(fetchHa: HaFetch, ids: string[]): Promise<Map<string
   return seen;
 }
 
-type Cache = { rev: number | null; curtains: Curtain[] };
+/** The curtains of the home plan as last read. `id` is part of the key: making another plan the home plan must not reuse the old plan's curtains when both happen to be at the same revision. */
+type Cache = { id: number | null; rev: number | null; curtains: Curtain[] };
 
 /** One look: read the plan, ask Home Assistant for the sun and the covers, decide per curtain, act. Never throws: a problem is logged and reported as "error". */
-export async function tick(deps: Deps, cache: Cache = { rev: null, curtains: [] }): Promise<Outcome> {
+export async function tick(deps: Deps, cache: Cache = { id: null, rev: null, curtains: [] }): Promise<Outcome> {
   try {
     if (!deps.configured()) return "idle";
     const db = deps.db();
-    const rev = getPlanRev(db);
-    if (rev !== cache.rev) {
-      const plan = rev === null ? null : getPlan(db);
+    const id = defaultDashboardId(db);
+    const rev = getPlanRev(db, id);
+    if (id !== cache.id || rev !== cache.rev) {
+      const plan = rev === null ? null : getPlan(db, id);
+      cache.id = id;
       cache.rev = rev;
       cache.curtains = plan ? curtainsOf(plan.json) : [];
     }
     if (!cache.curtains.length) return "idle";
 
-    const seen = await readEntities(deps.ha, ["sun.sun", ...cache.curtains.map((c) => c.entity)]);
+    // the home the home plan shows (its curtains' covers live there); another plan's home is never asked
+    const fetchHa = deps.ha(homeOfPlan(db, id));
+    if (!fetchHa) return "idle";
+    const seen = await readEntities(fetchHa, ["sun.sun", ...cache.curtains.map((c) => c.entity)]);
     const sunRaw = seen.get("sun.sun");
     const sun: SunReading | undefined = sunRaw && { state: sunRaw.state, elevation: num(sunRaw.attributes.elevation), rising: typeof sunRaw.attributes.rising === "boolean" ? sunRaw.attributes.rising : undefined };
     const store = loadStore(db);
@@ -175,7 +183,7 @@ export async function tick(deps: Deps, cache: Cache = { rev: null, curtains: [] 
       // Remember first, call second: if the database fails here nothing is sent, and a call that is repeated after an error cannot happen twice.
       store.items[c.id] = { memory: d.memory, last: entry.last };
       saveStore(db, store, keep);
-      const r = await callHaService({ domain: "cover", service: d.action === "close" ? "close_cover" : "open_cover", entity_id: c.entity }, deps.ha);
+      const r = await callHaService({ domain: "cover", service: d.action === "close" ? "close_cover" : "open_cover", entity_id: c.entity }, fetchHa);
       if (r.ok) {
         store.items[c.id] = { memory: d.memory, last: { at: now.getTime(), action: d.action, why: d.why } };
         deps.log.info(`curtain automation: ${d.action === "close" ? "closed" : "opened"} ${c.entity}: ${d.why}`);
@@ -215,7 +223,7 @@ export function startCurtainAutomation(deps: Deps = realDeps(), firstTickMs = FI
   }
   const loop = { timer: undefined as NodeJS.Timeout | undefined, stopped: false };
   g.__houseyCurtainAuto = loop;
-  const cache: Cache = { rev: null, curtains: [] };
+  const cache: Cache = { id: null, rev: null, curtains: [] };
   let failures = 0;
   const run = async () => {
     const outcome = await tick(deps, cache);

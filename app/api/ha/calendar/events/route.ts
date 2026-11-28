@@ -1,7 +1,8 @@
 import { checkRange, isCalendarEntity } from "@/lib/calendar";
 import { refuse } from "@/lib/db/http";
 import { errorMessage, isRecord } from "@/lib/guards";
-import { ha } from "@/lib/haServer";
+import { HOME_HEADER, haFailure, haFetchFor } from "@/lib/haServer";
+import type { HaFetch } from "@/lib/server/haCall";
 import { ttlCache } from "@/lib/server/ttlCache";
 
 export const runtime = "nodejs";
@@ -33,8 +34,8 @@ function pick(raw: unknown): Record<string, unknown> | null {
   return out.start === undefined ? null : out;
 }
 
-async function one(entity: string, start: string, end: string): Promise<unknown[]> {
-  const res = await ha(`calendars/${entity}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`, { signal: AbortSignal.timeout(10_000) });
+async function one(fetchHa: HaFetch, entity: string, start: string, end: string): Promise<unknown[]> {
+  const res = await fetchHa(`calendars/${entity}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`Home Assistant HTTP ${res.status} for ${entity}`);
   const raw: unknown = await res.json();
   return (Array.isArray(raw) ? raw : []).flatMap((e) => pick(e) ?? []).slice(0, MAX_EVENTS);
@@ -54,7 +55,14 @@ export async function GET(req: Request) {
   if (!range.ok) return Response.json({ error: range.error }, { status: 400 });
   const [start, end] = [new Date(range.start).toISOString(), new Date(range.end).toISOString()];
   const fresh = q.has("fresh");
-  const results = await Promise.allSettled(entities.map((e) => cache.get(`${e}|${start}|${end}`, () => one(e, start, end), { fresh })));
+  let fetchHa: HaFetch;
+  try {
+    fetchHa = haFetchFor(req);
+  } catch (e) {
+    return haFailure(e);
+  }
+  const homeKey = req.headers.get(HOME_HEADER) || "main"; // valid: haFetchFor refused any other
+  const results = await Promise.allSettled(entities.map((e) => cache.get(`${homeKey}|${e}|${start}|${end}`, () => one(fetchHa, e, start, end), { fresh })));
   const body: Body = { calendars: {}, failed: [] };
   results.forEach((r, i) => {
     if (r.status === "fulfilled") body.calendars[entities[i]] = r.value;

@@ -1,7 +1,10 @@
 import { isCalendarEntity } from "@/lib/calendar";
+import { MAX_HOMES } from "@/lib/db/connections";
+import { HttpError } from "@/lib/db/errors";
 import { refuse } from "@/lib/db/http";
 import { errorMessage, isRecord } from "@/lib/guards";
-import { ha } from "@/lib/haServer";
+import { haFailure, haFetchFor, HOME_HEADER } from "@/lib/haServer";
+import type { HaFetch } from "@/lib/server/haCall";
 import { ttlCache } from "@/lib/server/ttlCache";
 
 export const runtime = "nodejs";
@@ -9,10 +12,10 @@ export const dynamic = "force-dynamic";
 
 const MAX_CALENDARS = 50;
 type Entry = { entity_id: string; name: string };
-const cache = ttlCache<Entry[]>(20_000, 1);
+const cache = ttlCache<Entry[]>(20_000, MAX_HOMES + 1); // one entry per home
 
-async function load(): Promise<Entry[]> {
-  const res = await ha("calendars", { signal: AbortSignal.timeout(8000) });
+async function load(fetchHa: HaFetch): Promise<Entry[]> {
+  const res = await fetchHa("calendars", { signal: AbortSignal.timeout(8000) });
   if (res.status === 404) return []; // the calendar integration is not installed in HA
   if (!res.ok) throw new Error(`Home Assistant HTTP ${res.status}`);
   const raw: unknown = await res.json();
@@ -30,8 +33,10 @@ export async function GET(req: Request) {
   const refused = refuse(req);
   if (refused) return refused;
   try {
-    return Response.json({ calendars: await cache.get("list", load) });
+    const fetchHa = haFetchFor(req);
+    return Response.json({ calendars: await cache.get(req.headers.get(HOME_HEADER) || "main", () => load(fetchHa)) });
   } catch (e) {
+    if (e instanceof HttpError) return haFailure(e);
     console.error("calendar list:", errorMessage(e));
     return Response.json({ calendars: [], error: true });
   }

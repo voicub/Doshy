@@ -2,7 +2,7 @@
 // limits) before anything leaves. The route POST /api/ha/service and the dawn automation both go through here. `fetchHa` is `ha` from lib/haServer.ts
 // in production and a fake in tests, so a test can never reach a real Home Assistant.
 import { errorMessage } from "../guards.ts";
-import { ENTITY_ID, needsAttrs, validateService, type ServiceAttrs } from "../haService.ts";
+import { ENTITY_ID, needsAttrs, needsExisting, validateService, type ServiceAttrs } from "../haService.ts";
 import { ttlCache, type TtlCache } from "./ttlCache.ts";
 
 export type HaFetch = (path: string, init?: RequestInit) => Promise<Response>;
@@ -38,6 +38,10 @@ export async function callHaService(body: unknown, fetchHa: HaFetch): Promise<Ca
     }
     const v = validateService(body, attrs);
     if (!v.ok) return { ok: false, status: 400, error: v.error };
+    if (needsExisting(v.domain, v.service)) {
+      const known = await fetchHa(`states/${String(v.data.entity_id)}`); // entity_id passed ENTITY_ID above, so it cannot climb out of the path
+      if (!known.ok) return { ok: false, status: 404, error: `Home Assistant has no ${String(v.data.entity_id)}` };
+    }
     const res = await fetchHa(`services/${v.domain}/${v.service}`, { method: "POST", body: JSON.stringify(v.data) });
     if (!res.ok) return { ok: false, status: 502, error: `Home Assistant HTTP ${res.status}` };
     return { ok: true };
