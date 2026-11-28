@@ -12,6 +12,7 @@ export const OPTION_ENV = {
   site_tile_url: "SITE_TILE_URL",
   site_tile_max_zoom: "SITE_TILE_MAX_ZOOM",
   site_tile_credit: "SITE_TILE_CREDIT",
+  nextzen_api_key: "NEXTZEN_API_KEY",
 };
 
 /** The Supervisor's proxy of Home Assistant: REST at /core/api/*, WebSocket at /core/api/websocket (lib/haNotify.ts builds that from this base). */

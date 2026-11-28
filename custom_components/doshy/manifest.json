@@ -3,7 +3,7 @@
   "name": "Doshy",
   "codeowners": ["@voicub"],
   "config_flow": true,
-  "dependencies": ["frontend"],
+  "dependencies": ["frontend", "http", "websocket_api"],
   "documentation": "https://github.com/voicub/Doshy/blob/main/docs/home-assistant.md",
   "integration_type": "service",
   "iot_class": "calculated",

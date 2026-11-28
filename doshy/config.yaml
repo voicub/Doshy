@@ -35,3 +35,4 @@ schema:
   site_tile_url: str?
   site_tile_max_zoom: int(1,22)?
   site_tile_credit: str?
+  nextzen_api_key: password?

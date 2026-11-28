@@ -12,11 +12,16 @@ All calls go through `lib/haServer.ts` `ha()`: the token never leaves the server
 | `GET /api/ha/history` | cached 30 s per (entities, attributes, hours, points) |
 | `GET /api/ha/areas` | Home Assistant renders a template over every area and entity: cached 60 s |
 | `GET /api/ha/notifications` | opens one WebSocket to Home Assistant per uncached read: cached 10 s (`?fresh=1` skips the cache) |
+| `GET /api/ha/energy-prefs` | opens one WebSocket to Home Assistant (`energy/get_prefs`) per uncached read, cached 60 s; answers `{ guess }` with the sensors of the Energy dashboard setup, or `{ guess: null }` when Home Assistant cannot be asked |
 | `GET /api/ha/calendar/list`, `/events` | cached 20 s, events per calendar and range (one failing calendar is retried next time, the others stay cached) |
 | `POST /api/ha/service` | the body is validated against the allowlist in `lib/haService.ts`; limits that depend on the entity (min/max, offered modes) come from its attributes, which are asked of Home Assistant at most once per 5 s per entity, so dragging a slider is one lookup, not one per move |
 | `GET /api/ha/camera`, `/media-image` | one picture, rate limited; the camera route answers 304 when the picture did not change |
 
 Measured on a reference install (1186 entities, a LAN Home Assistant): a states poll took 107 to 196 ms and 248 KB; a poll that finds nothing new now takes 5 to 16 ms with no body, and while the answer is under a second old Home Assistant is not asked at all. The shaping itself (parse, filter, serialise, hash) is about 6 ms of CPU on a fast laptop, paid once per fetch instead of once per browser per poll.
+
+### Which Home Assistant (several homes, [multi-home.md](multi-home.md))
+
+Every route above starts with `resolveHa(req)` (`lib/haServer.ts`): the home is the id in the request header `X-Doshy-Home` (no header, empty or `main` = the one from `HA_URL` / `HA_TOKEN` or the add-on's Supervisor proxy), and `haFor(home)` is the REST call for it. An unknown id answers a plain **404**, a saved token that cannot be read **409**; the header never reaches the guest routes (a guest link uses its own plan's home). All the caches above are keyed by home id (the states ETag also covers it), so two homes never share an answer; `GET /api/ha/states` also records whether each extra home answered, for the Homes list. The browser sets the header through `lib/haHome.ts` `haFetch`. `instrumentation.ts` starts the curtain loop once per server process: a **server restart** is needed for the loop to pick up a change to how it reaches Home Assistant (a hot reload keeps the loop that is already running).
 
 ## Files and models
 
@@ -25,8 +30,8 @@ Measured on a reference install (1186 entities, a LAN Home Assistant): a states 
 
 ## Background work
 
-- **Dawn rule for curtains** (`lib/server/curtainAutomation.ts`, started from `instrumentation.ts`): one look a minute. It re-reads the plan only when its revision changed, and asks Home Assistant for just the sun and the linked covers (`states/<entity>`, a few small requests; past 8 entities it takes the full list once instead). Each look has a 10 s timeout, a failed look backs off to 15 minutes, and the loop lives on `globalThis`, so a hot reload cannot start a second one.
-- **Daily backup**: see [database.md](database.md#connection). The timer is checked once a minute, is `unref`'d, and does nothing unless the server has been idle for 10 s.
+- **Dawn rule for curtains** (`lib/server/curtainAutomation.ts`, started from `instrumentation.ts`): one look a minute. It reads **only the home plan** (the server's default plan, `meta.default_dashboard`; other plans are ignored, because copies of a plan share cover entities and would double-command), re-reading it only when its revision changed or another plan became the home plan, and asks Home Assistant for just the sun and the linked covers (`states/<entity>`, a few small requests; past 8 entities it takes the full list once instead). Each look has a 10 s timeout, a failed look backs off to 15 minutes, and the loop lives on `globalThis`, so a hot reload cannot start a second one.
+- **Daily backup and purge**: see [database.md](database.md#connection). The timer is checked once a minute, is `unref`'d, and does nothing unless the server has been idle for 10 s. It also removes plans deleted more than 7 days ago.
 
 ## Staying responsive (a screen left on for months)
 

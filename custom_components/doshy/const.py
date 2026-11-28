@@ -7,6 +7,11 @@ DOMAIN = "doshy"
 # The sidebar panel lives at /doshy. One config entry only (manifest: single_config_entry), so the path never collides with itself.
 PANEL_URL_PATH = "doshy"
 
+# The Lovelace card (www/doshy-card.js): its files are served under CARD_URL_BASE, and the integration adds the module to every dashboard.
+CARD_URL_BASE = "/doshy-card"
+CARD_MODULE = "doshy-card.js"
+WS_CONFIG = "doshy/config"
+
 CONF_TITLE = "title"
 CONF_ICON = "icon"
 CONF_SHOW_IN_SIDEBAR = "show_in_sidebar"

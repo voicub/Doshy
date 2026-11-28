@@ -12,6 +12,7 @@ services:
       HA_TOKEN: ${HA_TOKEN:?Set HA_TOKEN to a long-lived access token}
       TZ: ${TZ:-UTC}
       SKETCHFAB_TOKEN: ${SKETCHFAB_TOKEN:-}
+      NEXTZEN_API_KEY: ${NEXTZEN_API_KEY:-} # optional: Surroundings city model (docs/site.md)
       HOUSEY_AUTOMATION: ${HOUSEY_AUTOMATION:-}
     volumes:
       - housey-data:/data # database, backups, imported models, map cache

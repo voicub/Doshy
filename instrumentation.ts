@@ -2,6 +2,7 @@
 // (lib/server/curtainAutomation.ts), which keeps working with no browser open. Does nothing without Home Assistant set up or with HOUSEY_AUTOMATION=off.
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  if (process.env.DOSHY_GUEST_ONLY === "1") return; // a public guest-only copy shares the database with the owner's Doshy and must not also run its automations
   // Dynamic on purpose: this file is also built for the edge runtime, which has no node:sqlite; only the Node.js runtime may load it.
   const { startCurtainAutomation } = await import("@/lib/server/curtainAutomation");
   startCurtainAutomation();

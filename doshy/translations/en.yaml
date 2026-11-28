@@ -20,5 +20,8 @@ configuration:
   site_tile_credit:
     name: Satellite tile credit
     description: Optional. Credit text shown with your own tile provider.
+  nextzen_api_key:
+    name: Nextzen API key
+    description: Optional. A free key from developers.nextzen.org. Lets Surroundings use the 3D city model (Vectiler) for buildings and roads instead of OpenStreetMap.
 network:
   3000/tcp: Doshy web interface

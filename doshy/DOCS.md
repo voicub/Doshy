@@ -17,6 +17,7 @@ Home Assistant's time zone is passed to the add-on by the Supervisor.
 | `sketchfab_token` | Optional. Lets Doshy download real 3D car models. |
 | `automation` | Dawn curtain automation (default on). Off: the sun-blocking curtains are never closed by themselves. |
 | `site_tile_url`, `site_tile_max_zoom`, `site_tile_credit` | Optional. Your own satellite tile provider for the Surroundings photo (default: Esri World Imagery). |
+| `nextzen_api_key` | Optional. A free key from developers.nextzen.org: lets Surroundings draw buildings and roads from the 3D city model (the Vectiler tool is already in the image). Tile positions around your home, rounded, are sent to Nextzen. |
 
 Options are read when the add-on starts: restart it after changing them.
 

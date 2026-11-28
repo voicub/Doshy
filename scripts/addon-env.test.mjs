@@ -7,8 +7,8 @@ import { test } from "node:test";
 import { addonEnv, shellExports, SUPERVISOR_CORE_URL } from "./addon-env.mjs";
 
 test("maps filled options to environment variables and skips empty ones", () => {
-  const vars = addonEnv({ sketchfab_token: " abc ", site_tile_url: "", site_tile_max_zoom: 19, automation: true }, {});
-  assert.deepEqual(vars, { SKETCHFAB_TOKEN: "abc", SITE_TILE_MAX_ZOOM: "19" });
+  const vars = addonEnv({ sketchfab_token: " abc ", nextzen_api_key: " key_1 ", site_tile_url: "", site_tile_max_zoom: 19, automation: true }, {});
+  assert.deepEqual(vars, { SKETCHFAB_TOKEN: "abc", NEXTZEN_API_KEY: "key_1", SITE_TILE_MAX_ZOOM: "19" });
 });
 
 test("automation false switches the curtain automation off", () => {

@@ -1,6 +1,25 @@
 # syntax=docker/dockerfile:1
 # Node 24: the database uses the built-in node:sqlite, which needs Node 22.13 or newer.
 ARG NODE=node:24-bookworm-slim
+ARG VECTILER_REF=f9bd89e9446a91c26aa26d135646327d9b715e13
+
+# Vectiler (MIT, C++/CMake) renders the 3D city of the Surroundings feature (docs/site.md). Independent of the app sources, so it stays cached.
+FROM ${NODE} AS vectiler
+ARG VECTILER_REF
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends cmake g++ make libcurl4-openssl-dev git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+# Only the three header-only submodules CMakeLists uses (glm, rapidjson, earcut.hpp); non-recursive, so rapidjson's gtest submodule is skipped.
+RUN git init -q . \
+    && git remote add origin https://github.com/karimnaaji/vectiler.git \
+    && git fetch -q --depth 1 origin ${VECTILER_REF} \
+    && git checkout -q FETCH_HEAD \
+    && git submodule update -q --init --depth 1 3rdparty/glm 3rdparty/rapidjson 3rdparty/earcut.hpp
+# The 2017 code predates GCC 12's slimmer standard headers, hence the forced includes.
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-include cassert -include algorithm -include cstdint" \
+    && cmake --build build -j"$(nproc)" \
+    && mkdir /out && strip -o /out/vectiler build/vectiler.out
 
 FROM ${NODE} AS deps
 WORKDIR /app
@@ -18,6 +37,11 @@ FROM ${NODE} AS run
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 \
     HOUSEY_DB_PATH=/data/housey.db HOUSEY_SITE_CACHE=/data/site-cache
+# Vectiler's runtime libraries (libcurl) plus CA certificates for its HTTPS tile fetches.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libcurl4 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=vectiler /out/vectiler /usr/local/bin/vectiler
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public

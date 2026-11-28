@@ -29,7 +29,7 @@ A window curtain has a **sheer** layer (the light net) and a **sun-blocking** la
 
 ### How it works
 
-- **Set it up**: select the curtain, link its sun-blocking layer to a Home Assistant `cover.*` entity. **Close it at dawn** is then on; **Open it again at** is optional (`HH:MM`, the server's local time).
+- **Set it up**: select the curtain, link its sun-blocking layer to a Home Assistant `cover.*` entity. **Close it at dawn** is then on; **Open it again at** is optional (`HH:MM`, the server's local time). The rule only reads the **home plan** (the one marked as the home plan in the plan list): curtains in other plans are not driven, so a copy of your plan never commands the same covers twice.
 - **Dawn** = civil dawn: the sun is rising and its elevation crosses -6 degrees (about 30 minutes before sunrise), read from `sun.sun`. If `sun.sun` has no elevation, the change from `below_horizon` to `above_horizon` (sunrise) is used.
 - **Once a day**: each curtain is closed at most once per local calendar day (daylight-saving days included). It only acts when it *sees* the crossing, or when it looks for the first time in a while (a restart, an outage) and the sun is rising between -6 and +2 degrees and nothing has happened that day. A restart in mid-morning never re-closes a curtain you opened on purpose, and the rule never fights a manual open afterwards.
 - **Open it again at**: only when the rule itself closed the curtain that day and that time is later than the closing. A curtain you closed by hand, or that was already closed at dawn, is never opened by the rule.

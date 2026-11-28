@@ -9,6 +9,7 @@ Doshy has a layout made for small touch screens (800x480, 1024x600, 1280x800 and
 Doshy has two parts: the **server** (`npm start`; talks to Home Assistant, keeps your plan in `data/housey.db`) and the **browser** that draws the 3D home. The server is light. The browser is the heavy part, and it is the only part that has to run on the Pi.
 
 - **Recommended:** run the server on a machine that is always on (a NAS, mini PC, a second Pi, the machine that runs Home Assistant) and open it from the Pi: `http://<server>:3000/?kiosk=1`.
+- **Pin the wall display to one plan** (if you keep several plans): add `&plan=<id>` to the address, e.g. `http://<server>:3000/?kiosk=1&plan=2`. The easiest way to get it is **Plans** in the menu, **More** on the plan's card, **Copy a link that opens this plan**. See [plans.md](plans.md).
 - **Possible:** run both on the Pi. A Pi 5 (4 GB or more) copes; on a Pi 4 expect the build to take a long time and the 3D view to be slow. Build once, then `npm start`.
 
 ### Run the server
@@ -93,7 +94,7 @@ while true; do
     --noerrdialogs --disable-infobars --no-first-run \
     --disable-session-crashed-bubble \
     --password-store=basic \
-    --overscroll-history-navigation=0 \
+    --disable-features=OverscrollHistoryNavigation --disable-pinch \
     --autoplay-policy=no-user-gesture-required \
     --check-for-update-interval=31536000
   sleep 5
@@ -114,20 +115,24 @@ What the flags do (all are standard Chromium switches; their effect still depend
 | `--kiosk` | Full screen, no address bar, no tabs. |
 | `--noerrdialogs`, `--disable-infobars`, `--disable-session-crashed-bubble`, `--no-first-run` | No pop-ups after a power cut or crash. |
 | `--password-store=basic` | Stops the "unlock keyring" prompt on a desktop without a keyring. |
-| `--overscroll-history-navigation=0` | A swipe in from the screen edge does not go "back". |
+| `--disable-features=OverscrollHistoryNavigation` | A swipe in from the screen edge does not go "back" (the older `--overscroll-history-navigation=0` is not in the current Chromium switch list). |
+| `--disable-pinch` | Chromium's compositor does not pinch-zoom the page on a touch screen (Doshy's 3D view still handles its own pinch). |
 | `--autoplay-policy=no-user-gesture-required` | Camera and media cards may start by themselves. |
 | `--check-for-update-interval=31536000` | Do not nag about browser updates. |
 
-**If taps do nothing** try adding `--touch-events=enabled`. **If you want a bigger interface** without touching the app: `--force-device-scale-factor=1.25` (or use Display > Interface size inside Doshy, section 3).
+**Pull to refresh:** Doshy sets `overscroll-behavior: none` on the page, which stops it; `--disable-pull-to-refresh-effect` removes the effect in Chromium itself. **If taps do nothing** try adding `--touch-events=enabled` (the default `auto` turns touch events on when a touch screen is attached). **If you want a bigger interface** without touching the app: `--force-device-scale-factor=1.25` (or use Display > Interface size inside Doshy, section 3). **Smooth scrolling:** `--disable-smooth-scrolling` (listed by Chromium as a testing switch) makes panel scrolling follow the finger exactly with less work per frame, but flick scrolling loses its easing; try it only if scrolling feels laggy on your Pi. **Cursor:** hide it with labwc's `HideCursor` action (see the TOLDOTECHNIK kiosk script for a working `rc.xml` + autostart recipe) or `unclutter` on X11.
 
 ### Graphics: what to expect, what to try
 
-The 3D view uses WebGL. A Pi's graphics chip is small, so the **Graphics** setting matters more here than anywhere else.
+The 3D view uses WebGL. A Pi's graphics chip is small, so the **Graphics** setting matters more here than anywhere else. The single most likely reason for "awful" speed is that the browser is drawing the 3D view **in software** (on the processor) instead of on the graphics chip.
 
-- Open **Graphics** and choose **Eco** (the lightest tier) if it is not already chosen. Automatic starts from the device's tier and lowers the detail when the picture stutters, but it never raises it, and a tier you picked yourself is never changed. Eco is the right start on a Pi 4; try Light or Balanced on a Pi 5.
-- In Chromium open `chrome://gpu`. **WebGL** should say *Hardware accelerated*. If it says *Software only*, the 3D view will crawl: update the OS first (`sudo apt full-upgrade`, reboot).
-- Only if `chrome://gpu` shows WebGL blocked, try these, one at a time, and keep what helps (they are real Chromium switches, but there is no single right answer for every Pi and Chromium version, so treat them as experiments): `--ignore-gpu-blocklist`, `--enable-gpu-rasterization`, and `--use-gl=angle --use-angle=gles` (a different GL back end). Add `--ozone-platform=wayland` if the window comes up through XWayland and feels slow. Do not add flags "just in case"; a wrong GL flag is the usual cause of a black picture.
-- Doshy stops drawing the 3D view while the screensaver is showing (below), which is the biggest saving for a screen that is on all day.
+1. **Check the GPU.** Open **Menu > Settings > Graphics**: it names the graphics chip (a Pi shows `V3D ...`) and shows a red **Software rendering: turn on GPU acceleration** line when the chip is `llvmpipe` or `SwiftShader`. In Chromium, `chrome://gpu` should say **WebGL: Hardware accelerated** and `GL_RENDERER: ANGLE (Broadcom, V3D ...)`. Doshy then also draws Eco lighter on its own when it sees software rendering (no multisampling, no sun shadows, 75 % render size: about 3x the frame rate in a software-GL test).
+2. **Raspberry Pi OS Chromium needs no GL flags.** A Pi 5 report on Bookworm (labwc, Chromium 138) shows the package already starts with `--use-angle=gles --ignore-gpu-blocklist --enable-gpu-rasterization --ozone-platform=wayland` and `WebGL: Hardware accelerated` ([raspberrypi/bookworm-feedback #414](https://github.com/raspberrypi/bookworm-feedback/issues/414)). Do not add them again; check `chrome://version` for the command line.
+3. **Software GL anyway?** Update (`sudo apt full-upgrade`, reboot); make sure the kiosk user is in the `video` and `render` groups (`groups`; without them the Pi's GPU driver is invisible and only `llvmpipe` appears); on a Pi 4 use the KMS driver (`dtoverlay=vc4-kms-v3d` in `/boot/firmware/config.txt`, the Bookworm default). The old `gpu_mem` split does not matter with KMS. On a Chromium that does not set them (Debian/Ubuntu/DietPi builds) the flags above are what Raspberry Pi OS uses; add them one at a time: `--ignore-gpu-blocklist` first (a Raspberry Pi engineer needed it for WebGL), then `--use-angle=gles`, `--enable-gpu-rasterization`. `--enable-zero-copy` and `--use-gl=angle` are real switches but **unverified on a Pi here**. `--disable-software-rasterizer` makes a missing GPU an error instead of a slow picture, handy for testing.
+4. **Graphics tier.** Choose **Eco** if it is not already chosen. Automatic starts from the device's tier and lowers the detail when the picture stutters, but never raises it; a tier you picked yourself is never changed. Eco on a Pi also drops the HUD's blur, glows, endless pulses, the rain overlay and the scanline layer, and draws things that move by themselves (a spinning fan, rain) at 10 pictures a second, and nothing at all while a finger scrolls a panel.
+5. Doshy stops drawing the 3D view while the screensaver is showing (below), which is the biggest saving for a screen that is on all day.
+
+**What was measured** (desktop Chromium, 800x480, CPU throttled 6x, the maintainer's 109-item plan, a dehumidifier fan running; relative numbers only, **not Pi fps**): the scene drew 18.6 pictures a second at 97 % main-thread load when nothing was touched, 10 at 43 % after these changes; CSS style recalculations in that state went from 148 to 0, long tasks from 46 (3.4 s) to 5 (0.6 s). **Not verified on real hardware:** all of it on a Pi's own GPU and Chromium.
 
 ### On-screen keyboard
 
@@ -153,6 +158,7 @@ Open **Menu > Settings > Display**. Everything is saved **on that screen's brows
 | **Layout** | Auto picks the compact layout on small screens and the full one on large screens. Compact and Regular force one. |
 | **Interface size** | Small, Normal, Large, Extra large: bigger buttons and text for a small or very sharp screen (1280x800 on 7 inches is tiny at Normal). The 3D view itself is not scaled. |
 | **Full screen** | Hides the browser's bars. Not shown in a kiosk window (already full screen). On an iPhone use Add to Home Screen instead. |
+| **Turn to face the room** | On by default. Entering a room (Room mode) swings the camera to the corner that shows the room best before it centres and zooms; Off keeps your angle and only centres and zooms. |
 | **Keep screen on** | Asks the browser not to let the display sleep (the Screen Wake Lock). On by default in a kiosk. **It only works on `https://` or `localhost`.** On a plain `http://server:3000` address the browser does not offer it and the panel says so; use the system setting below instead. |
 | **Screensaver** | After 2, 5, 15 or 30 minutes without a touch the screen goes dark and shows the time, the room temperature and your next event; the 3D view stops drawing. Any touch wakes it. In a kiosk it defaults to 15 minutes. "Dark only" skips the clock. |
 
@@ -189,6 +195,7 @@ The dashboard can switch lights, locks and anything else you linked in Home Assi
 - Use a good power supply and a decent SD card (or boot from SSD on a Pi 5). Hard power cuts are the main cause of a broken SD card.
 - After a power cut the Pi may be up before the network or the server: the script waits for the server before opening the page.
 - The page keeps working if the server is briefly down: edits wait in the browser and are sent when it is back (see the README, "Server down").
+- **Offline shell:** over https (or with the Chromium flag in the troubleshooting table below) the Pi keeps a copy of the app and the last known states, and shows them with an "Offline" chip when Wi-Fi or the server is down. Over plain `http://` no service worker registers. See [offline.md](offline.md); **unverified on a Pi here**.
 
 ## 7. Troubleshooting
 
@@ -201,6 +208,7 @@ The dashboard can switch lights, locks and anything else you linked in Home Assi
 | The **screen goes black** after some time | System blanking (section 3), or on plain http the wake lock is not available. |
 | The text boxes **disappear behind the keyboard** or the keyboard never shows | Section 2, on-screen keyboard. |
 | **Keep screen on** says it is not available | The page is on plain `http://`. Use the system setting, or serve the page over `https://`. (For a test only, Chromium has `--unsafely-treat-insecure-origin-as-secure=http://<server>:3000` together with `--user-data-dir=<a folder>`; that weakens the browser's security checks, so do not use it on a general-purpose profile.) |
+| A list will not **scroll with a finger** | Swipe on the list itself, not on a slider or on the ring of the thermostat dial: those take sideways drags (the middle of the dial scrolls the panel). On a panel that still will not scroll, note which one and the screen size, and see "Scrolling and touch" below. |
 | "Home Assistant unreachable" banner | The server cannot reach Home Assistant: check `HA_URL` and `HA_TOKEN` in `.env.local` on the server and its logs (`journalctl -u doshy`). |
 
 ## For developers
@@ -209,4 +217,15 @@ The dashboard can switch lights, locks and anything else you linked in Home Assi
 - `data-ui-size` and `--ui-scale` on `<html>`: the HUD (`.chrome`) is zoomed by `--ui-scale` (`app/kiosk.css`). Inside the zoomed HUD raw `vw`/`vh` count the zoom twice: use `calc(100 * var(--vh))`, and for popovers placed in pixels use `hudViewport()` and `x / hudScale()` from `lib/displayStore.ts`. The layout class is chosen from the screen as the zoomed HUD sees it (1024x600 at Large behaves like 819x480).
 - `data-kbd-open="1"` while the on-screen keyboard is up (hide docks with it); `data-saver` while the screensaver shows; the `housey:idle` window event (`detail: { idle: boolean }`) fires when it starts and stops. The 3D view listens to it to pause drawing.
 - Text fields get `autocomplete=off`, `spellcheck=false`, a sensible `enterkeyhint` and no auto-capital on search and number boxes from one global handler (`fieldHints` in `lib/keyboard.ts`, applied by `components/KioskTouch.tsx`); a field that sets its own attribute keeps it.
-- Pure logic with tests: `lib/display.ts` (sizes, defaults, validation), `lib/idle.ts` (idle timer), `lib/wakeLock.ts` (wake lock with an injected API), `lib/keyboard.ts` (keyboard detection, field hints).
+- Pure logic with tests: `lib/display.ts` (sizes, defaults, validation), `lib/idle.ts` (idle timer), `lib/wakeLock.ts` (wake lock with an injected API), `lib/keyboard.ts` (keyboard detection, field hints), `lib/tapSlop.ts` (tap or drag, by pointer type), `lib/scrollParent.ts` (the element a finger scrolls).
+
+### Scrolling and touch
+
+- **The page never scrolls.** `html, body` are `overflow: hidden` with `overscroll-behavior: none` (`app/kiosk.css`), the 3D canvas has `touch-action: none` and owns its gestures, the HUD (`.chrome`) has `touch-action: pan-x pan-y` (no pinch-zoom). A panel's own scroller scrolls natively (JavaScript only moves one with `scrollIntoView` when a selection moves) and no `touchstart` / `touchmove` listener calls `preventDefault`.
+- **A panel body that scrolls** is `flex: 1; min-height: 0; overflow-y: auto` inside a flex column that has a definite height, and its class goes in the one list in `app/kiosk.css` ("Finger scroll surfaces"), which gives it `position: relative` and `overscroll-behavior: contain`. `position: relative` matters: a `.sr-only` control or file input inside the body would otherwise be positioned against the panel and make the panel scroll as well as its body.
+- **Never put `overscroll-behavior` on `*` or on a wrapper with `overflow: hidden`.** Chromium treats an `overflow: hidden` box as a scroll container: with `contain` a swipe that starts on anything inside it stops there and the real scroller above never moves (the catalog went dead that way).
+- **`touch-action: none` only on the handle**: the thermostat ring (the dial's centre scrolls the panel), the plan/3D canvas, the piece previews. A seek bar is `pan-y`: sideways scrubs, vertical swipes scroll. A sheet header that swipes to close is `pan-y` in landscape (the swipe is sideways) and `none` in portrait (the swipe is down): the browser cancels a pointer as soon as it starts panning in a direction `touch-action` allows.
+- **Do not act on `pointerdown` in a scroll list.** Act on release (`click`, or `pointerup` after a movement check), so a finger that starts scrolling over a button does nothing. A press that wanders counts as a tap within `lib/tapSlop.ts`: 15 px for a finger (what Chromium itself allows for a click), 10 for a pen, the old 6 for a mouse.
+- **A "load more" `IntersectionObserver` takes the real scroller as `root`**, found with `lib/scrollParent.ts`: on a compact screen the sheet scrolls and the card grid is as tall as its cards, so a grid root made every sentinel "visible" and all 1,100 catalog cards mounted at once.
+- **Do not scroll an item into view from an effect that depends on a list that is rebuilt** (it pulls the list back under the finger); scroll when the selection or the query changes.
+- **Class names are global**: the Display modal used `.dp`, `.dp-body` and `.dp-sec`, which the Data panel also owns; its two-column rule turned the Data body into a sideways scroller on a short landscape screen. The Display modal is `.disp*` now.

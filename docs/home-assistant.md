@@ -5,7 +5,7 @@ One repository, `https://github.com/voicub/Doshy`, offers Doshy to Home Assistan
 | | What it is | Gives you |
 |---|---|---|
 | **Add-on** (`repository.yaml`, `doshy/`) | The Doshy server in a container that the Supervisor runs | Doshy itself, on port 3000, with no token to create |
-| **Integration** (`hacs.json`, `custom_components/doshy/`) | Installed with HACS | A **Doshy entry in the sidebar** that shows Doshy inside Home Assistant |
+| **Integration** (`hacs.json`, `custom_components/doshy/`) | Installed with HACS | A **Doshy entry in the sidebar** that shows Doshy inside Home Assistant, and a **Doshy card** for dashboards ([lovelace-card.md](lovelace-card.md)) |
 
 HACS cannot install add-ons, so the add-on comes from the add-on store and the sidebar integration from HACS. Without Supervisor (Container or Core installs) run Doshy with Docker (C below) and still use the integration for the sidebar.
 
@@ -26,7 +26,7 @@ The add-on reaches Home Assistant through the Supervisor (`http://supervisor/cor
 3. **Settings > Devices & services > Add integration > Doshy.** Enter the address of Doshy (default `http://homeassistant.local:3000`). Home Assistant checks that it answers there.
 4. **Configure** on the entry sets the sidebar title, icon, whether it shows in the sidebar, and whether only administrators see it. **Reconfigure** changes the address.
 
-The integration only registers a sidebar panel (Home Assistant's built-in `iframe` panel, at `/doshy`) and removes it on unload. It has no entities and no background work.
+The integration registers a sidebar panel (Home Assistant's built-in `iframe` panel, at `/doshy`) and removes it on unload. It also serves the `doshy-card` Lovelace card and adds it to every dashboard (see [lovelace-card.md](lovelace-card.md): add a card, choose **Doshy**). It has no entities and no background work.
 
 ### Mixed content: https Home Assistant and http Doshy
 
@@ -59,3 +59,7 @@ The image is the same one the add-on uses. Its entrypoint starts as root only to
 Checked on a development machine: the add-on and integration files parse (YAML, JSON, Python compile), the option-to-environment mapping and version sync have unit tests (`npm test`), the integration's address helper has a test (`python3 -m unittest discover -s tests`), the Docker image builds and starts with the entrypoint, in plain Docker mode and in simulated add-on mode (a mounted `options.json` and a dummy `SUPERVISOR_TOKEN`), and the page answers.
 
 Read from the official documentation and source, but **not tested here**: installing from the add-on store with a real Supervisor (the proxy URLs `http://supervisor/core/api` and `ws://supervisor/core/api/websocket` were checked against the Supervisor's route table, not against a running one), installing and updating through HACS, the config flow and the panel in a running Home Assistant, and the GitHub workflows (nothing has run).
+
+## More than one Home Assistant
+
+`HA_URL` / `HA_TOKEN` (or the add-on's Supervisor proxy) stay the built-in Main home. Further homes are added in the app (Plans > Homes) and linked per plan: see [multi-home.md](multi-home.md). `DOSHY_ALLOW_CUSTOM_HA=0` switches adding them off.
