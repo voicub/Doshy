@@ -1,0 +1,13 @@
+/* "Preview a date": a slider over the year, with what the garden is doing and a way back to today. */
+.sp-prev { display: flex; flex-direction: column; gap: 6px; padding: 6px 9px 8px; min-width: 0; }
+.sp-prev-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; min-width: 0; }
+.sp-prev-row input[type="range"] { flex: 1 1 100%; min-width: 0; }
+.sp-prev-date { font: 500 10.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.sp-prev-ticks { display: flex; justify-content: space-between; font: 500 9px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.sp-prev-words { font: 500 10.5px/1.3 var(--mono); letter-spacing: 0.06em; color: var(--text); min-width: 0; }
+.sp-prev-back { height: 28px; padding: 0 10px; white-space: nowrap; }
+.sp-prev-back:disabled { opacity: 0.45; }
+html:not([data-vp="regular"]) .sp-prev input[type="range"] { height: 44px; }
+html:not([data-vp="regular"]) .sp-prev-back { min-height: 44px; }
+html:not([data-vp="regular"]) :is(.sp-prev-words, .sp-prev-date, .sp-prev-ticks) { font-size: 12px; }
+.t-menu.t-season-menu { min-width: 264px; }

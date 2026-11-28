@@ -1,0 +1,7 @@
+/* "Real sky and weather" switch, its Live tag and the moon readout: extras next to the existing telemetry / compact-menu controls */
+.t-real { padding: 0 10px; }
+.t-livetag { padding: 2px 4px; border: 1px solid var(--accent-line); border-radius: var(--r); font: 500 9px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.moon-glyph { flex: none; }
+.t-moon { display: flex; align-items: center; gap: 6px; }
+.cm-real { grid-column: 1 / -1; }
+@media (max-width: 1680px) { .t-livetag { display: none; } }
