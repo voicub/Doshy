@@ -1,0 +1,44 @@
+/* alerts: the strip under the top bar for a leak, smoke, an open door or an alarm. Solid red or amber with dark or white text (AA), no blur, no animation: it must read at once and cost nothing on a Pi. */
+.alert-banner {
+  --ab-bg: var(--lg-b3261e); --ab-fg: #fff; --ab-line: var(--lg-ffb4a8); --ab-btn-line: rgb(var(--fg-rgb) / 0.75); --ab-hover: rgb(var(--fg-rgb) / 0.2);
+  position: absolute; z-index: 58; left: 50%; top: calc(var(--top) + 46px); transform: translateX(-50%);
+  width: min(760px, calc(100% - 32px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 8px 8px 14px;
+  background: var(--ab-bg); color: var(--ab-fg); border: 1px solid var(--ab-line); border-radius: var(--r);
+}
+.alert-banner.warning { --ab-bg: var(--warn); --ab-fg: var(--lg-1a1100); --ab-line: var(--lg-7a5200); --ab-btn-line: rgb(var(--lg-26-17-0) / 0.7); --ab-hover: rgb(var(--lg-26-17-0) / 0.14); }
+
+.alert-banner > svg { flex: none; }
+.alert-text { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.alert-title { font: 600 11px/1.2 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.alert-msg { font: 500 13px/1.35 var(--mono); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.alert-pager, .alert-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.alert-actions { margin-left: auto; }
+.alert-count { font: 500 11px/1 var(--mono); letter-spacing: 0.08em; white-space: nowrap; }
+
+.alert-btn { min-height: 36px; padding: 0 12px; border: 1px solid var(--ab-btn-line); border-radius: var(--r); font: 600 10.5px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: inherit; white-space: nowrap; transition: background 0.15s; }
+.alert-btn:hover { background: var(--ab-hover); }
+.alert-btn:focus-visible { outline: 2px solid var(--ab-fg); outline-offset: 2px; box-shadow: none; }
+.alert-icon { min-width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+
+/* the bars that sit just under the top row make room (AlertBanner writes --alert-h while it shows) */
+html[data-alert] .app .room-bar { top: calc(var(--top) + 46px + var(--alert-h, 0px)); }
+html[data-alert] .app .chrome .inbox-toast { top: calc(var(--top) + 44px + var(--alert-h, 0px)); }
+
+/* compact screens (800x480, phones): full width, finger-sized buttons, one line of text */
+html:not([data-vp="regular"]) .chrome .alert-banner { top: calc(var(--strip-h) + 6px); left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); width: auto; transform: none; padding: 4px 4px 4px 10px; }
+html:not([data-vp="regular"]) .alert-btn { min-height: 44px; min-width: 44px; font-size: 12px; }
+html:not([data-vp="regular"]) .alert-msg { font-size: 13px; -webkit-line-clamp: 1; }
+html:not([data-vp="regular"]) .alert-title, html:not([data-vp="regular"]) .alert-count { font-size: 12px; }
+html[data-alert]:not([data-vp="regular"]) .app .chrome :is(.room-bar, .inbox-toast) { top: calc(var(--strip-h) + 6px + var(--alert-h, 0px)); }
+html[data-alert]:not([data-vp="regular"]):not([data-orient="portrait"]) .app .chrome .rail { top: calc(var(--strip-h) + 8px + var(--alert-h, 0px)); }
+
+@media (pointer: coarse) { .alert-btn { min-height: 44px; min-width: 44px; } }
+
+/* the folded options in Display settings */
+.alert-more { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.alert-more > summary { display: flex; align-items: center; min-height: 32px; cursor: pointer; font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.alert-more > summary:hover { color: var(--accent); }
+@media (pointer: coarse) { .alert-more > summary { min-height: 44px; } }
+html:not([data-vp="regular"]) .alert-more > summary { min-height: 44px; font-size: 12px; }

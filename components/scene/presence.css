@@ -1,0 +1,18 @@
+/* The initial above a person in the 3D view (components/scene/PresenceAvatar.tsx). --pc = the person's colour. No blur or animation, so Eco pays nothing for it. */
+.ppl-tag {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+  padding: 0 4px;
+  border: 1px solid var(--pc);
+  border-radius: 2px;
+  background: rgb(var(--panel-rgb) / calc(0.82 * var(--panel-k)));
+  color: var(--pc);
+  font: 600 11px/1 var(--mono, "Geist Mono", monospace);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.app.cinema .ppl-tag { opacity: 0; }

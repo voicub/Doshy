@@ -1,0 +1,55 @@
+/* People: the sheet that chooses who shows up in the home (PeopleSheet.tsx) and the tint, "away" badge and edit button on the House now people row (LiveBarParts.tsx).
+   --pc = the person's colour. Classes are `ppl-*` / `lb-*`: class names are global. */
+
+/* ---------- the people row of the live bar ---------- */
+.lb-chips { display: flex; align-items: center; gap: 6px; }
+.lb-person.tinted:not(.away) { border-color: var(--pc); color: var(--pc); background: color-mix(in srgb, var(--pc) 14%, transparent); }
+.lb-person.away { grid-auto-flow: column; gap: 4px; }
+.lb-away { font: 500 8px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.lb-edit { display: grid; place-items: center; min-width: 24px; height: 22px; border: 1px solid transparent; border-radius: var(--r); color: var(--muted); }
+.lb-edit:hover, .lb-edit:focus-visible { color: var(--accent); border-color: var(--accent-line); }
+.livebar.csheet .lb-edit { min-width: 32px; height: 30px; }
+@media (pointer: coarse) { .lb-edit { min-width: 44px; min-height: 44px; } }
+
+/* ---------- the sheet ---------- */
+.ppl-scrim { position: fixed; inset: 0; z-index: 9500; display: grid; place-items: center; padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); background: var(--scrim); }
+.hud.ppl { width: min(520px, 100%); max-height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 12px; background: rgb(var(--panel-rgb) / 0.97); }
+.ppl-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; }
+.ppl-master { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ppl-card { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.ppl-top { display: flex; align-items: center; gap: 10px; }
+.ppl-badge { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--pc); border-radius: 2px; background: color-mix(in srgb, var(--pc) 16%, transparent); color: var(--pc); font: 600 13px/1 var(--mono); text-transform: uppercase; }
+.ppl-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ppl-who strong { font: 500 15px/1.2 var(--sans); overflow-wrap: anywhere; }
+.ppl-id { font: 400 10.5px/1.2 var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ppl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ppl-row > .label { min-width: 74px; }
+.ppl-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.ppl-sw { width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--r); box-shadow: inset 0 0 0 1px rgb(var(--fg-rgb) / 0.22); cursor: pointer; }
+.ppl-sw[aria-pressed="true"] { outline: 2px solid var(--text); outline-offset: 2px; }
+.ppl-sw:focus-visible, .ppl-adv summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ppl-letter, .ppl-select { height: 32px; padding: 0 8px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-35); color: var(--text); font: 500 12px/1 var(--mono); }
+.ppl-letter { width: 56px; text-align: center; text-transform: uppercase; letter-spacing: 0.08em; }
+.ppl-select { min-width: 180px; max-width: 100%; }
+.ppl .seg { flex-wrap: wrap; border: 1px solid var(--accent-line); border-radius: var(--r); }
+.ppl .seg button { height: 32px; }
+.ppl-adv { display: flex; flex-direction: column; gap: 8px; }
+.ppl-adv summary { display: flex; align-items: center; min-height: 28px; color: var(--muted); font: 500 10.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+.ppl-adv[open] > summary { color: var(--accent); }
+.ppl-empty { padding: 10px 0; }
+.ppl-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--accent-line); }
+.ppl-foot .hint { flex: 1; min-width: 160px; font-size: 11.5px; }
+
+html:is([data-vp="tiny"], [data-vp="small"])[data-orient="landscape"] .hud.ppl { width: min(720px, 100%); gap: 6px; padding-block: 8px 6px; }
+html:is([data-vp="tiny"], [data-vp="small"])[data-orient="landscape"] .ppl .hud-head { padding-bottom: 6px; }
+html:is([data-vp="tiny"], [data-vp="small"])[data-orient="landscape"] .ppl-card { gap: 6px; padding: 8px 10px; }
+html[data-vp="tiny"] .ppl .hint { font-size: 13px; line-height: 1.4; }
+
+@media (pointer: coarse) {
+  .ppl .seg button, .ppl .btn, .ppl-letter, .ppl-select { min-height: 44px; }
+  .ppl .seg button { padding: 0 14px; }
+  .ppl-sw { width: 44px; height: 44px; }
+  .ppl-adv summary { min-height: 44px; }
+}
+@media (prefers-reduced-motion: no-preference) { .hud.ppl { animation: ppl-rise 0.2s var(--ease); } }
+@keyframes ppl-rise { from { opacity: 0; transform: translateY(8px); } }
