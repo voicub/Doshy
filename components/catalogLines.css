@@ -1,0 +1,15 @@
+/* The "Roads, paths and fences" fold of the Furniture catalog: pictures that open the Garden lines tool. Compact rules: compactCatalog.css. */
+.cat-lines { border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-25); }
+.cat-lines > summary { cursor: pointer; padding: 8px 10px; font: 500 10px/1.4 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.cat-lines > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cat-lines[open] > summary { border-bottom: 1px solid var(--accent-line); }
+.cat-lines .field-note { margin: 8px 10px 0; }
+.cl-family { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 0; }
+.cl-family:last-child { padding-bottom: 10px; }
+.cl-name { font: 500 10px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.cl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cl-tile { display: flex; flex-direction: column; gap: 3px; padding: 3px; border: 1px solid var(--accent-line); border-radius: var(--r); background: var(--shade-25); color: var(--muted); text-align: center; transition: color 0.15s, border-color 0.15s; }
+.cl-tile:hover { color: var(--text); border-color: var(--border-strong); }
+.cl-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cl-tile .line-pic { height: 36px; }
+.cl-tile > span { display: grid; place-items: center; min-height: 20px; font: 500 9px/1.15 var(--mono); letter-spacing: 0.01em; text-transform: uppercase; }
