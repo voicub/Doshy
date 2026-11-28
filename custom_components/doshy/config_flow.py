@@ -115,6 +115,7 @@ class DoshyConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id=step_id,
             data_schema=self.add_suggested_values_to_schema(ADDRESS_SCHEMA, suggested),
             errors=errors,
+            description_placeholders={"example": "http://homeassistant.local:3000"},
         )
 
     @staticmethod
